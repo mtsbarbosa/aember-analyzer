@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:54320/aember
+    username: aember
+    password: aember
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  flyway:
+    enabled: true
+
+keyteki:
+  data:
+    path: /home/mateus/work/keyteki/master-vault-data

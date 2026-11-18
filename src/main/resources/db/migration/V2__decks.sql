@@ -1,0 +1,30 @@
+CREATE TABLE IF NOT EXISTS decks (
+    id BIGSERIAL PRIMARY KEY,
+    uuid VARCHAR(64) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
+    identity VARCHAR(255) NOT NULL,
+    expansion_id INTEGER NOT NULL REFERENCES expansions(id),
+    is_alliance BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS deck_houses (
+    id BIGSERIAL PRIMARY KEY,
+    deck_id BIGINT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    house_id INTEGER NOT NULL REFERENCES houses(id),
+    UNIQUE (deck_id, house_id)
+);
+
+CREATE TABLE IF NOT EXISTS deck_cards (
+    id BIGSERIAL PRIMARY KEY,
+    deck_id BIGINT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
+    card_id VARCHAR(128) NOT NULL REFERENCES catalog_cards(id),
+    count INTEGER NOT NULL DEFAULT 1,
+    house_id INTEGER NOT NULL REFERENCES houses(id),
+    maverick BOOLEAN NOT NULL DEFAULT FALSE,
+    anomaly BOOLEAN NOT NULL DEFAULT FALSE,
+    enhancements TEXT[] NOT NULL DEFAULT '{}',
+    is_non_deck BOOLEAN NOT NULL DEFAULT FALSE,
+    prophecy_id INTEGER,
+    image_url TEXT
+);

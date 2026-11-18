@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: aember-analyzer
+  datasource:
+    url: jdbc:postgresql://localhost:54320/aember
+    username: aember
+    password: aember
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    show-sql: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 8080
+
+keyteki:
+  data:
+    path: /home/mateus/work/keyteki/master-vault-data
+
+aember:
+  simulation:
+    fidelity-threshold: 70.0
+
+logging:
+  level:
+    root: INFO
+    com.aember.analyzer: DEBUG
