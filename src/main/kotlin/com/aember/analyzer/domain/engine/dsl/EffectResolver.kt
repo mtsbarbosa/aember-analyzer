@@ -6,6 +6,7 @@ import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.Zone
 import kotlin.math.min
+import kotlin.reflect.KClass
 
 /**
  * Executes declarative card effects against the game state.
@@ -15,6 +16,53 @@ class EffectResolver(
     private val library: CardLibrary? = null
 ) {
 
+    private val handlers = mutableMapOf<KClass<out Effect>, (GameState, PlayerState, InPlayCard, Effect) -> Unit>()
+
+    init {
+        register<NoEffect> { _, _, _, _ -> }
+        register<GainAmber> { game, player, _, effect -> gainAmber(game, player, effect.amount) }
+        register<StealAmber> { game, player, _, effect -> stealAmber(game, player, effect.amount) }
+        register<CaptureAmber> { game, player, _, effect -> captureAmber(game, player, effect) }
+        register<LoseAmber> { game, player, _, effect -> loseAmber(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<DealDamage> { game, _, sourceCard, effect -> dealDamage(game, sourceCard, effect) }
+        register<Destroy> { game, player, _, effect -> destroy(game, player, effect) }
+        register<Draw> { game, player, _, effect -> drawCards(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<DiscardRandom> { game, player, _, effect -> discardRandom(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<ReturnToHand> { game, _, sourceCard, effect -> returnToHand(game, sourceCard, effect) }
+        register<Archive> { game, player, _, effect -> archive(game, player, effect) }
+        register<Purge> { game, _, _, effect -> purge(game, effect) }
+        register<Heal> { game, _, _, effect -> heal(game, effect) }
+        register<Ready> { game, _, _, effect -> ready(game, effect) }
+        register<Fight> { game, _, _, effect -> fight(game, effect) }
+        register<GainChains> { game, player, _, effect -> targetPlayer(game, player, effect.player).chains += effect.amount }
+        register<LoseChains> { game, player, _, effect ->
+            val target = targetPlayer(game, player, effect.player)
+            target.chains = (target.chains - effect.amount).coerceAtLeast(0)
+        }
+        register<Stun> { game, _, _, effect -> stun(game, effect) }
+        register<Unstun> { game, _, _, effect -> unstun(game, effect) }
+        register<DestroyMostPowerful> { game, player, _, effect -> destroyMostPowerful(game, player, effect.amount) }
+        register<DestroyLeastPowerful> { game, player, _, effect -> destroyLeastPowerful(game, player, effect.amount) }
+        register<DestroyWeakCreatures> { game, player, _, effect -> destroyWeakCreatures(game, player, effect.powerThreshold) }
+        register<ReadyAndFight> { game, player, _, effect -> readyAndFight(game, player, effect) }
+        register<ReadyAndUse> { game, _, _, effect -> readyAndUse(game, effect) }
+        register<UseCreature> { game, _, _, effect -> useCreature(game, effect) }
+        register<ReturnFromDiscardToHand> { game, player, _, effect -> returnFromDiscardToHand(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<PlayTopCard> { game, player, _, effect -> playTopCard(game, targetPlayer(game, player, effect.player)) }
+        register<SwapDeckAndDiscard> { game, player, _, effect -> swapDeckAndDiscard(game, targetPlayer(game, player, effect.player)) }
+        register<PurgeFromDiscard> { game, player, _, effect -> purgeFromDiscard(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<ArchiveTopDeck> { game, player, _, effect -> archiveTopDeck(game, targetPlayer(game, player, effect.player)) }
+        register<ArchiveFromDiscard> { game, player, _, effect -> archiveFromDiscard(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<ArchiveFromHand> { game, player, _, effect -> archiveFromHand(game, targetPlayer(game, player, effect.player), effect.amount) }
+        register<LoseAllAmber> { game, player, _, effect -> loseAllAmber(game, targetPlayer(game, player, effect.player)) }
+        register<GainAmberOpponent> { game, _, _, effect -> gainAmberOpponent(game, effect.amount) }
+        register<Exhaust> { game, _, _, effect -> exhaust(game, effect) }
+        register<ShuffleHandAndDiscardIntoDeck> { game, player, _, effect -> shuffleHandAndDiscardIntoDeck(game, targetPlayer(game, player, effect.player)) }
+        register<RepeatForEach> { _, _, _, _ ->
+            // Not used for simple cards yet.
+        }
+    }
+
     fun resolve(
         game: GameState,
         sourcePlayer: PlayerState,
@@ -22,43 +70,6 @@ class EffectResolver(
         effect: Effect
     ) {
         when (effect) {
-            is NoEffect -> {}
-            is GainAmber -> gainAmber(game, sourcePlayer, effect.amount)
-            is StealAmber -> stealAmber(game, sourcePlayer, effect.amount)
-            is CaptureAmber -> captureAmber(game, sourcePlayer, effect)
-            is LoseAmber -> loseAmber(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is DealDamage -> dealDamage(game, sourceCard, effect)
-            is Destroy -> destroy(game, sourcePlayer, effect)
-            is Draw -> drawCards(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is DiscardRandom -> discardRandom(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is ReturnToHand -> returnToHand(game, sourceCard, effect)
-            is Archive -> archive(game, sourcePlayer, effect)
-            is Purge -> purge(game, effect)
-            is Heal -> heal(game, effect)
-            is Ready -> ready(game, effect)
-            is Fight -> fight(game, effect)
-            is GainChains -> targetPlayer(game, sourcePlayer, effect.player).chains += effect.amount
-            is LoseChains -> targetPlayer(game, sourcePlayer, effect.player).chains =
-                (targetPlayer(game, sourcePlayer, effect.player).chains - effect.amount).coerceAtLeast(0)
-            is Stun -> stun(game, effect)
-            is Unstun -> unstun(game, effect)
-            is DestroyMostPowerful -> destroyMostPowerful(game, sourcePlayer, effect.amount)
-            is DestroyLeastPowerful -> destroyLeastPowerful(game, sourcePlayer, effect.amount)
-            is DestroyWeakCreatures -> destroyWeakCreatures(game, sourcePlayer, effect.powerThreshold)
-            is ReadyAndFight -> readyAndFight(game, sourcePlayer, effect)
-            is ReadyAndUse -> readyAndUse(game, effect)
-            is UseCreature -> useCreature(game, effect)
-            is ReturnFromDiscardToHand -> returnFromDiscardToHand(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is PlayTopCard -> playTopCard(game, targetPlayer(game, sourcePlayer, effect.player))
-            is SwapDeckAndDiscard -> swapDeckAndDiscard(game, targetPlayer(game, sourcePlayer, effect.player))
-            is PurgeFromDiscard -> purgeFromDiscard(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is ArchiveTopDeck -> archiveTopDeck(game, targetPlayer(game, sourcePlayer, effect.player))
-            is ArchiveFromDiscard -> archiveFromDiscard(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is ArchiveFromHand -> archiveFromHand(game, targetPlayer(game, sourcePlayer, effect.player), effect.amount)
-            is LoseAllAmber -> loseAllAmber(game, targetPlayer(game, sourcePlayer, effect.player))
-            is GainAmberOpponent -> gainAmberOpponent(game, effect.amount)
-            is Exhaust -> exhaust(game, effect)
-            is ShuffleHandAndDiscardIntoDeck -> shuffleHandAndDiscardIntoDeck(game, targetPlayer(game, sourcePlayer, effect.player))
             is Sequence -> effect.effects.forEach { resolve(game, sourcePlayer, sourceCard, it) }
             is Conditional -> {
                 if (evaluateCondition(game, sourcePlayer, effect.condition)) {
@@ -67,9 +78,20 @@ class EffectResolver(
                     resolve(game, sourcePlayer, sourceCard, effect.elseEffect)
                 }
             }
-            is RepeatForEach -> {
-                // Not used for simple cards yet.
+            else -> {
+                val handler = handlers[effect::class]
+                    ?: throw IllegalArgumentException("No handler for ${effect::class.simpleName}")
+                handler(game, sourcePlayer, sourceCard, effect)
             }
+        }
+    }
+
+    private inline fun <reified T : Effect> register(
+        crossinline handler: (GameState, PlayerState, InPlayCard, T) -> Unit
+    ) {
+        handlers[T::class] = { game, player, card, effect ->
+            @Suppress("UNCHECKED_CAST")
+            handler(game, player, card, effect as T)
         }
     }
 
