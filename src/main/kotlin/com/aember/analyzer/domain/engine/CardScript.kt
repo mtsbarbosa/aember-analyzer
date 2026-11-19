@@ -22,6 +22,12 @@ interface CardScript {
 
     fun onAfterFight(game: GameState, player: PlayerState, card: InPlayCard, target: InPlayCard) {}
 
+    /**
+     * Allows a card to modify the damage it deals during the normal fight damage step.
+     * Called separately for attacker and defender damage.
+     */
+    fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = baseDamage
+
     fun onBeforeReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 
     fun onAfterReap(game: GameState, player: PlayerState, card: InPlayCard) {}

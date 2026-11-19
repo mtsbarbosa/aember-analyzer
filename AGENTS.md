@@ -32,6 +32,7 @@ podman-compose up -d      # or docker compose up -d
 ./gradlew bootRun --args "import-deck-file src/test/resources/decks/cota-deck.json"
 ./gradlew bootRun --args "import-deck <master-vault-uuid>"
 ./gradlew bootRun --args "simulate <deck-a> <deck-b> [seed] [aiA] [aiB]"
+./gradlew bootRun --args "mass-simulate <deck-a> <deck-b> <match-count> [aiA] [aiB] [recordLogs]"
 ```
 
 ## REST API
@@ -54,6 +55,60 @@ The app runs on `http://localhost:8080`.
   - Optional `aiA` / `aiB` values: `tactical` (default), `greedy`, `random`, `aggressive`, `economic`.
   - Summary includes `statistics` with counts for reaps, fights, abilities, cards played/discarded, keys forged, and houses chosen.
 - `GET /api/simulate/{deckA}/{deckB}?seed={seed}` with header `X-Debug: true` — return the full verbose game state, fidelity log, and match statistics.
+
+### Mass Simulation
+
+- `POST /api/mass-simulations` — start an async batch of matches between two decks.
+  - Request body: `{ "deckUuidA": "...", "deckUuidB": "...", "matchCount": 100, "aiA": "tactical", "aiB": "tactical", "recordLogs": true, "baseSeed": 12345 }`
+  - Returns `202 Accepted` with the batch metadata (status starts as `PENDING`).
+- `GET /api/mass-simulations` — list all batches.
+- `GET /api/mass-simulations/{uuid}` — get batch details plus aggregate results.
+- `GET /api/mass-simulations/{uuid}/matches` — list per-match results.
+- `GET /api/mass-simulations/{uuid}/matches/{id}/logs` — get the debug log + fidelity log for one match.
+
+Batch status values: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`.
+Results and logs are stored on disk under `.simulations/` (gitignored), not in Postgres.
+
+### curl Examples
+
+```bash
+# Import a deck from the Master Vault
+curl -X POST http://localhost:8080/api/decks/import/{master-vault-uuid}
+
+# List imported decks
+curl "http://localhost:8080/api/decks"
+
+# Filter decks by house and expansion
+curl "http://localhost:8080/api/decks?house=Dis&expansion=341"
+
+# Run a single AI-vs-AI match (slim summary)
+curl "http://localhost:8080/api/simulate/{deck-a-uuid}/{deck-b-uuid}?seed=42&aiA=tactical&aiB=tactical"
+
+# Run a single match with full verbose log and fidelity data
+curl -H "X-Debug: true" "http://localhost:8080/api/simulate/{deck-a-uuid}/{deck-b-uuid}?seed=42"
+
+# Start an async mass-simulation batch
+curl -X POST http://localhost:8080/api/mass-simulations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deckUuidA": "{deck-a-uuid}",
+    "deckUuidB": "{deck-b-uuid}",
+    "matchCount": 100,
+    "aiA": "tactical",
+    "aiB": "tactical",
+    "recordLogs": true,
+    "baseSeed": 12345
+  }'
+
+# Poll the batch until status is COMPLETED or FAILED
+curl "http://localhost:8080/api/mass-simulations/{batch-uuid}"
+
+# List per-match results
+curl "http://localhost:8080/api/mass-simulations/{batch-uuid}/matches"
+
+# Get debug log + fidelity log for match #1
+curl "http://localhost:8080/api/mass-simulations/{batch-uuid}/matches/1/logs"
+```
 
 ## Architecture
 
@@ -88,6 +143,7 @@ src/main/kotlin/com/aember/analyzer/
 - Deterministic match simulation via seeds.
 - REST endpoints and CLI commands for import and simulation.
 - Deck query API: list, filter (by name, house, expansion), and retrieve by UUID.
+- Async mass-simulation harness: run `N` matches between two decks, store aggregate results and per-match debug logs on disk under `.simulations/`.
 
 ### DSL / Card Coverage
 
@@ -154,9 +210,10 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 | Generator | `tools/generate-core-cards.py` |
 | Fidelity | `domain/engine/fidelity/FidelityLevel.kt`, `CardFidelity.kt`, `FidelityReportService.kt` |
 | AI | `domain/ai/TacticalAI.kt`, `AISettings.kt`, `GreedyAI.kt`, `RandomAI.kt` |
-| Services | `application/SimulationService.kt`, `DeckImportService.kt` |
-| CLI/REST | `adapter/cli/AemberCliRunner.kt`, `adapter/rest/SimulationController.kt`, `DeckController.kt` |
-| Tests | `src/test/kotlin/com/aember/analyzer/engine/*` |
+| Services | `application/SimulationService.kt`, `MassSimulationService.kt`, `MassSimulationAsyncExecutor.kt`, `DeckImportService.kt` |
+| Storage | `infrastructure/persistence/FileSystemMassSimulationRepository.kt` |
+| CLI/REST | `adapter/cli/AemberCliRunner.kt`, `adapter/rest/SimulationController.kt`, `MassSimulationController.kt`, `DeckController.kt` |
+| Tests | `src/test/kotlin/com/aember/analyzer/engine/*`, `src/test/kotlin/com/aember/analyzer/simulation/*` |
 
 ## How to Analyze a Gameplay Log
 
@@ -336,7 +393,7 @@ Open an issue or fix directly if you see:
 4. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
 5. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
 6. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
-7. **Mass simulation harness** and deck scoring (SoS / Bradley-Terry) are not started.
+7. **Deck scoring** (SoS / Bradley-Terry) is not started.
 8. **More sets** beyond Core (`CotA`) are not seeded.
 
 ## How to Add a New Card Behaviour

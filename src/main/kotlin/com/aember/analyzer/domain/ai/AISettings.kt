@@ -14,6 +14,7 @@ data class AISettings(
     val discardWeight: Double = 0.1,
     val boardControlWeight: Double = 0.5,
     val threatRemovalWeight: Double = 0.6,
+    val amberControlThreatWeight: Double = 1.0,
     val forgeUrgencyThreshold: Int = 5,
     val forgeUrgencyBonus: Double = 2.0,
     val secondKeyUrgencyBonus: Double = 1.0

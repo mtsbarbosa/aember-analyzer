@@ -1,7 +1,10 @@
 package com.aember.analyzer.adapter.cli
 
 import com.aember.analyzer.application.DeckImportService
+import com.aember.analyzer.application.MassSimulationRequest
+import com.aember.analyzer.application.MassSimulationService
 import com.aember.analyzer.application.SimulationService
+import com.aember.analyzer.domain.model.MassSimulationStatus
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.stereotype.Component
@@ -11,7 +14,8 @@ import kotlin.system.exitProcess
 @Component
 class AemberCliRunner(
     private val deckImportService: DeckImportService,
-    private val simulationService: SimulationService
+    private val simulationService: SimulationService,
+    private val massSimulationService: MassSimulationService
 ) : CommandLineRunner {
 
     private val logger = LoggerFactory.getLogger(javaClass)
@@ -64,10 +68,59 @@ class AemberCliRunner(
                 println("Match statistics: reaps=${stats.reaps}, fights=${stats.fights}, actionAbilities=${stats.actionAbilitiesUsed}, omni=${stats.omniAbilitiesUsed}, played=${stats.cardsPlayed}, discarded=${stats.cardsDiscarded}, keys=${stats.keysForged}, total=${stats.totalActions}")
                 exitProcess(0)
             }
+            "mass-simulate" -> {
+                val deckA = args.getOrNull(1) ?: throw IllegalArgumentException("Usage: mass-simulate <deck-uuid-a> <deck-uuid-b> <match-count> [aiA] [aiB] [recordLogs]")
+                val deckB = args.getOrNull(2) ?: throw IllegalArgumentException("Usage: mass-simulate <deck-uuid-a> <deck-uuid-b> <match-count> [aiA] [aiB] [recordLogs]")
+                val matchCount = args.getOrNull(3)?.toIntOrNull()
+                    ?: throw IllegalArgumentException("Usage: mass-simulate <deck-uuid-a> <deck-uuid-b> <match-count> [aiA] [aiB] [recordLogs]")
+                val aiA = args.getOrNull(4) ?: "tactical"
+                val aiB = args.getOrNull(5) ?: "tactical"
+                val recordLogs = args.getOrNull(6)?.toBooleanStrictOrNull() ?: true
+
+                logger.info("CLI mass-simulate invoked for $deckA ($aiA) vs $deckB ($aiB), $matchCount matches")
+                val batch = massSimulationService.runMassSimulation(
+                    MassSimulationRequest(
+                        deckUuidA = deckA,
+                        deckUuidB = deckB,
+                        matchCount = matchCount,
+                        aiA = aiA,
+                        aiB = aiB,
+                        recordLogs = recordLogs
+                    )
+                )
+                println("Started mass simulation batch: ${batch.uuid}")
+                println("Polling for completion...")
+
+                val completedBatch = pollForCompletion(batch.uuid)
+                println("\nBatch status: ${completedBatch.status}")
+                println("Matches: ${completedBatch.matchCount}")
+                println("Wins A (${completedBatch.deckA.name}): ${completedBatch.winsA}")
+                println("Wins B (${completedBatch.deckB.name}): ${completedBatch.winsB}")
+                println("Draws: ${completedBatch.draws}")
+                println("Avg rounds: ${completedBatch.avgRounds?.let { "%.2f".format(it) } ?: "-"}")
+                println("Avg turns: ${completedBatch.avgTurns?.let { "%.2f".format(it) } ?: "-"}")
+                println("Avg fidelity: ${completedBatch.avgFidelity?.let { "%.2f%%".format(it) } ?: "-"}")
+                if (completedBatch.errorMessage != null) {
+                    println("Error: ${completedBatch.errorMessage}")
+                }
+                exitProcess(0)
+            }
             else -> {
                 // Unknown CLI command; let the application continue (web mode).
                 logger.warn("Unknown CLI command: ${args[0]}")
             }
         }
+    }
+
+    private fun pollForCompletion(uuid: String, timeoutMs: Long = 300_000, intervalMs: Long = 500): com.aember.analyzer.application.MassSimulationBatchDto {
+        val start = System.currentTimeMillis()
+        while (System.currentTimeMillis() - start < timeoutMs) {
+            val batch = massSimulationService.getBatch(uuid)
+            if (batch.status == MassSimulationStatus.COMPLETED || batch.status == MassSimulationStatus.FAILED) {
+                return batch
+            }
+            Thread.sleep(intervalMs)
+        }
+        throw IllegalStateException("Timed out waiting for mass simulation batch $uuid")
     }
 }

@@ -3,6 +3,8 @@ package com.aember.analyzer.infrastructure.config
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.cards.Anger
 import com.aember.analyzer.domain.engine.cards.BadPenny
+import com.aember.analyzer.domain.engine.cards.Drumble
+import com.aember.analyzer.domain.engine.cards.EtherSpider
 import com.aember.analyzer.domain.engine.cards.coreSetCards
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
@@ -27,6 +29,8 @@ class CardLibraryConfig {
         // Manual overrides for cards the DSL generator cannot express cleanly.
         library.register("bad-penny", BadPenny)
         library.register("anger", Anger)
+        library.register("drumble", Drumble)
+        library.register("ether-spider", EtherSpider)
 
         return library
     }

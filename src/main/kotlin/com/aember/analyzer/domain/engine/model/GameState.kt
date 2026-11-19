@@ -36,6 +36,29 @@ data class GameState(
     fun logFidelity(cardId: String, level: FidelityLevel, context: String) {
         fidelityLog.add(FidelityEntry(turn, cardId, level, context))
     }
+
+    /**
+     * Adds amber to a player, redirecting it to an opponent's Ether Spider if one is in play.
+     */
+    fun gainAmber(player: PlayerState, amount: Int, logMessage: String) {
+        val spider = findEtherSpiderControlledByOpponent(player)
+        if (spider != null && amount > 0) {
+            val before = spider.capturedAmber
+            spider.capturedAmber += amount
+            log("$logMessage, but ${spider.cardId} captures it (${spider.cardId}: $before -> ${spider.capturedAmber})")
+        } else {
+            val before = player.amber
+            player.amber += amount
+            log("$logMessage (${player.name}: $before -> ${player.amber})")
+        }
+    }
+
+    private fun findEtherSpiderControlledByOpponent(player: PlayerState): InPlayCard? {
+        return players
+            .filter { it.index != player.index }
+            .flatMap { it.creatures }
+            .find { it.cardId == "ether-spider" && it.controllerIndex != player.index }
+    }
 }
 
 enum class EndCause {

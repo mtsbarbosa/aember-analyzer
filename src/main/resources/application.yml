@@ -26,6 +26,7 @@ keyteki:
 aember:
   simulation:
     fidelity-threshold: 70.0
+    storage-path: .simulations
 
 logging:
   level:

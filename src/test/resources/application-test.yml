@@ -12,3 +12,7 @@ spring:
 keyteki:
   data:
     path: /home/mateus/work/keyteki/master-vault-data
+
+aember:
+  simulation:
+    storage-path: build/test-simulations
