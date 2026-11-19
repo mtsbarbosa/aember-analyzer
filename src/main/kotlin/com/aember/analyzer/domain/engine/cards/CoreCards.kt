@@ -55,3 +55,29 @@ object Anger : CardScript {
         target.damage += enemy.power
     }
 }
+
+object Drumble : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Play effect captures all opponent amber when they have 7 or more"
+    )
+
+    override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
+        val opponent = game.opponent()
+        if (opponent.amber >= 7) {
+            val captured = opponent.amber
+            opponent.amber = 0
+            card.capturedAmber += captured
+            game.log("${card.cardId} captures all $captured amber from ${opponent.name}")
+        }
+    }
+}
+
+object EtherSpider : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Redirects opponent amber gains to captured amber; deals no damage when fighting"
+    )
+
+    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = 0
+}

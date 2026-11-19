@@ -66,9 +66,7 @@ class ActionExecutor(
 
         // Resolve bonus amber pips before card text.
         if (catalog.amber > 0) {
-            val before = player.amber
-            player.amber += catalog.amber
-            game.log("${player.name} gains ${catalog.amber} amber from bonus icons (${player.name}: $before -> ${player.amber})")
+            game.gainAmber(player, catalog.amber, "${player.name} gains ${catalog.amber} amber from bonus icons")
         }
 
         when (catalog.type) {
@@ -119,9 +117,7 @@ class ActionExecutor(
             is ReapUse -> {
                 library.scriptFor(creature.cardId).onBeforeReap(game, player, creature)
                 creature.exhausted = true
-                val before = player.amber
-                player.amber += 1
-                game.log("${player.name} reaps with ${creature.cardId} for 1 amber (${player.name}: $before -> ${player.amber})")
+                game.gainAmber(player, 1, "${player.name} reaps with ${creature.cardId} for 1 amber")
                 library.scriptFor(creature.cardId).onReap(game, player, creature)
                 library.scriptFor(creature.cardId).onAfterReap(game, player, creature)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
@@ -229,9 +225,9 @@ class ActionExecutor(
         // Skirmish: attacker takes no damage.
         val skirmish = attacker.hasKeyword(Keyword.SKIRMISH)
 
-        // Normal fight damage
-        val attackerDamage = attacker.power
-        val defenderDamage = if (skirmish) 0 else defender.power
+        // Normal fight damage. Cards may modify the damage they deal when fighting.
+        val attackerDamage = library.scriptFor(attacker.cardId).modifyFightDamage(true, attacker.power)
+        val defenderDamage = library.scriptFor(defender.cardId).modifyFightDamage(false, if (skirmish) 0 else defender.power)
 
         dealDamage(attacker, defenderDamage)
         if (!elusive) {

@@ -185,6 +185,7 @@ class TacticalAI(
         val boardControlDelta = (opponentProduction - myProduction) * settings.boardControlWeight
 
         val score = (killValue + survivalBonus - riskPenalty + boardControlDelta) * settings.fightWeight
+        val amberControlThreat = evaluateAmberControlThreat(library.cardData(target.cardId))
         val rationale = buildString {
             append("fight ${attacker.cardId}(P${attacker.power}) vs ${target.cardId}(P${target.power})")
             append(", threat=${format(targetThreat)}")
@@ -192,6 +193,7 @@ class TacticalAI(
             append(", boardDelta=${format(boardControlDelta)}")
             append(", survival=${format(survivalBonus)}")
             append(", risk=${format(riskPenalty)}")
+            if (amberControlThreat > 0.0) append(", amberControl=${format(amberControlThreat)}")
         }
         return ScoredAction(action, score, rationale)
     }
@@ -220,7 +222,43 @@ class TacticalAI(
         if (creature.hasKeyword(Keyword.ELUSIVE)) threat += 0.5
         if (creature.hasKeyword(Keyword.TAUNT)) threat += 0.5
         if (creature.hasKeyword(Keyword.ASSAULT)) threat += 0.5
+        val catalog = library.cardData(creature.cardId)
+        threat += evaluateAmberControlThreat(catalog) * settings.amberControlThreatWeight
         return threat
+    }
+
+    /**
+     * Detects ongoing amber-control effects from card text.
+     * Higher values make the AI prioritize removing lock/tax creatures
+     * like Ether Spider, Drumble, and Grabber-Jammer.
+     */
+    private fun evaluateAmberControlThreat(catalog: CatalogCard?): Double {
+        if (catalog == null) return 0.0
+        val text = catalog.text.lowercase()
+
+        // Prevents forging keys entirely.
+        if (text.contains("cannot forge")) return 2.0
+
+        // Captures amber whenever the opponent gains amber.
+        if (text.contains("gains amber") && text.contains("capture")) return 1.8
+
+        // Forces opponent to pay more amber to forge keys.
+        if (text.contains("keys cost") || (text.contains("forge") && text.contains("additional") && text.contains("amber"))) {
+            return 1.5
+        }
+
+        // Recurring steal/capture on reap/fight/action.
+        val hasRecurringTrigger = text.contains("reap:") || text.contains("fight:") || text.contains("action:")
+        if (hasRecurringTrigger && text.contains("amber") && (text.contains("steal") || text.contains("capture"))) {
+            return 1.2
+        }
+
+        // One-time steal/capture/opponent-loses-amber effects.
+        if (text.contains("amber") && (text.contains("steal") || text.contains("capture") || text.contains("opponent loses"))) {
+            return 0.5
+        }
+
+        return 0.0
     }
 
     private fun amberGenerationPotential(player: PlayerState): Int {

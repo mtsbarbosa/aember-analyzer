@@ -42,3 +42,6 @@ logs/
 
 ### Testcontainers ###
 .testcontainers*
+
+### Local simulation results ###
+.simulations/

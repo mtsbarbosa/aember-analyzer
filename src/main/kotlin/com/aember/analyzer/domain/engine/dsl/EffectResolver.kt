@@ -96,16 +96,12 @@ class EffectResolver(
     }
 
     private fun gainAmber(game: GameState, player: PlayerState, amount: Int) {
-        val before = player.amber
-        player.amber += amount
-        game.log("${player.name} gains $amount amber (${player.name}: $before -> ${player.amber})")
+        game.gainAmber(player, amount, "${player.name} gains $amount amber")
     }
 
     private fun gainAmberOpponent(game: GameState, amount: Int) {
         val opponent = game.opponent()
-        val before = opponent.amber
-        opponent.amber += amount
-        game.log("${opponent.name} gains $amount amber (${opponent.name}: $before -> ${opponent.amber})")
+        game.gainAmber(opponent, amount, "${opponent.name} gains $amount amber")
     }
 
     private fun stealAmber(game: GameState, player: PlayerState, amount: Int) {
