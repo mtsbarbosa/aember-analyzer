@@ -148,10 +148,15 @@ src/main/kotlin/com/aember/analyzer/
 ### DSL / Card Coverage
 
 - `domain/engine/cards/CoreSetDslCards.kt` contains ~368 of 370 Core cards generated from `tools/generate-core-cards.py`.
-- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`.
+- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`, `Drumble`, `EtherSpider`, `ShadowSelf`, `SpeedSigil`.
+- `CardScript` exposes static-ability hooks so generic engine code never checks card names:
+  - `cardEntersReady()` — e.g. Speed Sigil.
+  - `redirectsNeighborDamage()` — e.g. Shadow Self.
+  - `capturesOpponentAmberGains()` — e.g. Ether Spider.
+  - `modifyFightDamage(...)` — e.g. Ether Spider, Shadow Self.
 - Supported triggers: `Play`, `Reap`, `Fight`, `Before Fight`, `After Fight`, `Before Reap`, `After Reap`, `Destroyed`, `Action`, `Omni`.
 - Supported effect types in `domain/engine/dsl/Effect.kt`:
-  - `GainAmber`, `StealAmber`, `CaptureAmber`, `LoseAmber`, `GainAmberOpponent`, `LoseAllAmber`
+  - `GainAmber`, `GainAmberOnTriggerThisTurn`, `StealAmber`, `CaptureAmber`, `LoseAmber`, `GainAmberOpponent`, `LoseAllAmber`
   - `DealDamage`, `Destroy`, `DestroyMostPowerful`, `DestroyLeastPowerful`, `DestroyWeakCreatures`
   - `Draw`, `DiscardRandom`
   - `ReturnToHand`, `ReturnFromDiscardToHand`
@@ -163,6 +168,17 @@ src/main/kotlin/com/aember/analyzer/
   - `Stun`, `Unstun`
   - `GainChains`, `LoseChains`
   - `Sequence`, `Conditional`
+- Supported conditions in `domain/engine/dsl/Condition.kt`:
+  - `OpponentHasMoreAmber`, `SelfHasMoreAmber`, `OpponentHasFewerCreatures`, `SelfHasFewerCreatures`
+  - `OpponentAmberAtLeast(amount)`, `OpponentAmberAtMost(amount)`, `OpponentAmberExactly(amount)`, `SelfAmberAtLeast(amount)`
+  - `StealSucceeded`, `DamageDestroyedTarget`
+  - `Always`
+- Supported creature selectors in `domain/engine/dsl/Target.kt`:
+  - `FriendlyCreature`, `EnemyCreature`, `AnyCreature`
+  - `FriendlyCreatureWithTrait`, `EnemyCreatureWithTrait`, `CreatureWithKeyword`
+  - `FriendlyCreatureWithHouse`, `OtherFriendlyCreatureWithHouse`
+  - `CreatureAndNeighbors(base)`, `EachOtherUndamagedCreature`, `AllCreaturesOfChosenHouse`, `LastDamagedTarget`
+- Play restrictions: `CardDefinition.playableIf(condition)` prevents a card from being generated as a legal play action when the condition is false.
 
 ### Fidelity System
 

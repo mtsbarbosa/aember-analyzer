@@ -21,6 +21,9 @@ class EffectResolver(
     init {
         register<NoEffect> { _, _, _, _ -> }
         register<GainAmber> { game, player, _, effect -> gainAmber(game, player, effect.amount) }
+        register<GainAmberOnTriggerThisTurn> { _, player, _, effect ->
+            player.turnTriggerAmber[effect.trigger] = player.turnTriggerAmber.getOrDefault(effect.trigger, 0) + effect.amount
+        }
         register<StealAmber> { game, player, _, effect -> stealAmber(game, player, effect.amount) }
         register<CaptureAmber> { game, player, _, effect -> captureAmber(game, player, effect) }
         register<LoseAmber> { game, player, _, effect -> loseAmber(game, targetPlayer(game, player, effect.player), effect.amount) }
@@ -69,13 +72,28 @@ class EffectResolver(
         sourceCard: InPlayCard,
         effect: Effect
     ) {
+        // Reset ephemeral trackers at the start of a top-level effect.
+        if (sourceCard.instanceId != "dummy") {
+            game.lastStealAmount = 0
+            game.lastDamageDestroyed = false
+            game.lastDamagedTargetId = null
+        }
+        resolveInternal(game, sourcePlayer, sourceCard, effect)
+    }
+
+    private fun resolveInternal(
+        game: GameState,
+        sourcePlayer: PlayerState,
+        sourceCard: InPlayCard,
+        effect: Effect
+    ) {
         when (effect) {
-            is Sequence -> effect.effects.forEach { resolve(game, sourcePlayer, sourceCard, it) }
+            is Sequence -> effect.effects.forEach { resolveInternal(game, sourcePlayer, sourceCard, it) }
             is Conditional -> {
                 if (evaluateCondition(game, sourcePlayer, effect.condition)) {
-                    resolve(game, sourcePlayer, sourceCard, effect.thenEffect)
+                    resolveInternal(game, sourcePlayer, sourceCard, effect.thenEffect)
                 } else {
-                    resolve(game, sourcePlayer, sourceCard, effect.elseEffect)
+                    resolveInternal(game, sourcePlayer, sourceCard, effect.elseEffect)
                 }
             }
             else -> {
@@ -111,6 +129,7 @@ class EffectResolver(
         val stolen = min(amount, opponent.amber)
         opponent.amber -= stolen
         player.amber += stolen
+        game.lastStealAmount = stolen
         game.log(
             "${player.name} steals $stolen amber from ${opponent.name} " +
                 "(${player.name}: $playerBefore -> ${player.amber}, ${opponent.name}: $opponentBefore -> ${opponent.amber})"
@@ -141,7 +160,7 @@ class EffectResolver(
     private fun dealDamage(game: GameState, sourceCard: InPlayCard, effect: DealDamage) {
         val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
-            applyDamage(target, effect.amount)
+            applyDamage(game, target, effect.amount)
             game.log("${sourceCard.cardId} deals ${effect.amount} damage to ${target.cardId}")
         }
     }
@@ -231,12 +250,30 @@ class EffectResolver(
         game.log("${attacker.cardId} fights ${defender.cardId}")
     }
 
-    private fun applyDamage(card: InPlayCard, amount: Int) {
-        if (card.ward) {
-            card.ward = false
+    private fun applyDamage(game: GameState, card: InPlayCard, amount: Int) {
+        if (amount <= 0) return
+        val actualTarget = resolveDamageTarget(game, card)
+        if (actualTarget.ward) {
+            actualTarget.ward = false
             return
         }
-        card.damage += (amount - card.armor).coerceAtLeast(0)
+        val wasAlive = actualTarget.damage < actualTarget.power
+        actualTarget.damage += (amount - actualTarget.armor).coerceAtLeast(0)
+        game.lastDamagedTargetId = actualTarget.instanceId
+        if (wasAlive && actualTarget.damage >= actualTarget.power) {
+            game.lastDamageDestroyed = true
+        }
+    }
+
+    private fun resolveDamageTarget(game: GameState, card: InPlayCard): InPlayCard {
+        if (card.traits.contains("specter")) return card
+        val controller = game.player(card.controllerIndex)
+        val idx = controller.creatures.indexOf(card)
+        if (idx == -1) return card
+        val left = controller.creatures.getOrNull(idx - 1)
+        val right = controller.creatures.getOrNull(idx + 1)
+        val redirector = listOfNotNull(left, right).find { library?.scriptFor(it.cardId)?.redirectsNeighborDamage() == true }
+        return redirector ?: card
     }
 
     private fun stun(game: GameState, effect: Stun) {
@@ -273,10 +310,16 @@ class EffectResolver(
         val attacker = attackers.firstOrNull() ?: return
         attacker.exhausted = false
         val defender = game.opponent().creatures.randomOrNull() ?: return
-        defender.damage += attacker.power
-        attacker.damage += defender.power
+        val attackerDamage = library?.scriptFor(attacker.cardId)?.modifyFightDamage(true, attacker.power) ?: attacker.power
+        val defenderDamage = library?.scriptFor(defender.cardId)?.modifyFightDamage(false, defender.power) ?: defender.power
+        defender.damage += attackerDamage
+        attacker.damage += defenderDamage
         attacker.exhausted = true
         game.log("${attacker.cardId} readies and fights ${defender.cardId}")
+        val amberPerFight = sourcePlayer.turnTriggerAmber[TurnTrigger.FRIENDLY_CREATURE_FIGHTS] ?: 0
+        if (amberPerFight > 0) {
+            game.gainAmber(sourcePlayer, amberPerFight, "${sourcePlayer.name} gains $amberPerFight amber from friendly creature fighting")
+        }
     }
 
     private fun readyAndUse(game: GameState, effect: ReadyAndUse) {
@@ -382,7 +425,7 @@ class EffectResolver(
         game.log("${player.name} shuffles hand and discard into deck")
     }
 
-    private fun evaluateCondition(game: GameState, player: PlayerState, condition: Condition): Boolean {
+    fun evaluateCondition(game: GameState, player: PlayerState, condition: Condition): Boolean {
         val opponent = game.opponent()
         return when (condition) {
             is OpponentHasMoreAmber -> opponent.amber > player.amber
@@ -391,6 +434,12 @@ class EffectResolver(
             is SelfHasFewerCreatures -> player.creatures.size < opponent.creatures.size
             is TargetIsDamaged -> false // not used in simple conditions
             is Always -> true
+            is OpponentAmberAtLeast -> opponent.amber >= condition.amount
+            is OpponentAmberAtMost -> opponent.amber <= condition.amount
+            is OpponentAmberExactly -> opponent.amber == condition.amount
+            is SelfAmberAtLeast -> player.amber >= condition.amount
+            is StealSucceeded -> game.lastStealAmount > 0
+            is DamageDestroyedTarget -> game.lastDamageDestroyed
         }
     }
 
@@ -407,7 +456,7 @@ class EffectResolver(
             cardId = "dummy",
             ownerIndex = player.index,
             controllerIndex = player.index,
-            zone = com.aember.analyzer.domain.engine.model.Zone.PLAY_AREA,
+            zone = Zone.PLAY_AREA,
             house = com.aember.analyzer.domain.model.House.BROBNAR,
             type = com.aember.analyzer.domain.model.CardType.CREATURE
         )

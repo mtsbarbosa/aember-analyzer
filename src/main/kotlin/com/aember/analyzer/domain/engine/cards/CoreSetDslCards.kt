@@ -25,8 +25,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("burn-the-stockpile") {
-            play(LoseAmber(4, SelfPlayer))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentAmberAtLeast(7), LoseAmber(4, OpponentPlayer)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("champions-challenge") {
             play(Sequence(listOf(Destroy(AnyCreature(Scope.ALL)), Destroy(AnyCreature(Scope.ALL)))))
@@ -61,23 +61,23 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("smith") {
-            play(GainAmber(2))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentHasFewerCreatures, GainAmber(2)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("sound-the-horns") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("tremor") {
-            play(Stun(AnyCreature()))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Stun(CreatureAndNeighbors(AnyCreature())))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("unguarded-camp") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("warsong") {
-            play(GainAmber(1))
+            play(GainAmberOnTriggerThisTurn(1, TurnTrigger.FRIENDLY_CREATURE_FIGHTS))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("autocannon") {
@@ -149,13 +149,14 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("hebe-the-huge") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DealDamage(2, EachOtherUndamagedCreature))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("kelifi-dragon") {
+            playableIf(SelfAmberAtLeast(7))
             reap(Sequence(listOf(GainAmber(1), DealDamage(5, AnyCreature()))))
             fight(Sequence(listOf(GainAmber(1), DealDamage(5, AnyCreature()))))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("king-of-the-crag") {
             play(NoEffect)
@@ -166,8 +167,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("lomir-flamefist") {
-            play(LoseAmber(2, SelfPlayer))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentAmberAtLeast(7), LoseAmber(2, OpponentPlayer)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("looter-goblin") {
             reap(GainAmber(1))
@@ -191,7 +192,7 @@ val coreSetCards = listOf(
         },
     card("smaaash") {
             play(Stun(AnyCreature()))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("tireless-crocag") {
             play(NoEffect)
@@ -393,8 +394,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("shooler") {
-            play(StealAmber(1))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentAmberAtLeast(4), StealAmber(1)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("snudge") {
             reap(NoEffect)
@@ -414,8 +415,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("the-terror") {
-            play(GainAmber(2))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentAmberAtMost(0), GainAmber(2)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("tocsin") {
             reap(DiscardRandom(1, OpponentPlayer))
@@ -474,8 +475,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("neuro-syphon") {
-            play(Conditional(OpponentHasMoreAmber, StealAmber(1), StealAmber(1)))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentHasMoreAmber, Sequence(listOf(StealAmber(1), Draw(1, SelfPlayer)))))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("phase-shift") {
             play(NoEffect)
@@ -837,9 +838,9 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("yxilo-bolter") {
-            reap(DealDamage(2, AnyCreature()))
-            fight(DealDamage(2, AnyCreature()))
-            fidelity(FidelityLevel.APPROXIMATED, "Approximated; complex interaction ignored")
+            reap(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget)))))
+            fight(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget)))))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("yxilx-dominator") {
             play(NoEffect)
@@ -875,8 +876,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("blinding-light") {
-            play(Stun(AnyCreature(Scope.ALL)))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Stun(AllCreaturesOfChosenHouse))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("charge") {
             play(NoEffect)
@@ -1094,8 +1095,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("bait-and-switch") {
-            play(Conditional(OpponentHasMoreAmber, StealAmber(1), StealAmber(1)))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentHasMoreAmber, StealAmber(1)))
+            fidelity(FidelityLevel.PARTIAL, "Repeat-until loop not implemented; steals once when ahead")
         },
     card("booby-trap") {
             play(DealDamage(4, AnyCreature()))
@@ -1106,8 +1107,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.APPROXIMATED, "Approximated; complex interaction ignored")
         },
     card("ghostly-hand") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(Conditional(OpponentAmberExactly(1), StealAmber(1)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("hidden-stash") {
             play(ArchiveFromHand(1, SelfPlayer))
@@ -1130,8 +1131,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("nerve-blast") {
-            play(Sequence(listOf(StealAmber(1), DealDamage(2, AnyCreature()))))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Sequence(listOf(StealAmber(1), Conditional(StealSucceeded, DealDamage(2, AnyCreature())))))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("one-last-job") {
             play(StealAmber(1))
@@ -1150,8 +1151,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("relentless-whispers") {
-            play(Sequence(listOf(DealDamage(2, AnyCreature()), StealAmber(1))))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, StealAmber(1)))))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("routine-job") {
             play(Sequence(listOf(StealAmber(1), StealAmber(1))))
@@ -1191,8 +1192,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("skeleton-key") {
-            action("A friendly creature captures 1A", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            action("A friendly creature captures 1A", CaptureAmber(1, FriendlyCreature()))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("special-delivery") {
             omni(NoEffect)
@@ -1269,7 +1270,7 @@ val coreSetCards = listOf(
         },
     card("shadow-self") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Manual override implements damage redirection and zero fight damage")
         },
     card("silvertooth") {
             play(NoEffect)
@@ -1432,8 +1433,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("flaxia") {
-            play(GainAmber(2))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(Conditional(OpponentHasFewerCreatures, GainAmber(2)))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("fuzzy-gruen") {
             play(GainAmberOpponent(1))

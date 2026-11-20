@@ -5,6 +5,8 @@ import com.aember.analyzer.domain.engine.cards.Anger
 import com.aember.analyzer.domain.engine.cards.BadPenny
 import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
+import com.aember.analyzer.domain.engine.cards.ShadowSelf
+import com.aember.analyzer.domain.engine.cards.SpeedSigil
 import com.aember.analyzer.domain.engine.cards.coreSetCards
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
@@ -31,6 +33,8 @@ class CardLibraryConfig {
         library.register("anger", Anger)
         library.register("drumble", Drumble)
         library.register("ether-spider", EtherSpider)
+        library.register("shadow-self", ShadowSelf)
+        library.register("speed-sigil", SpeedSigil)
 
         return library
     }

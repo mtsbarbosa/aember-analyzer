@@ -63,6 +63,11 @@ class DslCardScript(
         }
     }
 
+    override fun playable(game: GameState, player: PlayerState): Boolean {
+        val condition = definition.playCondition ?: return true
+        return resolver.evaluateCondition(game, player, condition)
+    }
+
     override fun actionAbilities(): List<String> {
         return definition.actionAbilities.map { it.first } +
             if (definition.omniEffect != NoEffect) listOf("Omni") else emptyList()

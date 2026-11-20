@@ -20,7 +20,11 @@ data class GameState(
     var done: Boolean = false,
     var actionsThisPhase: Int = 0,
     var endPhaseRightNow: Boolean = false,
-    val statistics: MatchStatistics = MatchStatistics()
+    val statistics: MatchStatistics = MatchStatistics(),
+    // Temporary state used inside a single effect resolution.
+    var lastStealAmount: Int = 0,
+    var lastDamageDestroyed: Boolean = false,
+    var lastDamagedTargetId: String? = null
 ) {
 
     fun activePlayer(): PlayerState = players[activePlayerIndex]
@@ -38,26 +42,25 @@ data class GameState(
     }
 
     /**
-     * Adds amber to a player, redirecting it to an opponent's Ether Spider if one is in play.
+     * Lambda used to find a card that redirects an opponent's amber gain.
+     * Injected by the engine so GameState stays decoupled from specific card scripts.
+     */
+    var amberRedirector: ((player: PlayerState, amount: Int) -> InPlayCard?)? = null
+
+    /**
+     * Adds amber to a player, redirecting it if an opponent controls a redirector.
      */
     fun gainAmber(player: PlayerState, amount: Int, logMessage: String) {
-        val spider = findEtherSpiderControlledByOpponent(player)
-        if (spider != null && amount > 0) {
-            val before = spider.capturedAmber
-            spider.capturedAmber += amount
-            log("$logMessage, but ${spider.cardId} captures it (${spider.cardId}: $before -> ${spider.capturedAmber})")
+        val redirector = amberRedirector?.invoke(player, amount)
+        if (redirector != null && amount > 0) {
+            val before = redirector.capturedAmber
+            redirector.capturedAmber += amount
+            log("$logMessage, but ${redirector.cardId} captures it (${redirector.cardId}: $before -> ${redirector.capturedAmber})")
         } else {
             val before = player.amber
             player.amber += amount
             log("$logMessage (${player.name}: $before -> ${player.amber})")
         }
-    }
-
-    private fun findEtherSpiderControlledByOpponent(player: PlayerState): InPlayCard? {
-        return players
-            .filter { it.index != player.index }
-            .flatMap { it.creatures }
-            .find { it.cardId == "ether-spider" && it.controllerIndex != player.index }
     }
 }
 

@@ -28,11 +28,31 @@ interface CardScript {
      */
     fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = baseDamage
 
+    /**
+     * Static ability: if true, the first creature played by this controller each turn enters play ready.
+     */
+    fun cardEntersReady(): Boolean = false
+
+    /**
+     * Static ability: if true, damage that would be dealt to a non-Specter neighbor is redirected to this card.
+     */
+    fun redirectsNeighborDamage(): Boolean = false
+
+    /**
+     * Static ability: if true, amber gained by an opponent is captured by this card instead.
+     */
+    fun capturesOpponentAmberGains(): Boolean = false
+
     fun onBeforeReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 
     fun onAfterReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 
     fun onDestroyed(game: GameState, player: PlayerState, card: InPlayCard) {}
+
+    /**
+     * Returns true if the card can legally be played from hand right now.
+     */
+    fun playable(game: GameState, player: PlayerState): Boolean = true
 
     fun actionAbilities(): List<String> = emptyList()
 

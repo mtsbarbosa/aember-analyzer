@@ -19,6 +19,26 @@ data class CreatureWithKeyword(val keyword: String, val scope: Scope = Scope.ONE
 data class FriendlyCreatureWithHouse(val house: House, val scope: Scope = Scope.ONE) : CreatureSelector
 data class OtherFriendlyCreatureWithHouse(val house: House, val scope: Scope = Scope.ONE) : CreatureSelector
 
+/**
+ * Selects a target creature using [base], then expands the result to include its immediate neighbors.
+ */
+data class CreatureAndNeighbors(val base: CreatureSelector = AnyCreature()) : CreatureSelector
+
+/**
+ * Selects all undamaged creatures other than the source card.
+ */
+data object EachOtherUndamagedCreature : CreatureSelector
+
+/**
+ * Selects all creatures of the house with the most enemy creatures in play.
+ */
+data object AllCreaturesOfChosenHouse : CreatureSelector
+
+/**
+ * Selects the creature most recently damaged during the current effect resolution.
+ */
+data object LastDamagedTarget : CreatureSelector
+
 sealed interface TargetPlayer
 data object SelfPlayer : TargetPlayer
 data object OpponentPlayer : TargetPlayer
