@@ -6,6 +6,14 @@ object NoEffect : Effect
 
 data class GainAmber(val amount: Int) : Effect
 
+enum class TurnTrigger {
+    FRIENDLY_CREATURE_FIGHTS,
+    FRIENDLY_CREATURE_REAPS,
+    CREATURE_DESTROYED
+}
+
+data class GainAmberOnTriggerThisTurn(val amount: Int, val trigger: TurnTrigger) : Effect
+
 data class StealAmber(val amount: Int) : Effect
 
 data class CaptureAmber(val amount: Int, val target: CreatureSelector) : Effect

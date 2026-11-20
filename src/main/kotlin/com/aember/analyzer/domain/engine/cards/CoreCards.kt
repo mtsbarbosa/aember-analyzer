@@ -80,4 +80,27 @@ object EtherSpider : CardScript {
     )
 
     override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = 0
+
+    override fun capturesOpponentAmberGains(): Boolean = true
+}
+
+object SpeedSigil : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "The first creature played each turn enters play ready"
+    )
+
+    override fun cardEntersReady(): Boolean = true
+}
+
+object ShadowSelf : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Deals no damage when fighting; damage to non-Specter neighbors is redirected here"
+    )
+
+    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int =
+        if (isAttacker) 0 else baseDamage
+
+    override fun redirectsNeighborDamage(): Boolean = true
 }

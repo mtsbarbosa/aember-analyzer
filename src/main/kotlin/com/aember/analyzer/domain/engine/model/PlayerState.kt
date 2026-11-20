@@ -1,5 +1,6 @@
 package com.aember.analyzer.domain.engine.model
 
+import com.aember.analyzer.domain.engine.dsl.TurnTrigger
 import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.model.House
 
@@ -22,7 +23,9 @@ data class PlayerState(
     var chains: Int = 0,
     var activeHouse: House? = null,
     var canForgeSecondKey: Boolean = false,
-    val cardNamesPlayedOrUsedThisRound: MutableMap<String, Int> = mutableMapOf()
+    val cardNamesPlayedOrUsedThisRound: MutableMap<String, Int> = mutableMapOf(),
+    val turnTriggerAmber: MutableMap<TurnTrigger, Int> = mutableMapOf(),
+    var creaturesPlayedThisTurn: Int = 0
 ) {
 
     fun cardsInPlay(): List<InPlayCard> = creatures + artifacts

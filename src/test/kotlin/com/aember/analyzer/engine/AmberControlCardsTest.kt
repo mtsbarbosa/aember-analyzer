@@ -26,6 +26,14 @@ class AmberControlCardsTest {
 
     private val idGenerator = IncrementingIdGenerator()
 
+    private fun findAmberRedirector(game: GameState, player: PlayerState, amount: Int, library: CardLibrary): InPlayCard? {
+        if (amount <= 0) return null
+        return game.players
+            .filter { it.index != player.index }
+            .flatMap { it.creatures }
+            .find { it.controllerIndex != player.index && library.scriptFor(it.cardId).capturesOpponentAmberGains() }
+    }
+
     private fun libraryWithAmberControlCards(): CardLibrary {
         val catalog = mapOf(
             "drumble" to CatalogCard(
@@ -121,6 +129,7 @@ class AmberControlCardsTest {
         val etherSpider = creature("ether-spider", 1, owner = 1, power = 7)
         val reaper = creature("reaper", 2, owner = 0, power = 3)
         val game = makeGame(player0Creatures = listOf(reaper), player1Creatures = listOf(etherSpider))
+        game.amberRedirector = { player, amount -> findAmberRedirector(game, player, amount, library) }
         reaper.exhausted = false
 
         executor.execute(game, UseCreatureAction(reaper.instanceId, com.aember.analyzer.domain.engine.action.ReapUse))
@@ -131,8 +140,10 @@ class AmberControlCardsTest {
 
     @Test
     fun `Ether Spider redirects direct amber gain effects`() {
+        val library = libraryWithAmberControlCards()
         val etherSpider = creature("ether-spider", 1, owner = 1, power = 7)
         val game = makeGame(player1Creatures = listOf(etherSpider))
+        game.amberRedirector = { player, amount -> findAmberRedirector(game, player, amount, library) }
         game.activePlayer().amber = 0
 
         game.gainAmber(game.activePlayer(), 3, "test gain")

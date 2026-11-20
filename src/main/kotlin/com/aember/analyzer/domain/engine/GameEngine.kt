@@ -27,6 +27,9 @@ class GameEngine(
             activePlayerIndex = random.nextInt(2),
             firstPlayerIndex = random.nextInt(2)
         )
+        game.amberRedirector = { player, amount ->
+            findAmberRedirector(game, player, amount)
+        }
 
         setup(game, random)
 
@@ -38,6 +41,8 @@ class GameEngine(
             // Reset per-turn flags at the start of each turn.
             game.players.forEach { p ->
                 p.creatures.forEach { it.elusiveUsed = false }
+                p.turnTriggerAmber.clear()
+                p.creaturesPlayedThisTurn = 0
             }
 
             keyPhase(game)
@@ -60,6 +65,14 @@ class GameEngine(
         }
 
         return game
+    }
+
+    private fun findAmberRedirector(game: GameState, player: PlayerState, amount: Int): InPlayCard? {
+        if (amount <= 0) return null
+        return game.players
+            .filter { it.index != player.index }
+            .flatMap { it.creatures }
+            .find { it.controllerIndex != player.index && library.scriptFor(it.cardId).capturesOpponentAmberGains() }
     }
 
     private fun createPlayer(index: Int, name: String, deck: Deck): PlayerState {

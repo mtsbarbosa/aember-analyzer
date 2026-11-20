@@ -6,6 +6,7 @@ import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 class CardDefinition(
     val cardId: String,
     var playEffect: Effect = NoEffect,
+    var playCondition: Condition? = null,
     var reapEffect: Effect = NoEffect,
     var fightEffect: Effect = NoEffect,
     var destroyedEffect: Effect = NoEffect,
@@ -15,7 +16,7 @@ class CardDefinition(
     var afterReapEffect: Effect = NoEffect,
     var omniEffect: Effect = NoEffect,
     var actionAbilities: List<Pair<String, Effect>> = emptyList(),
-    var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, cardId = cardId)
+    var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
 
 fun card(cardId: String, block: CardDefinition.() -> Unit): Pair<String, CardDefinition> {
@@ -26,6 +27,10 @@ fun card(cardId: String, block: CardDefinition.() -> Unit): Pair<String, CardDef
 
 fun CardDefinition.play(effect: Effect) {
     playEffect = effect
+}
+
+fun CardDefinition.playableIf(condition: Condition) {
+    playCondition = condition
 }
 
 fun CardDefinition.reap(effect: Effect) {

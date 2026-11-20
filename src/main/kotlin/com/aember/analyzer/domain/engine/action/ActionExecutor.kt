@@ -1,6 +1,7 @@
 package com.aember.analyzer.domain.engine.action
 
 import com.aember.analyzer.domain.engine.CardLibrary
+import com.aember.analyzer.domain.engine.dsl.TurnTrigger
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.engine.model.Keyword
 import com.aember.analyzer.domain.model.CardType
@@ -49,6 +50,9 @@ class ActionExecutor(
         }
 
         val instanceId = idGenerator.nextId(cardId)
+        val isFirstCreatureThisTurn = player.creaturesPlayedThisTurn == 0
+        val hasEntersReadyEffect = player.cardsInPlay().any { library.scriptFor(it.cardId).cardEntersReady() }
+        val entersReady = catalog.type == CardType.CREATURE && isFirstCreatureThisTurn && hasEntersReadyEffect
         val inPlay = InPlayCard(
             instanceId = instanceId,
             cardId = cardId,
@@ -57,7 +61,7 @@ class ActionExecutor(
             zone = Zone.PLAY_AREA,
             house = catalog.house,
             type = catalog.type,
-            exhausted = true,
+            exhausted = !entersReady,
             power = catalog.power ?: 0,
             armor = catalog.armor ?: 0,
             keywords = parseKeywords(catalog.keywords),
@@ -72,7 +76,12 @@ class ActionExecutor(
         when (catalog.type) {
             CardType.CREATURE -> {
                 player.creatures.add(inPlay)
-                game.log("${player.name} plays ${catalog.name}")
+                player.creaturesPlayedThisTurn++
+                if (entersReady) {
+                    game.log("${player.name} plays ${catalog.name} (enters ready)")
+                } else {
+                    game.log("${player.name} plays ${catalog.name}")
+                }
                 library.scriptFor(cardId).onPlay(game, player, inPlay)
             }
             CardType.ARTIFACT -> {
@@ -201,12 +210,12 @@ class ActionExecutor(
         val assault = attacker.keywordValue(Keyword.ASSAULT)
         if (assault > 0) {
             game.log("Assault $assault hits ${defender.cardId}")
-            dealDamage(defender, assault)
+            dealDamage(game, defender, assault)
         }
         val hazardous = defender.keywordValue(Keyword.HAZARDOUS)
         if (hazardous > 0) {
             game.log("Hazardous $hazardous hits ${attacker.cardId}")
-            dealDamage(attacker, hazardous)
+            dealDamage(game, attacker, hazardous)
         }
 
         // If a participant was killed by assault/hazardous, cancel the rest of the fight.
@@ -229,23 +238,44 @@ class ActionExecutor(
         val attackerDamage = library.scriptFor(attacker.cardId).modifyFightDamage(true, attacker.power)
         val defenderDamage = library.scriptFor(defender.cardId).modifyFightDamage(false, if (skirmish) 0 else defender.power)
 
-        dealDamage(attacker, defenderDamage)
+        dealDamage(game, attacker, defenderDamage)
         if (!elusive) {
-            dealDamage(defender, attackerDamage)
+            dealDamage(game, defender, attackerDamage)
         }
 
         library.scriptFor(attacker.cardId).onFight(game, player, attacker, defender)
         library.scriptFor(attacker.cardId).onAfterFight(game, player, attacker, defender)
+
+        val amberPerFight = player.turnTriggerAmber[TurnTrigger.FRIENDLY_CREATURE_FIGHTS] ?: 0
+        if (amberPerFight > 0) {
+            game.gainAmber(player, amberPerFight, "${player.name} gains $amberPerFight amber from friendly creature fighting")
+        }
     }
 
-    private fun dealDamage(card: InPlayCard, amount: Int) {
+    private fun dealDamage(game: GameState, card: InPlayCard, amount: Int) {
         if (amount <= 0) return
-        if (card.ward) {
-            card.ward = false
+        val actualTarget = resolveDamageTarget(game, card)
+        if (actualTarget.ward) {
+            actualTarget.ward = false
+            game.log("${actualTarget.cardId}'s ward prevents $amount damage")
             return
         }
-        val effective = (amount - card.armor).coerceAtLeast(0)
-        card.damage += effective
+        val effective = (amount - actualTarget.armor).coerceAtLeast(0)
+        actualTarget.damage += effective
+        if (actualTarget.instanceId != card.instanceId) {
+            game.log("$amount damage redirected from ${card.cardId} to ${actualTarget.cardId}")
+        }
+    }
+
+    private fun resolveDamageTarget(game: GameState, card: InPlayCard): InPlayCard {
+        if (card.traits.contains("specter")) return card
+        val controller = game.player(card.controllerIndex)
+        val idx = controller.creatures.indexOf(card)
+        if (idx == -1) return card
+        val left = controller.creatures.getOrNull(idx - 1)
+        val right = controller.creatures.getOrNull(idx + 1)
+        val redirector = listOfNotNull(left, right).find { library.scriptFor(it.cardId).redirectsNeighborDamage() }
+        return redirector ?: card
     }
 
     private fun stateCheck(game: GameState) {

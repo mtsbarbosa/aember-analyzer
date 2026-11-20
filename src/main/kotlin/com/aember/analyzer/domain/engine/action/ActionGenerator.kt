@@ -37,7 +37,9 @@ class ActionGenerator(
             val card = library.cardData(cardId) ?: return@forEach
             if (isHouseMatch(card.house, activeHouse) && canUseCardName(player, cardId)) {
                 if (!card.keywords.any { it.startsWith("alpha") } || game.actionsThisPhase == 0) {
-                    actions.addAll(generatePlayActions(player, cardId, card.type))
+                    if (library.scriptFor(cardId).playable(game, player)) {
+                        actions.addAll(generatePlayActions(player, cardId, card.type))
+                    }
                 }
             }
         }
