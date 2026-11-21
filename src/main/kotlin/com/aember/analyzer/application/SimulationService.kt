@@ -29,7 +29,7 @@ class SimulationService(
         seed: Long,
         aiA: String = "tactical",
         aiB: String = "tactical"
-    ): SimulationResultDto {
+    ): SimulationOutcome {
         val deckA = deckRepository.findByUuid(deckUuidA)
             ?: throw IllegalArgumentException("Deck not found: $deckUuidA")
         val deckB = deckRepository.findByUuid(deckUuidB)
@@ -51,7 +51,7 @@ class SimulationService(
             )
         }
 
-        return SimulationResultDto(gameState, fidelityReport, belowThreshold, gameState.statistics.toDto())
+        return SimulationOutcome(gameState, fidelityReport, belowThreshold)
     }
 
     private fun createAI(type: String): AIPlayer {

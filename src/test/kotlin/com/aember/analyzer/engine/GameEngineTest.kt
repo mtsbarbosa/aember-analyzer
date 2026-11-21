@@ -71,8 +71,10 @@ class GameEngineTest {
         assertThat(result.done).isTrue()
         assertThat(result.endCause).isNotNull
         assertThat(result.winnerIndex).isNotNull()
-        assertThat(result.statistics.totalActions()).isPositive()
-        assertThat(result.statistics.cardsPlayed).isPositive()
-        assertThat(result.statistics.housesChosen).isNotEmpty()
+        result.players.forEach { player ->
+            assertThat(player.statistics.totalActions()).isPositive()
+            assertThat(player.statistics.housesChosen).isNotEmpty()
+        }
+        assertThat(result.players.sumOf { it.statistics.cardsPlayed }).isPositive()
     }
 }

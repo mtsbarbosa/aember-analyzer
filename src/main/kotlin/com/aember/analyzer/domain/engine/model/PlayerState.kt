@@ -21,6 +21,7 @@ data class PlayerState(
     var keys: Int = 0,
     var amber: Int = 0,
     var chains: Int = 0,
+    val statistics: MatchStatistics = MatchStatistics(),
     var activeHouse: House? = null,
     var canForgeSecondKey: Boolean = false,
     val cardNamesPlayedOrUsedThisRound: MutableMap<String, Int> = mutableMapOf(),

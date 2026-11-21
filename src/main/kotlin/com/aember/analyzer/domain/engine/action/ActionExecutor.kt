@@ -32,8 +32,8 @@ class ActionExecutor(
         val player = game.activePlayer()
         player.activeHouse = house
         player.deniedHouseNextTurn = null
-        game.statistics.housesChosen[house.name] = (game.statistics.housesChosen[house.name] ?: 0) + 1
         game.log("${player.name} chooses $house")
+        player.statistics.housesChosen[house.name] = (player.statistics.housesChosen[house.name] ?: 0) + 1
     }
 
     private fun playCard(game: GameState, action: PlayCardAction) {
@@ -113,7 +113,7 @@ class ActionExecutor(
         }
 
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
-        game.statistics.cardsPlayed++
+        player.statistics.cardsPlayed++
         game.actionsThisPhase++
 
         // Library Access-style effect: draw when playing another card.
@@ -145,7 +145,7 @@ class ActionExecutor(
                 library.scriptFor(creature.cardId).onReap(game, player, creature)
                 library.scriptFor(creature.cardId).onAfterReap(game, player, creature)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
-                game.statistics.reaps++
+                player.statistics.reaps++
                 game.actionsThisPhase++
             }
             is FightUse -> {
@@ -154,7 +154,7 @@ class ActionExecutor(
                 creature.exhausted = true
                 fight(game, player, creature, target)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
-                game.statistics.fights++
+                player.statistics.fights++
                 game.actionsThisPhase++
             }
             is ActionAbilityUse -> {
@@ -196,14 +196,15 @@ class ActionExecutor(
         player.discard.add(cardId)
         game.log("${player.name} discards $cardId")
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
-        game.statistics.cardsDiscarded++
+        player.statistics.cardsDiscarded++
         game.actionsThisPhase++
     }
 
     private fun trackAbilityUse(game: GameState, abilityId: String) {
+        val stats = game.activePlayer().statistics
         when (abilityId) {
-            "Omni" -> game.statistics.omniAbilitiesUsed++
-            else -> game.statistics.actionAbilitiesUsed++
+            "Omni" -> stats.omniAbilitiesUsed++
+            else -> stats.actionAbilitiesUsed++
         }
     }
 

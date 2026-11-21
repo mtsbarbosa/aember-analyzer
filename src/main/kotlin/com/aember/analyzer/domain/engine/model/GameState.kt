@@ -20,7 +20,6 @@ data class GameState(
     var done: Boolean = false,
     var actionsThisPhase: Int = 0,
     var endPhaseRightNow: Boolean = false,
-    val statistics: MatchStatistics = MatchStatistics(),
     // Temporary state used inside a single effect resolution.
     var lastStealAmount: Int = 0,
     var lastDamageDestroyed: Boolean = false,

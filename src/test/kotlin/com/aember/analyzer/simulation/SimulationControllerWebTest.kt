@@ -113,11 +113,12 @@ class SimulationControllerWebTest : IntegrationTest() {
         mockMvc.get("/api/simulate/${deckA.uuid}/${deckB.uuid}?seed=42")
             .andExpect {
                 status { isOk() }
-                jsonPath("$.statistics.reaps") { isNumber() }
-                jsonPath("$.statistics.fights") { isNumber() }
-                jsonPath("$.statistics.cardsPlayed") { isNumber() }
-                jsonPath("$.statistics.totalActions") { isNumber() }
-                jsonPath("$.statistics.housesChosen") { isMap() }
+                jsonPath("$.statistics[0].reaps") { isNumber() }
+                jsonPath("$.statistics[0].fights") { isNumber() }
+                jsonPath("$.statistics[0].cardsPlayed") { isNumber() }
+                jsonPath("$.statistics[0].totalActions") { isNumber() }
+                jsonPath("$.statistics[0].housesChosen") { isMap() }
+                jsonPath("$.statistics[1].totalActions") { isNumber() }
             }
     }
 
@@ -130,7 +131,7 @@ class SimulationControllerWebTest : IntegrationTest() {
             .andExpect {
                 status { isOk() }
                 jsonPath("$.winnerIndex") { exists() }
-                jsonPath("$.statistics.totalActions") { isNumber() }
+                jsonPath("$.statistics[0].totalActions") { isNumber() }
             }
     }
 

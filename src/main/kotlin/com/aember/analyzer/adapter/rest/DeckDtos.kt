@@ -1,4 +1,4 @@
-package com.aember.analyzer.application
+package com.aember.analyzer.adapter.rest
 
 import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.model.DeckCard

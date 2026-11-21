@@ -1,5 +1,6 @@
 package com.aember.analyzer.domain.engine.model
 
+import com.aember.analyzer.domain.model.CardType
 import com.aember.analyzer.domain.model.House
 
 /**
@@ -12,7 +13,7 @@ data class InPlayCard(
     var controllerIndex: Int,
     var zone: Zone,
     var house: House,
-    val type: com.aember.analyzer.domain.model.CardType,
+    val type: CardType,
     var exhausted: Boolean = true,
     var power: Int = 0,
     var armor: Int = 0,

@@ -1,6 +1,7 @@
 package com.aember.analyzer.catalog
 
 import com.aember.analyzer.IntegrationTest
+import com.aember.analyzer.domain.model.House
 import com.aember.analyzer.domain.ports.CardCatalogPort
 import com.aember.analyzer.infrastructure.persistence.JpaCardCatalogAdapter
 import com.aember.analyzer.infrastructure.persistence.JsonCardCatalogLoader
@@ -40,6 +41,6 @@ class CatalogSeedIntegrationTest : IntegrationTest() {
         val anger = catalog.findById("anger")
         assertThat(anger).isNotNull
         assertThat(anger!!.name).isEqualTo("Anger")
-        assertThat(anger.house).isEqualTo(com.aember.analyzer.domain.model.House.BROBNAR)
+        assertThat(anger.house).isEqualTo(House.BROBNAR)
     }
 }

@@ -3,13 +3,17 @@ package com.aember.analyzer.engine
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.action.ActionExecutor
 import com.aember.analyzer.domain.engine.action.PlayCardAction
+import com.aember.analyzer.domain.engine.action.ReapUse
 import com.aember.analyzer.domain.engine.action.UseArtifactAction
+import com.aember.analyzer.domain.engine.action.UseCreatureAction
 import com.aember.analyzer.domain.engine.cards.Arise
 import com.aember.analyzer.domain.engine.cards.ControlTheWeak
 import com.aember.analyzer.domain.engine.cards.Miasma
+import com.aember.analyzer.domain.engine.cards.ShadowSelf
 import com.aember.analyzer.domain.engine.cards.Silvertooth
 import com.aember.analyzer.domain.engine.cards.TendrilsOfPain
 import com.aember.analyzer.domain.engine.cards.YxilxDominator
+import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.dsl.*
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.model.CardType
@@ -90,10 +94,10 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("library-access", DslCardScript(CardDefinition("library-access").apply {
             play(DrawOnCardPlayThisTurn(House.LOGOS))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         library.register("logos-creature", DslCardScript(CardDefinition("logos-creature").apply {
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.VANILLA)
+            fidelity(FidelityLevel.VANILLA)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame()
@@ -118,7 +122,7 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("invasion-portal", DslCardScript(CardDefinition("invasion-portal").apply {
             action("Discard cards from the top of your deck until you discard a Mars creature", AddTopCardOfHouseToHand(House.MARS, SelfPlayer))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame(player0Artifacts = listOf(EngineTestHelper.artifact("invasion-portal")))
@@ -140,7 +144,7 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("hypnotic-command", DslCardScript(CardDefinition("hypnotic-command").apply {
             play(TakeControlUntilEndOfTurn(EnemyCreature()))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val enemy = creature("enemy", 1, owner = 1, power = 3)
@@ -163,7 +167,7 @@ class PhaseOneCardsTest {
         val effect = Sequence(listOf(Destroy(AnyCreature()), Conditional(DamageDestroyedTarget, DiscardTopDeck(SelfPlayer))))
         library.register("neutron-shark", DslCardScript(CardDefinition("neutron-shark").apply {
             play(effect)
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame(player1Creatures = listOf(creature("victim", 1, owner = 1, power = 1)))
@@ -183,7 +187,7 @@ class PhaseOneCardsTest {
             "big-threat" to catalogCard("big-threat", House.SHADOWS, CardType.CREATURE, power = 5)
         )
         val library = CardLibrary(catalog)
-        library.register("shadow-self", com.aember.analyzer.domain.engine.cards.ShadowSelf)
+        library.register("shadow-self", ShadowSelf)
         val executor = ActionExecutor(library, idGenerator)
         val shadowSelf = InPlayCard(
             instanceId = "shadow-self-1",
@@ -215,7 +219,7 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("dr-escotera", DslCardScript(CardDefinition("dr-escotera").apply {
             play(GainAmberEqualToOpponentKeys(SelfPlayer))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame()
@@ -235,7 +239,7 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("smiling-ruth", DslCardScript(CardDefinition("smiling-ruth").apply {
             reap(TakeControlOfEnemyFlankCreature(SelfPlayer))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val enemyFlank = InPlayCard(
@@ -263,7 +267,7 @@ class PhaseOneCardsTest {
         smilingRuth.exhausted = false
         game.activePlayer().forgedKeyThisTurn = true
 
-        executor.execute(game, com.aember.analyzer.domain.engine.action.UseCreatureAction(smilingRuth.instanceId, com.aember.analyzer.domain.engine.action.ReapUse))
+        executor.execute(game, UseCreatureAction(smilingRuth.instanceId, ReapUse))
 
         assertThat(game.activePlayer().creatures.any { it.instanceId == "enemy-flank-1" }).isTrue()
         assertThat(game.temporaryControllers).containsKey("enemy-flank-1")
@@ -277,7 +281,7 @@ class PhaseOneCardsTest {
         val resolver = EffectResolver(library = library)
         library.register("bouncing-deathquark", DslCardScript(CardDefinition("bouncing-deathquark").apply {
             play(Sequence(listOf(Destroy(EnemyCreature()), Destroy(FriendlyCreature()))))
-            fidelity(com.aember.analyzer.domain.engine.fidelity.FidelityLevel.FULL)
+            fidelity(FidelityLevel.FULL)
         }, resolver))
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame(

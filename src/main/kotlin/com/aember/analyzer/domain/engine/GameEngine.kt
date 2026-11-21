@@ -109,7 +109,7 @@ class GameEngine(
             player.amber -= 6
             player.keys += 1
             player.forgedKeyThisTurn = true
-            game.statistics.keysForged++
+            player.statistics.keysForged++
             game.log("${player.name} forges a key! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
             if (!player.canForgeSecondKey) break
             player.canForgeSecondKey = false

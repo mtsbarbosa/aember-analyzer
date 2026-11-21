@@ -388,8 +388,8 @@ class EffectResolver(
                 ownerIndex = player.index,
                 controllerIndex = player.index,
                 zone = Zone.PLAY_AREA,
-                house = player.activeHouse ?: com.aember.analyzer.domain.model.House.BROBNAR,
-                type = com.aember.analyzer.domain.model.CardType.CREATURE,
+                house = player.activeHouse ?: House.BROBNAR,
+                type = CardType.CREATURE,
                 exhausted = true,
                 power = 3
             )
@@ -637,8 +637,8 @@ class EffectResolver(
             ownerIndex = player.index,
             controllerIndex = player.index,
             zone = Zone.PLAY_AREA,
-            house = com.aember.analyzer.domain.model.House.BROBNAR,
-            type = com.aember.analyzer.domain.model.CardType.CREATURE
+            house = House.BROBNAR,
+            type = CardType.CREATURE
         )
     }
 

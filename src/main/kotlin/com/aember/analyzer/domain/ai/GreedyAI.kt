@@ -3,6 +3,7 @@ package com.aember.analyzer.domain.ai
 import com.aember.analyzer.domain.engine.AIPlayer
 import com.aember.analyzer.domain.engine.action.*
 import com.aember.analyzer.domain.engine.model.GameState
+import com.aember.analyzer.domain.model.House
 
 /**
  * A simple greedy heuristic:
@@ -41,7 +42,7 @@ class GreedyAI : AIPlayer {
         return actions.find { it is EndTurnAction } ?: actions.first()
     }
 
-    private fun houseCount(game: GameState, house: com.aember.analyzer.domain.model.House): Int {
+    private fun houseCount(game: GameState, house: House): Int {
         val player = game.activePlayer()
         return player.hand.count { cardId ->
             val card = game.players.flatMap { it.deck.cards }.find { it.cardId == cardId }

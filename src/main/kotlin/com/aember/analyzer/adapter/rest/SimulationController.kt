@@ -1,8 +1,6 @@
 package com.aember.analyzer.adapter.rest
 
-import com.aember.analyzer.application.SimulationResponse
 import com.aember.analyzer.application.SimulationService
-import com.aember.analyzer.application.toSummary
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -26,17 +24,21 @@ class SimulationController(
         @RequestParam aiB: String? = null,
         @RequestHeader("X-Debug", required = false, defaultValue = "false") debug: Boolean
     ): ResponseEntity<SimulationResponse> {
-        val result = simulationService.simulate(
+        val outcome = simulationService.simulate(
             deckA,
             deckB,
             seed ?: System.currentTimeMillis(),
             aiA = aiA ?: "tactical",
             aiB = aiB ?: "tactical"
         )
-        val response = if (debug) {
-            result
+        val response: SimulationResponse = if (debug) {
+            SimulationResultDto(
+                gameState = outcome.gameState,
+                fidelity = outcome.fidelity,
+                belowFidelityThreshold = outcome.belowFidelityThreshold
+            )
         } else {
-            result.gameState.toSummary(result.fidelity, result.belowFidelityThreshold)
+            outcome.toSummary()
         }
         return ResponseEntity.ok(response)
     }

@@ -1,8 +1,6 @@
 package com.aember.analyzer.simulation
 
-import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.EndCause
-import com.aember.analyzer.domain.engine.model.FidelityEntry
 import com.aember.analyzer.domain.engine.model.LogEntry
 import com.aember.analyzer.domain.engine.model.MatchStatistics
 import com.aember.analyzer.domain.model.MassSimulationBatch
@@ -85,11 +83,14 @@ class FileSystemMassSimulationRepositoryTest {
             turns = 24,
             rounds = 12,
             fidelityScore = 76.5,
-            statistics = MatchStatistics(
-                reaps = 5,
-                fights = 3,
-                cardsPlayed = 12,
-                housesChosen = mutableMapOf("Brobnar" to 2, "Dis" to 3)
+            statistics = listOf(
+                MatchStatistics(
+                    reaps = 5,
+                    fights = 3,
+                    cardsPlayed = 12,
+                    housesChosen = mutableMapOf("Brobnar" to 2, "Dis" to 3)
+                ),
+                MatchStatistics()
             )
         )
 
@@ -99,8 +100,8 @@ class FileSystemMassSimulationRepositoryTest {
         assertThat(results).hasSize(1)
         assertThat(results[0].id).isEqualTo(1)
         assertThat(results[0].winnerIndex).isEqualTo(0)
-        assertThat(results[0].statistics.reaps).isEqualTo(5)
-        assertThat(results[0].statistics.housesChosen).containsEntry("Dis", 3)
+        assertThat(results[0].statistics[0].reaps).isEqualTo(5)
+        assertThat(results[0].statistics[0].housesChosen).containsEntry("Dis", 3)
     }
 
     @Test
@@ -117,7 +118,7 @@ class FileSystemMassSimulationRepositoryTest {
                 turns = 10,
                 rounds = 5,
                 fidelityScore = 80.0,
-                statistics = MatchStatistics()
+                statistics = listOf(MatchStatistics())
             )
         )
 
@@ -125,8 +126,7 @@ class FileSystemMassSimulationRepositoryTest {
             matchResultId = 1,
             batchUuid = "batch-1",
             seed = 42,
-            logEntries = listOf(LogEntry(1, 1, 0, "test message")),
-            fidelityEntries = listOf(FidelityEntry(1, "test-card", FidelityLevel.FULL, "context"))
+            logEntries = listOf(LogEntry(1, 1, 0, "test message"))
         )
 
         repo.saveLog(log)
@@ -135,7 +135,6 @@ class FileSystemMassSimulationRepositoryTest {
         assertThat(found).isNotNull
         assertThat(found!!.logEntries).hasSize(1)
         assertThat(found.logEntries[0].message).isEqualTo("test message")
-        assertThat(found.fidelityEntries[0].level).isEqualTo(FidelityLevel.FULL)
     }
 
     private fun pendingBatch(uuid: String, createdAt: Instant = Instant.now()): MassSimulationBatch {
