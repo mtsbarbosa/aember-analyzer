@@ -107,7 +107,7 @@ class MadameCardsTest {
 
         executor.execute(game, PlayCardAction("speed-sigil"))
         executor.execute(game, PlayCardAction("fighter"))
-        executor.execute(game, PlayCardAction("fighter"))
+        executor.execute(game, PlayCardAction("fighter", placementIndex = 1))
 
         val creatures = game.activePlayer().creatures.filter { it.cardId == "fighter" }
         assertThat(creatures).hasSize(2)

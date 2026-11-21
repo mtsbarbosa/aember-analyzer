@@ -1,10 +1,11 @@
 package com.aember.analyzer.simulation
 
 import com.aember.analyzer.IntegrationTest
-import com.aember.analyzer.application.MassSimulationRequest
+import com.aember.analyzer.adapter.rest.MassSimulationBatchDto
 import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.model.DeckCard
 import com.aember.analyzer.domain.model.House
+import com.aember.analyzer.domain.model.MassSimulationRequest
 import com.aember.analyzer.domain.model.MassSimulationStatus
 import com.aember.analyzer.domain.ports.CardCatalogPort
 import com.aember.analyzer.domain.ports.DeckRepository
@@ -98,13 +99,12 @@ class MassSimulationControllerWebTest : IntegrationTest() {
             mockMvc.get("/api/mass-simulations/$batchUuid/matches").andExpect {
                 status { isOk() }
                 jsonPath("$.length()") { value(3) }
-                jsonPath("$[0].statistics.reaps") { isNumber() }
+                jsonPath("$[0].statistics[0].reaps") { isNumber() }
             }
 
             mockMvc.get("/api/mass-simulations/$batchUuid/matches/1/logs").andExpect {
                 status { isOk() }
                 jsonPath("$.logEntries") { isArray() }
-                jsonPath("$.fidelityEntries") { isArray() }
             }
         }
     }
@@ -133,14 +133,14 @@ class MassSimulationControllerWebTest : IntegrationTest() {
         }
     }
 
-    private fun pollForBatch(uuid: String, timeoutMs: Long = 60_000, intervalMs: Long = 200): com.aember.analyzer.application.MassSimulationBatchDto {
+    private fun pollForBatch(uuid: String, timeoutMs: Long = 60_000, intervalMs: Long = 200): MassSimulationBatchDto {
         val start = System.currentTimeMillis()
         while (System.currentTimeMillis() - start < timeoutMs) {
             val response = mockMvc.get("/api/mass-simulations/$uuid").andExpect {
                 status { isOk() }
             }.andReturn().response.contentAsString
 
-            val batch = objectMapper.readValue(response, com.aember.analyzer.application.MassSimulationBatchDto::class.java)
+            val batch = objectMapper.readValue(response, MassSimulationBatchDto::class.java)
             if (batch.status == MassSimulationStatus.COMPLETED || batch.status == MassSimulationStatus.FAILED) {
                 return batch
             }

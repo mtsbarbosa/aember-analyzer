@@ -1,9 +1,7 @@
 package com.aember.analyzer.adapter.rest
 
-import com.aember.analyzer.application.DeckDetailDto
 import com.aember.analyzer.application.DeckImportService
 import com.aember.analyzer.application.DeckQueryService
-import com.aember.analyzer.application.DeckSummaryDto
 import com.aember.analyzer.domain.model.Deck
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
@@ -33,13 +31,13 @@ class DeckController(
         @RequestParam expansion: Int? = null
     ): ResponseEntity<List<DeckSummaryDto>> {
         val results = deckQueryService.search(name = name, house = house, expansion = expansion)
-        return ResponseEntity.ok(results)
+        return ResponseEntity.ok(results.map { it.toSummaryDto() })
     }
 
     @GetMapping("/{uuid}")
     fun getDeck(@PathVariable uuid: String): ResponseEntity<DeckDetailDto> {
         val deck = deckQueryService.findByUuid(uuid)
             ?: return ResponseEntity.notFound().build()
-        return ResponseEntity.ok(deck)
+        return ResponseEntity.ok(deck.toDetailDto())
     }
 }

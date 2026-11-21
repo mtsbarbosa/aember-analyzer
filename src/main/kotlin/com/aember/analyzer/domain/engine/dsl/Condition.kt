@@ -16,3 +16,4 @@ data class SelfAmberAtLeast(val amount: Int) : Condition
 
 object StealSucceeded : Condition
 object DamageDestroyedTarget : Condition
+object OpponentForgedKeyLastTurn : Condition

@@ -5,6 +5,7 @@ import com.aember.analyzer.domain.engine.model.MatchStatistics
 
 /**
  * Result of a single match within a mass-simulation batch.
+ * [statistics] is per player, ordered by player index.
  */
 data class MassSimulationMatchResult(
     val id: Int,
@@ -15,5 +16,5 @@ data class MassSimulationMatchResult(
     val turns: Int,
     val rounds: Int,
     val fidelityScore: Double,
-    val statistics: MatchStatistics
+    val statistics: List<MatchStatistics>
 )

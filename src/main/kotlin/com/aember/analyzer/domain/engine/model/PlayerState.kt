@@ -21,11 +21,18 @@ data class PlayerState(
     var keys: Int = 0,
     var amber: Int = 0,
     var chains: Int = 0,
+    val statistics: MatchStatistics = MatchStatistics(),
     var activeHouse: House? = null,
     var canForgeSecondKey: Boolean = false,
     val cardNamesPlayedOrUsedThisRound: MutableMap<String, Int> = mutableMapOf(),
     val turnTriggerAmber: MutableMap<TurnTrigger, Int> = mutableMapOf(),
-    var creaturesPlayedThisTurn: Int = 0
+    var creaturesPlayedThisTurn: Int = 0,
+    var deniedHouseNextTurn: House? = null,
+    var drawOnCardPlayActive: Boolean = false,
+    var drawOnCardPlayHouse: House? = null,
+    var forgedKeyThisTurn: Boolean = false,
+    var forgedKeyLastTurn: Boolean = false,
+    var skipsForgeNextTurn: Boolean = false
 ) {
 
     fun cardsInPlay(): List<InPlayCard> = creatures + artifacts

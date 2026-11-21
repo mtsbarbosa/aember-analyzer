@@ -6,7 +6,11 @@ sealed interface Action
 
 data class ChooseHouseAction(val house: House) : Action
 
-data class PlayCardAction(val cardId: String, val targetCreatureId: String? = null) : Action
+data class PlayCardAction(
+    val cardId: String,
+    val targetCreatureId: String? = null,
+    val placementIndex: Int = 0
+) : Action
 
 data class UseCreatureAction(
     val instanceId: String,

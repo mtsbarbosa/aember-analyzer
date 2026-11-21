@@ -9,6 +9,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.RestClientException
+import java.nio.file.Path
 
 @Component
 class MasterVaultDeckImportAdapter(
@@ -38,5 +39,15 @@ class MasterVaultDeckImportAdapter(
         }
 
         return MasterVaultDeckParser.parse(objectMapper.readTree(response), cardCatalog)
+    }
+
+    override fun importFromFile(path: Path): Deck {
+        logger.info("Importing deck from file {}", path)
+        val root = try {
+            objectMapper.readTree(path.toFile())
+        } catch (e: java.io.IOException) {
+            throw DeckImportException("Failed to read deck file $path", e)
+        }
+        return MasterVaultDeckParser.parse(root, cardCatalog)
     }
 }

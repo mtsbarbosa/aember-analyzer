@@ -67,6 +67,13 @@ class TacticalAI(
             card?.effectiveHouse == house
         }
 
+        // Creatures in hand of this house (future tempo)
+        val creaturesInHand = player.hand.count { cardId ->
+            val deckCard = player.deck.cards.find { it.cardId == cardId }
+            val catalog = library.cardData(cardId)
+            deckCard?.effectiveHouse == house && catalog?.type == CardType.CREATURE
+        }
+
         // Unexhausted creatures of this house that can act
         val activeCreatures = player.creatures.count {
             !it.exhausted && !it.stun && it.house == house
@@ -77,9 +84,30 @@ class TacticalAI(
             !it.exhausted && it.house == house
         }
 
-        return playableCards * settings.playCardWeight +
+        val chainSynergy = hasHouseChainSynergy(player, house)
+
+        val baseScore = playableCards * settings.playCardWeight +
             activeCreatures * (settings.reapWeight + settings.fightWeight) * 0.5 +
+            creaturesInHand * settings.playCardWeight * 0.7 +
             activeArtifacts * settings.actionAbilityWeight
+
+        // Small flat penalty for houses that offer plays but no creatures, unless the hand
+        // has chain synergy (e.g. Library Access) that makes the turn productive anyway.
+        val hasNoTempo = activeCreatures == 0 && creaturesInHand == 0
+        val setupPenalty = if (hasNoTempo && !chainSynergy && playableCards > 0) -0.25 * playableCards else 0.0
+
+        return (baseScore + setupPenalty).coerceAtLeast(0.0)
+    }
+
+    private fun hasHouseChainSynergy(player: PlayerState, house: House): Boolean {
+        return player.hand.any { cardId ->
+            val deckCard = player.deck.cards.find { it.cardId == cardId }
+            val catalog = library.cardData(cardId)
+            if (deckCard?.effectiveHouse != house || catalog == null) return@any false
+            val text = catalog.text.lowercase()
+            (text.contains("each time you play") && text.contains("draw a card")) ||
+                text.contains("play the top card of your deck")
+        }
     }
 
     private fun scoreAction(game: GameState, action: Action): ScoredAction {
@@ -116,12 +144,66 @@ class TacticalAI(
         // wasted when the opponent has no amber.
         val opponentAmberPenalty = opponentAmberEffectPenalty(catalog, opponent)
 
-        val score = (base + forgeBonus - opponentAmberPenalty) * settings.playCardWeight
+        // Bonus for cards that get stronger with more cards of the same house in hand.
+        val chainBonus = chainSynergyBonus(catalog, player)
+
+        // Penalty for removal cards that lack enough targets.
+        val removalPenalty = removalTargetPenalty(catalog, game)
+
+        // Placement bonus: high-value creatures next to protectors are more survivable.
+        val placementBonus = scoreCreaturePlacement(action, catalog, player)
+
+        val score = (base + forgeBonus + chainBonus - opponentAmberPenalty - removalPenalty + placementBonus) * settings.playCardWeight
         val rationale = buildString {
             append("play ${catalog.name} (${catalog.type}, base=${format(base)}, forgeBonus=${format(forgeBonus)})")
+            if (chainBonus > 0) append(", chainBonus=${format(chainBonus)}")
             if (opponentAmberPenalty > 0) append(", oppAmberPenalty=${format(opponentAmberPenalty)}")
+            if (removalPenalty > 0) append(", removalPenalty=${format(removalPenalty)}")
+            if (placementBonus != 0.0) append(", placementBonus=${format(placementBonus)}")
         }
         return ScoredAction(action, score, rationale)
+    }
+
+    /**
+     * Bonus for cards that reward playing many cards of the same house this turn,
+     * e.g. Library Access (draw on each Logos play) and Wild Wormhole (play top card).
+     */
+    private fun chainSynergyBonus(catalog: CatalogCard, player: PlayerState): Double {
+        val text = catalog.text.lowercase()
+        val sameHouseCardsInHand = player.hand.count { cardId ->
+            val deckCard = player.deck.cards.find { it.cardId == cardId }
+            deckCard?.effectiveHouse == catalog.house
+        }
+        return when {
+            text.contains("each time you play a") && text.contains("draw a card") -> {
+                sameHouseCardsInHand * 0.3
+            }
+            text.contains("play the top card of your deck") -> {
+                sameHouseCardsInHand * 0.15
+            }
+            else -> 0.0
+        }
+    }
+
+    /**
+     * Penalizes removal cards when there are not enough worthwhile targets on the board.
+     */
+    private fun removalTargetPenalty(catalog: CatalogCard, game: GameState): Double {
+        val text = catalog.text.lowercase()
+        val totalCreatures = game.players.sumOf { it.creatures.size }
+        val enemyCreatures = game.opponent().creatures.size
+
+        val isBouncingDeathquark = text.contains("destroy a creature") && text.contains("destroy another creature")
+        if (isBouncingDeathquark && totalCreatures < 2) return 0.8
+
+        val isNeutronShark = catalog.id == "neutron-shark" ||
+            (text.contains("destroy a creature") && text.contains("destroy the top card of your deck"))
+        if (isNeutronShark && totalCreatures < 1) return 0.8
+
+        // Generic one-shot removal is slightly worse into an empty board.
+        if (text.contains("destroy a creature") && enemyCreatures == 0) return 0.4
+
+        return 0.0
     }
 
     /**
@@ -263,6 +345,48 @@ class TacticalAI(
 
     private fun amberGenerationPotential(player: PlayerState): Int {
         return player.creatures.count { !it.exhausted && !it.stun }
+    }
+
+    /**
+     * Scores creature placement. High-value creatures get a small bonus for being placed
+     * adjacent to a protector (taunt / Shadow Self), because they are more likely to survive.
+     */
+    private fun scoreCreaturePlacement(action: PlayCardAction, catalog: CatalogCard, player: PlayerState): Double {
+        if (catalog.type != CardType.CREATURE) return 0.0
+        if (player.creatures.isEmpty()) return 0.0
+        if (!isHighValueCreature(catalog)) return 0.0
+
+        val protectors = player.creatures.mapIndexed { index, creature ->
+            val isProtector = creature.hasKeyword(Keyword.TAUNT) ||
+                library.scriptFor(creature.cardId).protectsNeighbors()
+            index to isProtector
+        }.filter { it.second }
+
+        if (protectors.isEmpty()) return 0.0
+
+        val leftProtector = protectors.minByOrNull { it.first }?.first == 0
+        val rightProtector = protectors.maxByOrNull { it.first }?.first == player.creatures.size - 1
+
+        val preferredIndex = when {
+            leftProtector && rightProtector -> if (player.creatures.size <= 2) 0 else player.creatures.size
+            leftProtector -> 0
+            rightProtector -> player.creatures.size
+            else -> player.creatures.size
+        }
+
+        return if (action.placementIndex == preferredIndex) 0.3 else 0.0
+    }
+
+    private fun isHighValueCreature(catalog: CatalogCard): Boolean {
+        if ((catalog.power ?: 0) >= 4) return true
+        val text = catalog.text.lowercase()
+        val recurringAmber = (text.contains("reap:") || text.contains("fight:")) &&
+            text.contains("amber") &&
+            (text.contains("gain") || text.contains("steal") || text.contains("capture"))
+        if (recurringAmber) return true
+        val keywords = catalog.keywords.map { it.lowercase() }
+        if (keywords.contains("skirmish") || keywords.contains("assault") || keywords.contains("hazardous")) return true
+        return false
     }
 
     private fun formatAction(action: Action): String = when (action) {

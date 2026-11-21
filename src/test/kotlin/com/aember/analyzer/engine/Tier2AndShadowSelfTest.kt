@@ -3,7 +3,10 @@ package com.aember.analyzer.engine
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.action.ActionExecutor
 import com.aember.analyzer.domain.engine.action.ActionGenerator
+import com.aember.analyzer.domain.engine.action.FightUse
 import com.aember.analyzer.domain.engine.action.PlayCardAction
+import com.aember.analyzer.domain.engine.action.ReapUse
+import com.aember.analyzer.domain.engine.action.UseCreatureAction
 import com.aember.analyzer.domain.engine.cards.ShadowSelf
 import com.aember.analyzer.domain.engine.cards.coreSetCards
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
@@ -179,7 +182,7 @@ class Tier2AndShadowSelfTest {
         val game = makeGame(player1Creatures = listOf(weakEnemy))
         game.activePlayer().creatures.add(creature("yxilo-bolter", 1, 0, 3).apply { exhausted = false })
 
-        executor.execute(game, com.aember.analyzer.domain.engine.action.UseCreatureAction("yxilo-bolter-1", com.aember.analyzer.domain.engine.action.ReapUse))
+        executor.execute(game, UseCreatureAction("yxilo-bolter-1", ReapUse))
 
         // Reap effect deals 2 damage, destroying weakEnemy, then purges it
         assertThat(game.opponent().creatures).isEmpty()
@@ -193,7 +196,7 @@ class Tier2AndShadowSelfTest {
         val enemy = creature("enemy", 1, 1, 3)
         val game = makeGame(player0Creatures = listOf(shadow), player1Creatures = listOf(enemy))
 
-        executor.execute(game, com.aember.analyzer.domain.engine.action.UseCreatureAction("ss-1", com.aember.analyzer.domain.engine.action.FightUse("enemy-1")))
+        executor.execute(game, UseCreatureAction("ss-1", FightUse("enemy-1")))
 
         assertThat(enemy.damage).isEqualTo(0)
     }

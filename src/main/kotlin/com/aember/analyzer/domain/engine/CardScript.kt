@@ -34,6 +34,11 @@ interface CardScript {
     fun cardEntersReady(): Boolean = false
 
     /**
+     * Static ability: if true, this creature enters play stunned.
+     */
+    fun cardEntersStunned(): Boolean = false
+
+    /**
      * Static ability: if true, damage that would be dealt to a non-Specter neighbor is redirected to this card.
      */
     fun redirectsNeighborDamage(): Boolean = false
@@ -42,6 +47,12 @@ interface CardScript {
      * Static ability: if true, amber gained by an opponent is captured by this card instead.
      */
     fun capturesOpponentAmberGains(): Boolean = false
+
+    /**
+     * Static ability: if true, neighboring friendly creatures are considered protected.
+     * Used for placement decisions (e.g., Shadow Self, taunt creatures).
+     */
+    fun protectsNeighbors(): Boolean = false
 
     fun onBeforeReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 

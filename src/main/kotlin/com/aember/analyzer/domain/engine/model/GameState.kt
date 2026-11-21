@@ -20,16 +20,20 @@ data class GameState(
     var done: Boolean = false,
     var actionsThisPhase: Int = 0,
     var endPhaseRightNow: Boolean = false,
-    val statistics: MatchStatistics = MatchStatistics(),
     // Temporary state used inside a single effect resolution.
     var lastStealAmount: Int = 0,
     var lastDamageDestroyed: Boolean = false,
-    var lastDamagedTargetId: String? = null
+    var lastDamagedTargetId: String? = null,
+
+    // Tracks creatures temporarily controlled by an effect (instanceId -> original controller index).
+    val temporaryControllers: MutableMap<String, Int> = mutableMapOf()
 ) {
 
     fun activePlayer(): PlayerState = players[activePlayerIndex]
 
     fun opponent(): PlayerState = players[1 - activePlayerIndex]
+
+    fun opponent(of: PlayerState): PlayerState = players[1 - of.index]
 
     fun player(index: Int): PlayerState = players[index]
 

@@ -1,10 +1,12 @@
-package com.aember.analyzer.application
+package com.aember.analyzer.adapter.rest
 
+import com.aember.analyzer.application.SimulationOutcome
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.fidelity.FidelityReport
 import com.aember.analyzer.domain.engine.model.EndCause
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.LogEntry
+import com.aember.analyzer.domain.engine.model.MatchStatistics
 import com.aember.analyzer.domain.engine.model.PlayerState
 
 sealed class SimulationResponse
@@ -13,7 +15,7 @@ data class SimulationResultDto(
     val gameState: GameState,
     val fidelity: FidelityReport,
     val belowFidelityThreshold: Boolean,
-    val statistics: MatchStatisticsDto = gameState.statistics.toDto()
+    val statistics: List<MatchStatisticsDto> = gameState.players.map { it.statistics.toDto() }
 ) : SimulationResponse()
 
 data class PlayerSummaryDto(
@@ -46,7 +48,7 @@ data class SimulationSummaryDto(
     val fidelity: FidelitySummaryDto,
     val belowFidelityThreshold: Boolean,
     val recentLog: List<LogEntry>,
-    val statistics: MatchStatisticsDto
+    val statistics: List<MatchStatisticsDto>
 ) : SimulationResponse()
 
 data class DeckRefDto(
@@ -74,43 +76,31 @@ data class MatchStatisticsDto(
 
 private const val RECENT_LOG_SIZE = 30
 
-fun GameState.toSummary(): SimulationSummaryDto {
-    val playerSummaries = players.map { it.toSummary() }
-    val winIndex = winnerIndex
+fun SimulationOutcome.toSummary(): SimulationSummaryDto {
+    val playerSummaries = gameState.players.map { it.toSummary() }
+    val winIndex = gameState.winnerIndex
     return SimulationSummaryDto(
-        deckA = DeckRefDto(players[0].deck.uuid, players[0].deck.name),
-        deckB = DeckRefDto(players[1].deck.uuid, players[1].deck.name),
+        deckA = DeckRefDto(gameState.players[0].deck.uuid, gameState.players[0].deck.name),
+        deckB = DeckRefDto(gameState.players[1].deck.uuid, gameState.players[1].deck.name),
         winnerIndex = winIndex,
-        winnerName = winIndex?.let { players[it].name },
-        endCause = endCause,
-        turns = turn,
-        rounds = round,
-        firstPlayerIndex = firstPlayerIndex,
+        winnerName = winIndex?.let { gameState.players[it].name },
+        endCause = gameState.endCause,
+        turns = gameState.turn,
+        rounds = gameState.round,
+        firstPlayerIndex = gameState.firstPlayerIndex,
         players = playerSummaries,
         fidelity = FidelitySummaryDto(
-            score = 0.0,
-            levelCounts = emptyMap(),
-            lowestCards = emptyList()
+            score = fidelity.score,
+            levelCounts = fidelity.levelCounts,
+            lowestCards = fidelity.lowestCards
         ),
-        belowFidelityThreshold = false,
-        recentLog = log.takeLast(RECENT_LOG_SIZE),
-        statistics = statistics.toDto()
+        belowFidelityThreshold = belowFidelityThreshold,
+        recentLog = gameState.log.takeLast(RECENT_LOG_SIZE),
+        statistics = gameState.players.map { it.statistics.toDto() }
     )
 }
 
-fun GameState.toSummary(fidelityReport: FidelityReport, belowThreshold: Boolean): SimulationSummaryDto {
-    return toSummary().copy(
-        fidelity = FidelitySummaryDto(
-            score = fidelityReport.score,
-            levelCounts = fidelityReport.levelCounts,
-            lowestCards = fidelityReport.lowestCards
-        ),
-        belowFidelityThreshold = belowThreshold,
-        statistics = statistics.toDto()
-    )
-}
-
-fun com.aember.analyzer.domain.engine.model.MatchStatistics.toDto(): MatchStatisticsDto = MatchStatisticsDto(
+fun MatchStatistics.toDto(): MatchStatisticsDto = MatchStatisticsDto(
     reaps = reaps,
     fights = fights,
     actionAbilitiesUsed = actionAbilitiesUsed,

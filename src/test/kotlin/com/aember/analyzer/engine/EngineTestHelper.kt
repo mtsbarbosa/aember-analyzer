@@ -62,19 +62,21 @@ object EngineTestHelper {
         player1Creatures: List<InPlayCard> = emptyList(),
         player0Artifacts: List<InPlayCard> = emptyList(),
         player1Artifacts: List<InPlayCard> = emptyList(),
-        activePlayerIndex: Int = 0
+        activePlayerIndex: Int = 0,
+        player0Deck: Deck = emptyDeck(),
+        player1Deck: Deck = emptyDeck()
     ): GameState {
         val player0 = PlayerState(
             index = 0,
             name = "Player A",
-            deck = emptyDeck(),
+            deck = player0Deck,
             creatures = player0Creatures.toMutableList(),
             artifacts = player0Artifacts.toMutableList()
         )
         val player1 = PlayerState(
             index = 1,
             name = "Player B",
-            deck = emptyDeck(),
+            deck = player1Deck,
             creatures = player1Creatures.toMutableList(),
             artifacts = player1Artifacts.toMutableList()
         )

@@ -31,8 +31,9 @@ class ActionExecutor(
     private fun chooseHouse(game: GameState, house: House) {
         val player = game.activePlayer()
         player.activeHouse = house
-        game.statistics.housesChosen[house.name] = (game.statistics.housesChosen[house.name] ?: 0) + 1
+        player.deniedHouseNextTurn = null
         game.log("${player.name} chooses $house")
+        player.statistics.housesChosen[house.name] = (player.statistics.housesChosen[house.name] ?: 0) + 1
     }
 
     private fun playCard(game: GameState, action: PlayCardAction) {
@@ -51,8 +52,10 @@ class ActionExecutor(
 
         val instanceId = idGenerator.nextId(cardId)
         val isFirstCreatureThisTurn = player.creaturesPlayedThisTurn == 0
-        val hasEntersReadyEffect = player.cardsInPlay().any { library.scriptFor(it.cardId).cardEntersReady() }
-        val entersReady = catalog.type == CardType.CREATURE && isFirstCreatureThisTurn && hasEntersReadyEffect
+        val globalEntersReady = isFirstCreatureThisTurn && player.cardsInPlay().any { library.scriptFor(it.cardId).cardEntersReady() }
+        val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
+        val entersReady = selfEntersReady || globalEntersReady
+        val entersStunned = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersStunned()
         val inPlay = InPlayCard(
             instanceId = instanceId,
             cardId = cardId,
@@ -65,7 +68,8 @@ class ActionExecutor(
             power = catalog.power ?: 0,
             armor = catalog.armor ?: 0,
             keywords = parseKeywords(catalog.keywords),
-            traits = catalog.traits.map { it.lowercase() }
+            traits = catalog.traits.map { it.lowercase() },
+            stun = entersStunned
         )
 
         // Resolve bonus amber pips before card text.
@@ -75,12 +79,13 @@ class ActionExecutor(
 
         when (catalog.type) {
             CardType.CREATURE -> {
-                player.creatures.add(inPlay)
+                val insertIndex = action.placementIndex.coerceIn(0, player.creatures.size)
+                player.creatures.add(insertIndex, inPlay)
                 player.creaturesPlayedThisTurn++
-                if (entersReady) {
-                    game.log("${player.name} plays ${catalog.name} (enters ready)")
-                } else {
-                    game.log("${player.name} plays ${catalog.name}")
+                when {
+                    entersStunned -> game.log("${player.name} plays ${catalog.name} (enters stunned)")
+                    entersReady -> game.log("${player.name} plays ${catalog.name} (enters ready)")
+                    else -> game.log("${player.name} plays ${catalog.name}")
                 }
                 library.scriptFor(cardId).onPlay(game, player, inPlay)
             }
@@ -108,8 +113,18 @@ class ActionExecutor(
         }
 
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
-        game.statistics.cardsPlayed++
+        player.statistics.cardsPlayed++
         game.actionsThisPhase++
+
+        // Library Access-style effect: draw when playing another card.
+        if (player.drawOnCardPlayActive) {
+            val drawHouse = player.drawOnCardPlayHouse
+            if (drawHouse == null || drawHouse == catalog.house) {
+                drawCards(player, 1)
+                game.log("${player.name} draws 1 card from effect")
+            }
+        }
+
         if (catalog.keywords.any { it.startsWith("omega") }) {
             game.endPhaseRightNow = true
             game.log("Omega ends the main phase")
@@ -130,7 +145,7 @@ class ActionExecutor(
                 library.scriptFor(creature.cardId).onReap(game, player, creature)
                 library.scriptFor(creature.cardId).onAfterReap(game, player, creature)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
-                game.statistics.reaps++
+                player.statistics.reaps++
                 game.actionsThisPhase++
             }
             is FightUse -> {
@@ -139,7 +154,7 @@ class ActionExecutor(
                 creature.exhausted = true
                 fight(game, player, creature, target)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
-                game.statistics.fights++
+                player.statistics.fights++
                 game.actionsThisPhase++
             }
             is ActionAbilityUse -> {
@@ -181,14 +196,15 @@ class ActionExecutor(
         player.discard.add(cardId)
         game.log("${player.name} discards $cardId")
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
-        game.statistics.cardsDiscarded++
+        player.statistics.cardsDiscarded++
         game.actionsThisPhase++
     }
 
     private fun trackAbilityUse(game: GameState, abilityId: String) {
+        val stats = game.activePlayer().statistics
         when (abilityId) {
-            "Omni" -> game.statistics.omniAbilitiesUsed++
-            else -> game.statistics.actionAbilitiesUsed++
+            "Omni" -> stats.omniAbilitiesUsed++
+            else -> stats.actionAbilitiesUsed++
         }
     }
 
@@ -308,6 +324,20 @@ class ActionExecutor(
             .find { it.instanceId == instanceId }
     }
 
+    private fun drawCards(player: PlayerState, amount: Int) {
+        repeat(amount) {
+            if (player.library.isEmpty()) {
+                if (player.discard.isEmpty()) return
+                player.library.addAll(player.discard)
+                player.discard.clear()
+                player.library.shuffle(java.util.Random())
+            }
+            if (player.library.isNotEmpty()) {
+                player.hand.add(player.library.removeFirst())
+            }
+        }
+    }
+
     private fun logCardFidelity(game: GameState, cardId: String, context: String) {
         val level = library.fidelityFor(cardId)
         game.logFidelity(cardId, level, context)
@@ -321,4 +351,5 @@ class ActionExecutor(
             name to value
         }
     }
+
 }

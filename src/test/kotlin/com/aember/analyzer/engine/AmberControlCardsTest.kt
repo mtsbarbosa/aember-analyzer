@@ -4,6 +4,7 @@ import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.action.ActionExecutor
 import com.aember.analyzer.domain.engine.action.FightUse
 import com.aember.analyzer.domain.engine.action.PlayCardAction
+import com.aember.analyzer.domain.engine.action.ReapUse
 import com.aember.analyzer.domain.engine.action.UseCreatureAction
 import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
@@ -132,7 +133,7 @@ class AmberControlCardsTest {
         game.amberRedirector = { player, amount -> findAmberRedirector(game, player, amount, library) }
         reaper.exhausted = false
 
-        executor.execute(game, UseCreatureAction(reaper.instanceId, com.aember.analyzer.domain.engine.action.ReapUse))
+        executor.execute(game, UseCreatureAction(reaper.instanceId, ReapUse))
 
         assertThat(game.activePlayer().amber).isEqualTo(0)
         assertThat(etherSpider.capturedAmber).isEqualTo(1)

@@ -1,6 +1,6 @@
 # Agent Handoff — aember-analyzer
 
-Last updated: 2026-11-17
+Last updated: 2026-11-20
 
 ## Project Goal
 
@@ -139,6 +139,7 @@ src/main/kotlin/com/aember/analyzer/
   - `deploy` currently only allows flank placement (no in-line placement yet).
 - Zones: `archives`, `purged`, `chains`.
 - AI players: `RandomAI`, `GreedyAI`, `TacticalAI` (default) with configurable profiles (`default`, `aggressive`, `economic`).
+  - `TacticalAI` scores houses with a small tempo penalty for no-creature turns (except chain-synergy houses like Library Access), boosts chain cards (Library Access / Wild Wormhole), penalizes removal into empty boards, and places high-value creatures next to protectors (taunt / Shadow Self).
 - Match statistics tracked during simulation (reaps, fights, abilities, plays, discards, keys forged, houses chosen).
 - Deterministic match simulation via seeds.
 - REST endpoints and CLI commands for import and simulation.
@@ -148,30 +149,35 @@ src/main/kotlin/com/aember/analyzer/
 ### DSL / Card Coverage
 
 - `domain/engine/cards/CoreSetDslCards.kt` contains ~368 of 370 Core cards generated from `tools/generate-core-cards.py`.
-- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`, `Drumble`, `EtherSpider`, `ShadowSelf`, `SpeedSigil`.
+- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`, `Drumble`, `EtherSpider`, `ShadowSelf`, `SpeedSigil`, `ControlTheWeak`, `Miasma`, `TendrilsOfPain`, `Arise`, `Silvertooth`, `YxilxDominator`.
 - `CardScript` exposes static-ability hooks so generic engine code never checks card names:
-  - `cardEntersReady()` — e.g. Speed Sigil.
+  - `cardEntersReady()` — e.g. Speed Sigil, Silvertooth.
+  - `cardEntersStunned()` — e.g. Yxilx Dominator.
   - `redirectsNeighborDamage()` — e.g. Shadow Self.
   - `capturesOpponentAmberGains()` — e.g. Ether Spider.
+  - `protectsNeighbors()` — used for placement; e.g. Shadow Self (also `taunt` keyword is checked directly).
   - `modifyFightDamage(...)` — e.g. Ether Spider, Shadow Self.
 - Supported triggers: `Play`, `Reap`, `Fight`, `Before Fight`, `After Fight`, `Before Reap`, `After Reap`, `Destroyed`, `Action`, `Omni`.
 - Supported effect types in `domain/engine/dsl/Effect.kt`:
-  - `GainAmber`, `GainAmberOnTriggerThisTurn`, `StealAmber`, `CaptureAmber`, `LoseAmber`, `GainAmberOpponent`, `LoseAllAmber`
+  - `GainAmber`, `GainAmberOnTriggerThisTurn`, `DrawOnCardPlayThisTurn`, `StealAmber`, `CaptureAmber`, `LoseAmber`, `GainAmberOpponent`, `LoseAllAmber`, `GainAmberEqualToOpponentKeys`
   - `DealDamage`, `Destroy`, `DestroyMostPowerful`, `DestroyLeastPowerful`, `DestroyWeakCreatures`
-  - `Draw`, `DiscardRandom`
+  - `Draw`, `DiscardRandom`, `DiscardTopDeck`
   - `ReturnToHand`, `ReturnFromDiscardToHand`
   - `Archive`, `ArchiveTopDeck`, `ArchiveFromDiscard`, `ArchiveFromHand`
   - `Purge`, `PurgeFromDiscard`
   - `Heal`, `Ready`, `Exhaust`
   - `Fight`, `ReadyAndFight`, `ReadyAndUse`, `UseCreature`
-  - `PlayTopCard`, `SwapDeckAndDiscard`, `ShuffleHandAndDiscardIntoDeck`
+  - `PlayTopCard`, `PlayTopCardOfHouse`, `AddTopCardOfHouseToHand`, `SwapDeckAndDiscard`, `ShuffleHandAndDiscardIntoDeck`
   - `Stun`, `Unstun`
   - `GainChains`, `LoseChains`
+  - `DenyHouseNextTurn`, `TakeControlUntilEndOfTurn`, `TakeControlOfEnemyFlankCreature`
+  - `SkipForgeNextTurn`, `ReturnCreaturesOfHouseFromDiscardToHand`
   - `Sequence`, `Conditional`
 - Supported conditions in `domain/engine/dsl/Condition.kt`:
   - `OpponentHasMoreAmber`, `SelfHasMoreAmber`, `OpponentHasFewerCreatures`, `SelfHasFewerCreatures`
   - `OpponentAmberAtLeast(amount)`, `OpponentAmberAtMost(amount)`, `OpponentAmberExactly(amount)`, `SelfAmberAtLeast(amount)`
   - `StealSucceeded`, `DamageDestroyedTarget`
+  - `OpponentForgedKeyLastTurn`
   - `Always`
 - Supported creature selectors in `domain/engine/dsl/Target.kt`:
   - `FriendlyCreature`, `EnemyCreature`, `AnyCreature`
@@ -189,7 +195,7 @@ src/main/kotlin/com/aember/analyzer/
   - `VANILLA` — truly vanilla card
 - `FidelityReportService` computes a match score, level distribution, and lowest-fidelity cards.
 - Default threshold is **70%** (`aember.simulation.fidelity-threshold`). Simulations below it log a warning.
-- Recent sample matches report ~75–76% fidelity.
+- Recent sample matches report ~75–76% fidelity; after the card-improvement pass the Mehitabel vs Galilee matchup averages ~91.3%.
 
 ### Tests
 
@@ -197,6 +203,7 @@ src/main/kotlin/com/aember/analyzer/
 - `KeywordTest` — unit tests for `elusive`, `skirmish`, `hazardous`, `assault`, `taunt`, `alpha`, `omega`.
 - `EffectAndTriggerTest` — unit tests for all recently added effects and triggers.
 - `FidelityReportServiceTest` — fidelity score/threshold tests.
+- `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
 - Integration tests for catalog seeding, deck import, and deck queries.
 
 Run `./gradlew test` — all tests currently pass.

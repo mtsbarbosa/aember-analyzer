@@ -1,9 +1,10 @@
 package com.aember.analyzer.adapter.cli
 
 import com.aember.analyzer.application.DeckImportService
-import com.aember.analyzer.application.MassSimulationRequest
 import com.aember.analyzer.application.MassSimulationService
 import com.aember.analyzer.application.SimulationService
+import com.aember.analyzer.domain.model.MassSimulationRequest
+import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationStatus
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
@@ -64,8 +65,10 @@ class AemberCliRunner(
                     result.fidelity.lowestCards.forEach { (card, level) -> println("  $card -> $level") }
                 }
 
-                val stats = result.statistics
-                println("Match statistics: reaps=${stats.reaps}, fights=${stats.fights}, actionAbilities=${stats.actionAbilitiesUsed}, omni=${stats.omniAbilitiesUsed}, played=${stats.cardsPlayed}, discarded=${stats.cardsDiscarded}, keys=${stats.keysForged}, total=${stats.totalActions}")
+                result.gameState.players.forEach { player ->
+                    val stats = player.statistics
+                    println("${player.name} statistics: reaps=${stats.reaps}, fights=${stats.fights}, actionAbilities=${stats.actionAbilitiesUsed}, omni=${stats.omniAbilitiesUsed}, played=${stats.cardsPlayed}, discarded=${stats.cardsDiscarded}, keys=${stats.keysForged}, total=${stats.totalActions()}")
+                }
                 exitProcess(0)
             }
             "mass-simulate" -> {
@@ -94,8 +97,8 @@ class AemberCliRunner(
                 val completedBatch = pollForCompletion(batch.uuid)
                 println("\nBatch status: ${completedBatch.status}")
                 println("Matches: ${completedBatch.matchCount}")
-                println("Wins A (${completedBatch.deckA.name}): ${completedBatch.winsA}")
-                println("Wins B (${completedBatch.deckB.name}): ${completedBatch.winsB}")
+                println("Wins A (${completedBatch.deckNameA}): ${completedBatch.winsA}")
+                println("Wins B (${completedBatch.deckNameB}): ${completedBatch.winsB}")
                 println("Draws: ${completedBatch.draws}")
                 println("Avg rounds: ${completedBatch.avgRounds?.let { "%.2f".format(it) } ?: "-"}")
                 println("Avg turns: ${completedBatch.avgTurns?.let { "%.2f".format(it) } ?: "-"}")
@@ -112,7 +115,7 @@ class AemberCliRunner(
         }
     }
 
-    private fun pollForCompletion(uuid: String, timeoutMs: Long = 300_000, intervalMs: Long = 500): com.aember.analyzer.application.MassSimulationBatchDto {
+    private fun pollForCompletion(uuid: String, timeoutMs: Long = 300_000, intervalMs: Long = 500): MassSimulationBatch {
         val start = System.currentTimeMillis()
         while (System.currentTimeMillis() - start < timeoutMs) {
             val batch = massSimulationService.getBatch(uuid)

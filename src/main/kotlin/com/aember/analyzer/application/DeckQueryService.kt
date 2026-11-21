@@ -1,5 +1,6 @@
 package com.aember.analyzer.application
 
+import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.model.House
 import com.aember.analyzer.domain.ports.DeckRepository
 import com.aember.analyzer.domain.ports.DeckSearchCriteria
@@ -12,21 +13,21 @@ class DeckQueryService(
     private val deckRepository: DeckRepository
 ) {
 
-    fun findByUuid(uuid: String): DeckDetailDto? =
-        deckRepository.findByUuid(uuid)?.toDetailDto()
+    fun findByUuid(uuid: String): Deck? =
+        deckRepository.findByUuid(uuid)
 
     fun search(
         name: String? = null,
         house: String? = null,
         expansion: Int? = null
-    ): List<DeckSummaryDto> {
+    ): List<Deck> {
         val houseEnum = house?.let { parseHouse(it) }
         val criteria = DeckSearchCriteria(
             name = name?.takeIf { it.isNotBlank() },
             house = houseEnum,
             expansion = expansion
         )
-        return deckRepository.search(criteria).map { it.toSummaryDto() }
+        return deckRepository.search(criteria)
     }
 
     private fun parseHouse(value: String): House =

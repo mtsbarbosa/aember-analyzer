@@ -25,7 +25,9 @@ class ActionGenerator(
     }
 
     private fun generateHouseChoices(player: PlayerState): List<Action> {
-        return player.deck.houses.distinct().map { ChooseHouseAction(it) }
+        return player.deck.houses.distinct()
+            .filter { it != player.deniedHouseNextTurn }
+            .map { ChooseHouseAction(it) }
     }
 
     private fun generateMainPhaseActions(game: GameState, player: PlayerState): List<Action> {
@@ -96,7 +98,19 @@ class ActionGenerator(
 
     private fun generatePlayActions(player: PlayerState, cardId: String, type: CardType): List<Action> {
         return when (type) {
-            CardType.CREATURE -> listOf(PlayCardAction(cardId))
+            CardType.CREATURE -> {
+                // Placement is a player choice: left flank (0) or right flank (size).
+                // If the battleline is empty both options resolve to index 0, so de-duplicate.
+                val rightIndex = player.creatures.size
+                if (rightIndex == 0) {
+                    listOf(PlayCardAction(cardId, placementIndex = 0))
+                } else {
+                    listOf(
+                        PlayCardAction(cardId, placementIndex = 0),
+                        PlayCardAction(cardId, placementIndex = rightIndex)
+                    )
+                }
+            }
             CardType.ARTIFACT -> listOf(PlayCardAction(cardId))
             CardType.ACTION -> listOf(PlayCardAction(cardId))
             CardType.UPGRADE -> {
