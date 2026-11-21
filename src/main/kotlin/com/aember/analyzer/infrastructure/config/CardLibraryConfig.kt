@@ -2,11 +2,17 @@ package com.aember.analyzer.infrastructure.config
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.cards.Anger
+import com.aember.analyzer.domain.engine.cards.Arise
 import com.aember.analyzer.domain.engine.cards.BadPenny
+import com.aember.analyzer.domain.engine.cards.ControlTheWeak
 import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
+import com.aember.analyzer.domain.engine.cards.Miasma
 import com.aember.analyzer.domain.engine.cards.ShadowSelf
+import com.aember.analyzer.domain.engine.cards.Silvertooth
 import com.aember.analyzer.domain.engine.cards.SpeedSigil
+import com.aember.analyzer.domain.engine.cards.TendrilsOfPain
+import com.aember.analyzer.domain.engine.cards.YxilxDominator
 import com.aember.analyzer.domain.engine.cards.coreSetCards
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
@@ -35,6 +41,12 @@ class CardLibraryConfig {
         library.register("ether-spider", EtherSpider)
         library.register("shadow-self", ShadowSelf)
         library.register("speed-sigil", SpeedSigil)
+        library.register("control-the-weak", ControlTheWeak)
+        library.register("miasma", Miasma)
+        library.register("tendrils-of-pain", TendrilsOfPain)
+        library.register("arise", Arise)
+        library.register("silvertooth", Silvertooth)
+        library.register("yxilx-dominator", YxilxDominator)
 
         return library
     }

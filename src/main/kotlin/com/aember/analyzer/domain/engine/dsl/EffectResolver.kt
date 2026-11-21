@@ -5,6 +5,8 @@ import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.Zone
+import com.aember.analyzer.domain.model.CardType
+import com.aember.analyzer.domain.model.House
 import kotlin.math.min
 import kotlin.reflect.KClass
 
@@ -23,6 +25,42 @@ class EffectResolver(
         register<GainAmber> { game, player, _, effect -> gainAmber(game, player, effect.amount) }
         register<GainAmberOnTriggerThisTurn> { _, player, _, effect ->
             player.turnTriggerAmber[effect.trigger] = player.turnTriggerAmber.getOrDefault(effect.trigger, 0) + effect.amount
+        }
+        register<DrawOnCardPlayThisTurn> { _, player, _, effect ->
+            player.drawOnCardPlayActive = true
+            player.drawOnCardPlayHouse = effect.house
+        }
+        register<DenyHouseNextTurn> { game, sourcePlayer, _, effect ->
+            val target = targetPlayer(game, sourcePlayer, effect.target)
+            target.deniedHouseNextTurn = effect.house
+            game.log("${sourcePlayer.name} names ${effect.house} with Control the Weak; ${target.name} cannot choose it next turn")
+        }
+        register<TakeControlUntilEndOfTurn> { game, sourcePlayer, _, effect ->
+            takeControlUntilEndOfTurn(game, sourcePlayer, effect)
+        }
+        register<PlayTopCardOfHouse> { game, sourcePlayer, _, effect ->
+            playTopCardOfHouse(game, targetPlayer(game, sourcePlayer, effect.player), effect.house)
+        }
+        register<AddTopCardOfHouseToHand> { game, sourcePlayer, _, effect ->
+            addTopCardOfHouseToHand(game, targetPlayer(game, sourcePlayer, effect.player), effect.house)
+        }
+        register<DiscardTopDeck> { game, sourcePlayer, _, effect ->
+            discardTopDeck(game, targetPlayer(game, sourcePlayer, effect.player))
+        }
+        register<GainAmberEqualToOpponentKeys> { game, sourcePlayer, _, effect ->
+            val target = targetPlayer(game, sourcePlayer, effect.player)
+            val amount = game.opponent(target).keys
+            if (amount > 0) gainAmber(game, target, amount)
+        }
+        register<TakeControlOfEnemyFlankCreature> { game, sourcePlayer, _, effect ->
+            takeControlOfEnemyFlankCreature(game, targetPlayer(game, sourcePlayer, effect.player))
+        }
+        register<SkipForgeNextTurn> { game, sourcePlayer, _, effect ->
+            targetPlayer(game, sourcePlayer, effect.player).skipsForgeNextTurn = true
+            game.log("${sourcePlayer.name} plays Miasma; ${targetPlayer(game, sourcePlayer, effect.player).name} cannot forge a key next turn")
+        }
+        register<ReturnCreaturesOfHouseFromDiscardToHand> { game, sourcePlayer, _, effect ->
+            returnCreaturesOfHouseFromDiscardToHand(game, targetPlayer(game, sourcePlayer, effect.player))
         }
         register<StealAmber> { game, player, _, effect -> stealAmber(game, player, effect.amount) }
         register<CaptureAmber> { game, player, _, effect -> captureAmber(game, player, effect) }
@@ -169,6 +207,8 @@ class EffectResolver(
         val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
         targets.forEach { target ->
             target.damage = Int.MAX_VALUE
+            game.lastDamagedTargetId = target.instanceId
+            game.lastDamageDestroyed = true
             game.log("${sourcePlayer.name} destroys ${target.cardId}")
         }
     }
@@ -411,6 +451,34 @@ class EffectResolver(
         game.log("${player.name} loses all $lost amber (${player.name}: $before -> ${player.amber})")
     }
 
+    private fun returnCreaturesOfHouseFromDiscardToHand(game: GameState, player: PlayerState) {
+        // The player would choose a house; we approximate by picking the house with the most creatures in discard.
+        val creaturesInDiscard = player.discard.mapNotNull { library?.cardData(it) }
+            .filter { it.type == CardType.CREATURE }
+        val chosenHouse = creaturesInDiscard
+            .groupingBy { it.house }
+            .eachCount()
+            .maxByOrNull { it.value }
+            ?.key
+        if (chosenHouse == null) {
+            game.log("${player.name} returns no creatures from discard (no creatures to choose)")
+            return
+        }
+        val returned = mutableListOf<String>()
+        val iterator = player.discard.iterator()
+        while (iterator.hasNext()) {
+            val cardId = iterator.next()
+            val card = library?.cardData(cardId)
+            if (card?.type == CardType.CREATURE && card.house == chosenHouse) {
+                iterator.remove()
+                player.hand.add(cardId)
+                returned.add(cardId)
+            }
+        }
+        player.chains += 1
+        game.log("${player.name} chooses ${chosenHouse.name.lowercase()} and returns ${returned.size} creature(s) from discard to hand, gaining 1 chain")
+    }
+
     private fun exhaust(game: GameState, effect: Exhaust) {
         val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
         targets.forEach { it.exhausted = true; game.log("${it.cardId} is exhausted") }
@@ -425,22 +493,134 @@ class EffectResolver(
         game.log("${player.name} shuffles hand and discard into deck")
     }
 
+    private fun takeControlUntilEndOfTurn(game: GameState, sourcePlayer: PlayerState, effect: TakeControlUntilEndOfTurn) {
+        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
+        val target = targets.firstOrNull() ?: return
+        val currentOwner = game.players.find { p -> p.creatures.contains(target) } ?: return
+        if (currentOwner.index == sourcePlayer.index) return
+        currentOwner.creatures.remove(target)
+        game.temporaryControllers[target.instanceId] = currentOwner.index
+        target.controllerIndex = sourcePlayer.index
+        sourcePlayer.creatures.add(target)
+        game.log("${sourcePlayer.name} takes control of ${target.cardId} until end of turn")
+    }
+
+    private fun playTopCardOfHouse(game: GameState, player: PlayerState, house: House) {
+        ensureLibraryNotEmpty(player)
+        val discarded = mutableListOf<String>()
+        var played: String? = null
+        while (player.library.isNotEmpty()) {
+            val cardId = player.library.removeFirst()
+            val card = library?.cardData(cardId)
+            if (card?.house == house && card.type == CardType.CREATURE) {
+                played = cardId
+                break
+            } else {
+                discarded.add(cardId)
+            }
+        }
+        if (discarded.isNotEmpty()) {
+            player.discard.addAll(discarded)
+            game.log("${player.name} discards ${discarded.size} card(s) from Invasion Portal: ${discarded.joinToString(", ") { cardName(it) }}")
+        }
+        if (played != null) {
+            val catalog = library?.cardData(played) ?: return
+            val inPlay = InPlayCard(
+                instanceId = java.util.UUID.randomUUID().toString(),
+                cardId = played,
+                ownerIndex = player.index,
+                controllerIndex = player.index,
+                zone = Zone.PLAY_AREA,
+                house = catalog.house,
+                type = CardType.CREATURE,
+                exhausted = true,
+                power = catalog.power ?: 0,
+                armor = catalog.armor ?: 0,
+                keywords = catalog.keywords.map { it.lowercase() }.associateWith { 1 },
+                traits = catalog.traits.map { it.lowercase() }
+            )
+            player.creatures.add(inPlay)
+            game.log("${player.name} plays ${cardName(played)} from Invasion Portal")
+        } else {
+            game.log("${player.name} finds no ${house.name.lowercase()} creature from Invasion Portal")
+        }
+    }
+
+    private fun discardTopDeck(game: GameState, player: PlayerState) {
+        ensureLibraryNotEmpty(player)
+        val cardId = player.library.removeFirstOrNull() ?: return
+        player.discard.add(cardId)
+        game.log("${player.name} destroys the top card of their deck: ${cardName(cardId)}")
+    }
+
+    private fun addTopCardOfHouseToHand(game: GameState, player: PlayerState, house: House) {
+        ensureLibraryNotEmpty(player)
+        val discarded = mutableListOf<String>()
+        var found: String? = null
+        while (player.library.isNotEmpty()) {
+            val cardId = player.library.removeFirst()
+            val card = library?.cardData(cardId)
+            if (card?.house == house && card.type == CardType.CREATURE) {
+                found = cardId
+                break
+            } else {
+                discarded.add(cardId)
+            }
+        }
+        if (discarded.isNotEmpty()) {
+            player.discard.addAll(discarded)
+            game.log("${player.name} discards ${discarded.size} card(s) from Invasion Portal: ${discarded.joinToString(", ") { cardName(it) }}")
+        }
+        if (found != null) {
+            player.hand.add(found)
+            game.log("${player.name} puts ${cardName(found)} into hand from Invasion Portal")
+        } else {
+            game.log("${player.name} finds no ${house.name.lowercase()} creature from Invasion Portal")
+        }
+    }
+
+    private fun takeControlOfEnemyFlankCreature(game: GameState, sourcePlayer: PlayerState) {
+        if (!sourcePlayer.forgedKeyThisTurn) {
+            game.log("${sourcePlayer.name} did not forge a key this turn, so Smiling Ruth takes no creature")
+            return
+        }
+        val opponent = game.opponent(sourcePlayer)
+        if (opponent.creatures.isEmpty()) return
+        val flanks = listOfNotNull(opponent.creatures.firstOrNull(), opponent.creatures.lastOrNull()).distinctBy { it.instanceId }
+        val target = flanks.maxByOrNull { it.power } ?: return
+        opponent.creatures.remove(target)
+        game.temporaryControllers[target.instanceId] = opponent.index
+        target.controllerIndex = sourcePlayer.index
+        sourcePlayer.creatures.add(target)
+        game.log("${sourcePlayer.name} takes control of ${target.cardId} with Smiling Ruth until end of turn")
+    }
+
+    private fun ensureLibraryNotEmpty(player: PlayerState) {
+        if (player.library.isEmpty() && player.discard.isNotEmpty()) {
+            player.library.addAll(player.discard)
+            player.discard.clear()
+            player.library.shuffle(java.util.Random())
+        }
+    }
+
     fun evaluateCondition(game: GameState, player: PlayerState, condition: Condition): Boolean {
         val opponent = game.opponent()
-        return when (condition) {
-            is OpponentHasMoreAmber -> opponent.amber > player.amber
-            is SelfHasMoreAmber -> player.amber > opponent.amber
-            is OpponentHasFewerCreatures -> opponent.creatures.size < player.creatures.size
-            is SelfHasFewerCreatures -> player.creatures.size < opponent.creatures.size
-            is TargetIsDamaged -> false // not used in simple conditions
-            is Always -> true
-            is OpponentAmberAtLeast -> opponent.amber >= condition.amount
-            is OpponentAmberAtMost -> opponent.amber <= condition.amount
-            is OpponentAmberExactly -> opponent.amber == condition.amount
-            is SelfAmberAtLeast -> player.amber >= condition.amount
-            is StealSucceeded -> game.lastStealAmount > 0
-            is DamageDestroyedTarget -> game.lastDamageDestroyed
-        }
+        val handlers = mapOf<KClass<out Condition>, (Condition, GameState, PlayerState) -> Boolean>(
+            OpponentHasMoreAmber::class to { _, _, _ -> opponent.amber > player.amber },
+            SelfHasMoreAmber::class to { _, _, _ -> player.amber > opponent.amber },
+            OpponentHasFewerCreatures::class to { _, _, _ -> opponent.creatures.size < player.creatures.size },
+            SelfHasFewerCreatures::class to { _, _, _ -> player.creatures.size < opponent.creatures.size },
+            TargetIsDamaged::class to { _, _, _ -> false },
+            Always::class to { _, _, _ -> true },
+            OpponentAmberAtLeast::class to { c, _, _ -> opponent.amber >= (c as OpponentAmberAtLeast).amount },
+            OpponentAmberAtMost::class to { c, _, _ -> opponent.amber <= (c as OpponentAmberAtMost).amount },
+            OpponentAmberExactly::class to { c, _, _ -> opponent.amber == (c as OpponentAmberExactly).amount },
+            SelfAmberAtLeast::class to { c, _, _ -> player.amber >= (c as SelfAmberAtLeast).amount },
+            StealSucceeded::class to { _, g, _ -> g.lastStealAmount > 0 },
+            DamageDestroyedTarget::class to { _, g, _ -> g.lastDamageDestroyed },
+            OpponentForgedKeyLastTurn::class to { _, g, _ -> g.opponent().forgedKeyLastTurn }
+        )
+        return handlers[condition::class]?.invoke(condition, game, player) ?: false
     }
 
     private fun targetPlayer(game: GameState, sourcePlayer: PlayerState, player: TargetPlayer): PlayerState {

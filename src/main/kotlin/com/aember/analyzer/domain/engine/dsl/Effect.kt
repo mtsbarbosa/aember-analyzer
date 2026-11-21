@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
+import com.aember.analyzer.domain.model.House
+
 sealed interface Effect
 
 object NoEffect : Effect
@@ -13,6 +15,26 @@ enum class TurnTrigger {
 }
 
 data class GainAmberOnTriggerThisTurn(val amount: Int, val trigger: TurnTrigger) : Effect
+
+data class DrawOnCardPlayThisTurn(val house: House? = null, val amount: Int = 1) : Effect
+
+data class DenyHouseNextTurn(val house: House, val target: TargetPlayer) : Effect
+
+data class TakeControlUntilEndOfTurn(val target: CreatureSelector) : Effect
+
+data class PlayTopCardOfHouse(val house: House, val player: TargetPlayer) : Effect
+
+data class AddTopCardOfHouseToHand(val house: House, val player: TargetPlayer) : Effect
+
+data class DiscardTopDeck(val player: TargetPlayer) : Effect
+
+data class GainAmberEqualToOpponentKeys(val player: TargetPlayer) : Effect
+
+data class TakeControlOfEnemyFlankCreature(val player: TargetPlayer) : Effect
+
+data class SkipForgeNextTurn(val player: TargetPlayer) : Effect
+
+data class ReturnCreaturesOfHouseFromDiscardToHand(val player: TargetPlayer) : Effect
 
 data class StealAmber(val amount: Int) : Effect
 

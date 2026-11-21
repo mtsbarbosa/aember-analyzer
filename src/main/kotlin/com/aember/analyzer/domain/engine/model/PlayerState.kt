@@ -25,7 +25,13 @@ data class PlayerState(
     var canForgeSecondKey: Boolean = false,
     val cardNamesPlayedOrUsedThisRound: MutableMap<String, Int> = mutableMapOf(),
     val turnTriggerAmber: MutableMap<TurnTrigger, Int> = mutableMapOf(),
-    var creaturesPlayedThisTurn: Int = 0
+    var creaturesPlayedThisTurn: Int = 0,
+    var deniedHouseNextTurn: House? = null,
+    var drawOnCardPlayActive: Boolean = false,
+    var drawOnCardPlayHouse: House? = null,
+    var forgedKeyThisTurn: Boolean = false,
+    var forgedKeyLastTurn: Boolean = false,
+    var skipsForgeNextTurn: Boolean = false
 ) {
 
     fun cardsInPlay(): List<InPlayCard> = creatures + artifacts

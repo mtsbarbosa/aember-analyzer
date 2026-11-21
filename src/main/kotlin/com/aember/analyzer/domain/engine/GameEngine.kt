@@ -43,6 +43,9 @@ class GameEngine(
                 p.creatures.forEach { it.elusiveUsed = false }
                 p.turnTriggerAmber.clear()
                 p.creaturesPlayedThisTurn = 0
+                p.drawOnCardPlayActive = false
+                p.drawOnCardPlayHouse = null
+                p.forgedKeyThisTurn = false
             }
 
             keyPhase(game)
@@ -96,10 +99,16 @@ class GameEngine(
 
     private fun keyPhase(game: GameState) {
         val player = game.activePlayer()
+        if (player.skipsForgeNextTurn) {
+            player.skipsForgeNextTurn = false
+            game.log("${player.name} cannot forge a key this turn")
+            return
+        }
         while (canForgeKey(player)) {
             val before = player.amber
             player.amber -= 6
             player.keys += 1
+            player.forgedKeyThisTurn = true
             game.statistics.keysForged++
             game.log("${player.name} forges a key! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
             if (!player.canForgeSecondKey) break
@@ -200,12 +209,36 @@ class GameEngine(
         player.activeHouse = null
         if (checkGameOver(game)) return
 
+        // Remember whether this player forged a key this turn for "previous turn" checks.
+        player.forgedKeyLastTurn = player.forgedKeyThisTurn
+
+        // Revert any temporary creature control from effects like Hypnotic Command.
+        revertTemporaryControl(game)
+
         // Switch active player
         game.activePlayerIndex = 1 - game.activePlayerIndex
         game.turn += 1
         if (game.activePlayerIndex == game.firstPlayerIndex) {
             game.round += 1
             game.players.forEach { it.cardNamesPlayedOrUsedThisRound.clear() }
+        }
+    }
+
+    private fun revertTemporaryControl(game: GameState) {
+        val iterator = game.temporaryControllers.iterator()
+        while (iterator.hasNext()) {
+            val (instanceId, originalControllerIndex) = iterator.next()
+            val currentOwner = game.players.find { p -> p.creatures.any { it.instanceId == instanceId } }
+            val creature = currentOwner?.creatures?.find { it.instanceId == instanceId }
+            if (creature != null) {
+                if (currentOwner.index != originalControllerIndex) {
+                    currentOwner.creatures.remove(creature)
+                    creature.controllerIndex = originalControllerIndex
+                    game.player(originalControllerIndex).creatures.add(creature)
+                    game.log("${creature.cardId} returns to ${game.player(originalControllerIndex).name}'s control")
+                }
+            }
+            iterator.remove()
         }
     }
 

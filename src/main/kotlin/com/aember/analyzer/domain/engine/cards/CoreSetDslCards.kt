@@ -2,6 +2,7 @@ package com.aember.analyzer.domain.engine.cards
 
 import com.aember.analyzer.domain.engine.dsl.*
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
+import com.aember.analyzer.domain.model.House
 
 /**
  * Auto-generated Core set card definitions from keyteki CotA.json.
@@ -227,8 +228,9 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.APPROXIMATED, "Approximated; complex interaction ignored")
         },
     card("control-the-weak") {
+            // Effect implemented manually in CoreCards.kt to choose the best house to deny.
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.PARTIAL, "House-denial effect implemented via card script")
         },
     card("creeping-oblivion") {
             play(PurgeFromDiscard(2, SelfPlayer))
@@ -439,8 +441,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("bouncing-deathquark") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(Sequence(listOf(Destroy(EnemyCreature()), Destroy(FriendlyCreature()))))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("dimension-door") {
             play(NoEffect)
@@ -471,7 +473,7 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("library-access") {
-            play(Draw(1, SelfPlayer))
+            play(DrawOnCardPlayThisTurn())
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("neuro-syphon") {
@@ -572,8 +574,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("dr-escotera") {
-            play(GainAmber(1))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(GainAmberEqualToOpponentKeys(SelfPlayer))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("dysania") {
             play(GainAmber(1))
@@ -596,10 +598,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("neutron-shark") {
-            play(NoEffect)
-            reap(NoEffect)
-            fight(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            val neutronEffect = Sequence(listOf(Destroy(AnyCreature()), Conditional(DamageDestroyedTarget, DiscardTopDeck(SelfPlayer))))
+            play(neutronEffect)
+            reap(neutronEffect)
+            fight(neutronEffect)
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("novu-archaeologist") {
             action("Archive a card from your discard pile", ArchiveFromDiscard(1, SelfPlayer))
@@ -673,8 +676,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("hypnotic-command") {
-            play(CaptureAmber(1, FriendlyCreature()))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            play(TakeControlUntilEndOfTurn(EnemyCreature()))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("irradiated-mber") {
             play(DealDamage(3, EnemyCreature(Scope.ALL)))
@@ -757,8 +760,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.APPROXIMATED, "Approximated; complex interaction ignored")
         },
     card("invasion-portal") {
-            action("Discard cards from the top of your deck until you discard a Mars creature or run out of cards", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            action("Discard cards from the top of your deck until you discard a Mars creature or run out of cards", AddTopCardOfHouseToHand(House.MARS, SelfPlayer))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("incubation-chamber") {
             omni(NoEffect)
@@ -1277,8 +1280,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("smiling-ruth") {
-            reap(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            reap(TakeControlOfEnemyFlankCreature(SelfPlayer))
+            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("sneklifter") {
             play(NoEffect)
