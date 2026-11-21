@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
+import com.aember.analyzer.domain.model.House
+
 sealed interface Condition
 
 object OpponentHasMoreAmber : Condition
@@ -17,3 +19,8 @@ data class SelfAmberAtLeast(val amount: Int) : Condition
 object StealSucceeded : Condition
 object DamageDestroyedTarget : Condition
 object OpponentForgedKeyLastTurn : Condition
+
+/**
+ * True when the player has played at least [amount] cards of [house] during the current turn.
+ */
+data class CardsOfHousePlayedThisTurn(val house: House, val amount: Int) : Condition

@@ -104,6 +104,18 @@ data class Exhaust(val target: CreatureSelector) : Effect
 
 data class ShuffleHandAndDiscardIntoDeck(val player: TargetPlayer) : Effect
 
+data class ReturnAllCreaturesOfHouseToHand(val house: House) : Effect
+
+data class ForgeKey(val extraCost: Int, val discountPerCardInHand: Boolean) : Effect
+
+data class DrawPerCardInHand(val house: House, val player: TargetPlayer) : Effect
+
+data class ReadyCreaturesOfHousePerCardInHand(val house: House, val player: TargetPlayer) : Effect
+
+data class AddPowerCounters(val amount: Int) : Effect
+
+data object SacrificeSelf : Effect
+
 data class Sequence(val effects: List<Effect>) : Effect
 
 data class Conditional(val condition: Condition, val thenEffect: Effect, val elseEffect: Effect = NoEffect) : Effect

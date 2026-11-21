@@ -54,6 +54,18 @@ interface CardScript {
      */
     fun protectsNeighbors(): Boolean = false
 
+    /**
+     * Static upgrade ability: the controller of the attached creature's opponent pays this
+     * much extra amber to forge keys (e.g., Jammer Pack).
+     */
+    fun opponentKeyCostModifier(): Int = 0
+
+    /**
+     * Static upgrade ability: if true, the attached creature goes to its owner's archives
+     * instead of being destroyed (e.g., Biomatrix Backup).
+     */
+    fun archivesAttachedCreatureOnDestroyed(): Boolean = false
+
     fun onBeforeReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 
     fun onAfterReap(game: GameState, player: PlayerState, card: InPlayCard) {}

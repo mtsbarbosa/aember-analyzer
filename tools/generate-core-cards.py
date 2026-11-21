@@ -103,7 +103,9 @@ def parse_effect(text: str) -> str | None:
     # Return enemy creature(s) to hand
     m = re.search(r'return (\d+|an|a|each|up to \d+|2|3) enemy creatures? to (?:their|its) owner', t)
     if m or re.search(r'return an enemy creature to its owner', t):
-        return 'ReturnToHand(EnemyCreature(Scope.ALL))'
+        quantity = m.group(1) if m else 'an'
+        scope = 'Scope.ONE' if quantity in ('an', 'a', '1') else 'Scope.ALL'
+        return f'ReturnToHand(EnemyCreature({scope}))'
 
     # Return friendly/all creatures to hand
     if re.search(r'return each creature to its owner', t):

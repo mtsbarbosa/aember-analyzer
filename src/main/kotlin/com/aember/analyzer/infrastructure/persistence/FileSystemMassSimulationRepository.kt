@@ -3,6 +3,7 @@ package com.aember.analyzer.infrastructure.persistence
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
+import com.aember.analyzer.domain.rating.DeckRating
 import com.aember.analyzer.domain.ports.MassSimulationRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -23,6 +24,7 @@ import kotlin.io.path.writeText
  *
  * Layout:
  *   {storagePath}/{batchUuid}/batch.json
+ *   {storagePath}/{batchUuid}/ratings.json
  *   {storagePath}/{batchUuid}/matches/{index}-{yyyyMMdd-HHmmss}-{seed}/result.json
  *   {storagePath}/{batchUuid}/matches/{index}-{yyyyMMdd-HHmmss}-{seed}/log.json
  */
@@ -89,6 +91,18 @@ class FileSystemMassSimulationRepository(
         return if (logFile.exists()) readJson(logFile) else null
     }
 
+    override fun saveRatings(batchUuid: String, ratings: List<DeckRating>) {
+        val dir = batchPath(batchUuid)
+        Files.createDirectories(dir)
+        writeJson(dir.resolve(RATINGS_FILE), ratings)
+    }
+
+    override fun findRatings(batchUuid: String): List<DeckRating>? {
+        val file = batchPath(batchUuid).resolve(RATINGS_FILE)
+        if (!file.exists()) return null
+        return objectMapper.readValue(file.readText())
+    }
+
     private fun findMatchDir(batchUuid: String, matchResultId: Int): Path? {
         val matchesDir = batchPath(batchUuid).resolve(MATCHES_DIR)
         if (!matchesDir.exists()) return null
@@ -120,6 +134,7 @@ class FileSystemMassSimulationRepository(
         private const val BATCH_FILE = "batch.json"
         private const val RESULT_FILE = "result.json"
         private const val LOG_FILE = "log.json"
+        private const val RATINGS_FILE = "ratings.json"
         private const val MATCHES_DIR = "matches"
     }
 }

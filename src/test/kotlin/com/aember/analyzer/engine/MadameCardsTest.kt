@@ -97,7 +97,7 @@ class MadameCardsTest {
     }
 
     @Test
-    fun `Speed Sigil does not ready second creature`() {
+    fun `Speed Sigil creatures enter play ready`() {
         val library = libraryWithMadameCards()
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame()
@@ -112,7 +112,7 @@ class MadameCardsTest {
         val creatures = game.activePlayer().creatures.filter { it.cardId == "fighter" }
         assertThat(creatures).hasSize(2)
         assertThat(creatures[0].exhausted).isFalse()
-        assertThat(creatures[1].exhausted).isTrue()
+        assertThat(creatures[1].exhausted).isFalse()
     }
 
     @Test

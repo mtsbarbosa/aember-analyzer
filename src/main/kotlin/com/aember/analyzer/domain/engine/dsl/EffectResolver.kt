@@ -1,6 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardLibrary
+import com.aember.analyzer.domain.engine.ForgeRules
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -99,6 +100,22 @@ class EffectResolver(
         register<GainAmberOpponent> { game, _, _, effect -> gainAmberOpponent(game, effect.amount) }
         register<Exhaust> { game, _, _, effect -> exhaust(game, effect) }
         register<ShuffleHandAndDiscardIntoDeck> { game, player, _, effect -> shuffleHandAndDiscardIntoDeck(game, targetPlayer(game, player, effect.player)) }
+        register<ReturnAllCreaturesOfHouseToHand> { game, _, _, effect -> returnAllCreaturesOfHouseToHand(game, effect) }
+        register<ForgeKey> { game, player, _, effect -> forgeKey(game, player, effect) }
+        register<DrawPerCardInHand> { game, player, _, effect -> drawPerCardInHand(game, player, effect) }
+        register<ReadyCreaturesOfHousePerCardInHand> { game, player, _, effect -> readyCreaturesOfHousePerCardInHand(game, player, effect) }
+        register<AddPowerCounters> { game, _, sourceCard, effect ->
+            sourceCard.power += effect.amount
+            game.log("${sourceCard.cardId} gets ${effect.amount} +1 power counter(s) (power: ${sourceCard.power})")
+        }
+        register<SacrificeSelf> { game, _, sourceCard, _ ->
+            val owner = game.player(sourceCard.ownerIndex)
+            if (!owner.creatures.remove(sourceCard)) {
+                owner.artifacts.remove(sourceCard)
+            }
+            owner.discard.add(sourceCard.cardId)
+            game.log("${sourceCard.cardId} is sacrificed")
+        }
         register<RepeatForEach> { _, _, _, _ ->
             // Not used for simple cards yet.
         }
@@ -493,6 +510,57 @@ class EffectResolver(
         game.log("${player.name} shuffles hand and discard into deck")
     }
 
+    private fun returnAllCreaturesOfHouseToHand(game: GameState, effect: ReturnAllCreaturesOfHouseToHand) {
+        game.players.forEach { player ->
+            player.creatures.filter { it.house == effect.house }.forEach { creature ->
+                player.creatures.remove(creature)
+                player.hand.add(creature.cardId)
+                game.log("${creature.cardId} returns to ${player.name}'s hand")
+            }
+        }
+    }
+
+    private fun forgeKey(game: GameState, player: PlayerState, effect: ForgeKey) {
+        val baseCost = if (library != null) ForgeRules.keyCost(library, game, player) else ForgeRules.BASE_KEY_COST
+        val cost = (baseCost + effect.extraCost - (if (effect.discountPerCardInHand) player.hand.size else 0)).coerceAtLeast(0)
+        if (player.keys >= 3) return
+        if (player.amber < cost) {
+            game.log("${player.name} cannot forge a key (cost: $cost, amber: ${player.amber})")
+            return
+        }
+        val before = player.amber
+        player.amber -= cost
+        player.keys += 1
+        player.forgedKeyThisTurn = true
+        player.statistics.keysForged++
+        game.log("${player.name} forges a key at cost $cost! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
+    }
+
+    private fun drawPerCardInHand(game: GameState, player: PlayerState, effect: DrawPerCardInHand) {
+        val target = targetPlayer(game, player, effect.player)
+        val count = target.hand.count { cardId ->
+            target.deck.cards.find { it.cardId == cardId }?.effectiveHouse == effect.house
+        }
+        if (count == 0) {
+            game.log("${target.name} reveals no ${effect.house.name.lowercase()} cards from hand")
+            return
+        }
+        game.log("${target.name} reveals $count ${effect.house.name.lowercase()} card(s) from hand")
+        drawCards(game, target, count)
+    }
+
+    private fun readyCreaturesOfHousePerCardInHand(game: GameState, player: PlayerState, effect: ReadyCreaturesOfHousePerCardInHand) {
+        val target = targetPlayer(game, player, effect.player)
+        val count = target.hand.count { cardId ->
+            target.deck.cards.find { it.cardId == cardId }?.effectiveHouse == effect.house
+        }
+        val readied = target.creatures
+            .filter { it.house == effect.house && it.exhausted && !it.stun }
+            .take(count)
+        readied.forEach { it.exhausted = false }
+        game.log("${target.name} readies ${readied.size} ${effect.house.name.lowercase()} creature(s)")
+    }
+
     private fun takeControlUntilEndOfTurn(game: GameState, sourcePlayer: PlayerState, effect: TakeControlUntilEndOfTurn) {
         val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
         val target = targets.firstOrNull() ?: return
@@ -618,7 +686,11 @@ class EffectResolver(
             SelfAmberAtLeast::class to { c, _, _ -> player.amber >= (c as SelfAmberAtLeast).amount },
             StealSucceeded::class to { _, g, _ -> g.lastStealAmount > 0 },
             DamageDestroyedTarget::class to { _, g, _ -> g.lastDamageDestroyed },
-            OpponentForgedKeyLastTurn::class to { _, g, _ -> g.opponent().forgedKeyLastTurn }
+            OpponentForgedKeyLastTurn::class to { _, g, _ -> g.opponent().forgedKeyLastTurn },
+            CardsOfHousePlayedThisTurn::class to { c, _, p ->
+                val cond = c as CardsOfHousePlayedThisTurn
+                (p.cardsPlayedThisTurnByHouse[cond.house] ?: 0) >= cond.amount
+            }
         )
         return handlers[condition::class]?.invoke(condition, game, player) ?: false
     }

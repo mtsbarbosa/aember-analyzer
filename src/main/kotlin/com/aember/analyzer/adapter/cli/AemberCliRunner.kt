@@ -6,9 +6,11 @@ import com.aember.analyzer.application.SimulationService
 import com.aember.analyzer.domain.model.MassSimulationRequest
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationStatus
+import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import org.slf4j.LoggerFactory
 import org.springframework.boot.CommandLineRunner
 import org.springframework.stereotype.Component
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.system.exitProcess
 
@@ -105,6 +107,67 @@ class AemberCliRunner(
                 println("Avg fidelity: ${completedBatch.avgFidelity?.let { "%.2f%%".format(it) } ?: "-"}")
                 if (completedBatch.errorMessage != null) {
                     println("Error: ${completedBatch.errorMessage}")
+                }
+                exitProcess(0)
+            }
+            "mass-simulate-decks" -> {
+                val rawArgs = args.filterNotNull()
+                val debugLogs = "--debug-logs" in rawArgs
+                val positional = rawArgs.drop(1).filter { it != "--debug-logs" }
+                val listFile = positional.getOrNull(0)
+                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [--debug-logs]")
+                val matchesPerPairing = positional.getOrNull(1)?.toIntOrNull()
+                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [--debug-logs]")
+                val ai = positional.getOrNull(2) ?: "tactical"
+
+                val deckUuids = Files.readAllLines(Path.of(listFile))
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() && !it.startsWith("#") }
+
+                logger.info(
+                    "CLI mass-simulate-decks invoked with {} decks, {} matches per pairing (ai={}, debugLogs={})",
+                    deckUuids.size, matchesPerPairing, ai, debugLogs
+                )
+                val batch = massSimulationService.runMultiDeckSimulation(
+                    MultiDeckSimulationRequest(
+                        deckUuids = deckUuids,
+                        matchesPerPairing = matchesPerPairing,
+                        ai = ai
+                    ),
+                    recordLogs = debugLogs
+                )
+                println("Started multi-deck simulation batch: ${batch.uuid}")
+                println("Decks: ${batch.deckPool.size}, pairings: ${batch.matchesPerPairing?.let { batch.deckPool.size * (batch.deckPool.size - 1) / 2 } ?: "-"}, total matches: ${batch.matchCount}")
+                println("Polling for completion...")
+
+                val completedBatch = pollForCompletion(batch.uuid)
+                println("\nBatch status: ${completedBatch.status}")
+                println("Matches: ${completedBatch.completedCount}/${completedBatch.matchCount} completed, ${completedBatch.failedCount} failed")
+                println("Avg rounds: ${completedBatch.avgRounds?.let { "%.2f".format(it) } ?: "-"}")
+                println("Avg fidelity: ${completedBatch.avgFidelity?.let { "%.2f%%".format(it) } ?: "-"}")
+                if (completedBatch.errorMessage != null) {
+                    println("Error: ${completedBatch.errorMessage}")
+                }
+
+                if (completedBatch.status == MassSimulationStatus.COMPLETED) {
+                    println("\nDeck ratings (sorted by Aember Score):")
+                    println(String.format("%-30s %8s %6s %6s %6s %10s %8s %8s", "Deck", "Score", "W", "L", "D", "WinRate", "SoS", "Pct"))
+                    massSimulationService.getRatings(batch.uuid).forEach { rating ->
+                        println(
+                            String.format(
+                                "%-30s %8.1f %6d %6d %6d %9.1f%% %7.1f%% %7.1f%%%s",
+                                rating.deckName.take(30),
+                                rating.aemberScore,
+                                rating.wins,
+                                rating.losses,
+                                rating.draws,
+                                rating.winRate * 100,
+                                rating.sos * 100,
+                                rating.percentile,
+                                if (rating.lowConfidence) " (low confidence)" else ""
+                            )
+                        )
+                    }
                 }
                 exitProcess(0)
             }

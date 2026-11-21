@@ -2,11 +2,13 @@ package com.aember.analyzer.adapter.rest
 
 import com.aember.analyzer.application.MassSimulationService
 import com.aember.analyzer.domain.model.MassSimulationRequest
+import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
@@ -22,6 +24,16 @@ class MassSimulationController(
         return ResponseEntity.accepted().body(batch.toDto())
     }
 
+    @PostMapping("/multi")
+    fun runMultiDeckSimulation(
+        @RequestBody request: MultiDeckSimulationRequest,
+        @RequestHeader(value = "X-Debug", required = false) debug: String?
+    ): ResponseEntity<MassSimulationBatchDto> {
+        val recordLogs = debug?.toBooleanStrictOrNull() ?: false
+        val batch = massSimulationService.runMultiDeckSimulation(request, recordLogs = recordLogs)
+        return ResponseEntity.accepted().body(batch.toDto())
+    }
+
     @GetMapping
     fun listBatches(): ResponseEntity<List<MassSimulationBatchSummaryDto>> {
         return ResponseEntity.ok(massSimulationService.listBatches().map { it.toSummaryDto() })
@@ -30,6 +42,11 @@ class MassSimulationController(
     @GetMapping("/{uuid}")
     fun getBatch(@PathVariable uuid: String): ResponseEntity<MassSimulationBatchDto> {
         return ResponseEntity.ok(massSimulationService.getBatch(uuid).toDto())
+    }
+
+    @GetMapping("/{uuid}/ratings")
+    fun getRatings(@PathVariable uuid: String): ResponseEntity<List<DeckRatingDto>> {
+        return ResponseEntity.ok(massSimulationService.getRatings(uuid).map { it.toDto() })
     }
 
     @GetMapping("/{uuid}/matches")

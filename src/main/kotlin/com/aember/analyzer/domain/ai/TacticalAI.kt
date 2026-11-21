@@ -292,8 +292,19 @@ class TacticalAI(
     private fun scoreUseArtifact(game: GameState, action: UseArtifactAction): ScoredAction {
         val player = game.activePlayer()
         val artifact = player.artifacts.find { it.instanceId == action.instanceId }
-        val score = 1.0 * settings.actionAbilityWeight
-        val rationale = "use artifact ${artifact?.cardId ?: action.instanceId}'s ${action.abilityId}"
+        val catalog = artifact?.let { library.cardData(it.cardId) }
+        val text = catalog?.text?.lowercase() ?: ""
+        val wipesHand = text.contains("shuffle your hand") && text.contains("into your deck")
+        val base = when {
+            wipesHand && player.hand.size <= 1 -> 1.4
+            wipesHand -> 0.1
+            else -> 1.0
+        }
+        val score = base * settings.actionAbilityWeight
+        val rationale = buildString {
+            append("use artifact ${artifact?.cardId ?: action.instanceId}'s ${action.abilityId}")
+            if (wipesHand) append(", handWipe with ${player.hand.size} cards in hand")
+        }
         return ScoredAction(action, score, rationale)
     }
 

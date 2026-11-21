@@ -1,10 +1,18 @@
 package com.aember.analyzer.application
 
+import com.aember.analyzer.domain.model.Deck
+import com.aember.analyzer.domain.model.DeckRef
 import com.aember.analyzer.domain.model.MassSimulationBatch
+import com.aember.analyzer.domain.model.MassSimulationBatchType
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
 import com.aember.analyzer.domain.model.MassSimulationRequest
 import com.aember.analyzer.domain.model.MassSimulationStatus
+import com.aember.analyzer.domain.model.MatchTask
+import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
+import com.aember.analyzer.domain.model.RoundRobinScheduleGenerator
+import com.aember.analyzer.domain.rating.DeckRating
+import com.aember.analyzer.domain.rating.RatingAggregator
 import com.aember.analyzer.domain.ports.DeckRepository
 import com.aember.analyzer.domain.ports.MassSimulationRepository
 import com.aember.analyzer.domain.ports.MassSimulationRunner
@@ -12,6 +20,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.time.Instant
 import java.util.UUID
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.atomic.AtomicInteger
 
 @Service
 class MassSimulationService(
@@ -53,6 +64,56 @@ class MassSimulationService(
         return batch
     }
 
+    fun runMultiDeckSimulation(
+        request: MultiDeckSimulationRequest,
+        recordLogs: Boolean = false
+    ): MassSimulationBatch {
+        if (request.deckUuids.size < 2) {
+            throw IllegalArgumentException("At least 2 decks are required for a multi-deck batch")
+        }
+        if (request.deckUuids.distinct().size != request.deckUuids.size) {
+            throw IllegalArgumentException("Duplicate deck UUIDs are not allowed")
+        }
+        if (request.matchesPerPairing <= 0) {
+            throw IllegalArgumentException("matchesPerPairing must be positive")
+        }
+
+        val decks = request.deckUuids.map { uuid ->
+            deckRepository.findByUuid(uuid) ?: throw IllegalArgumentException("Deck not found: $uuid")
+        }
+
+        val tasks = RoundRobinScheduleGenerator.generate(
+            deckUuids = request.deckUuids,
+            matchesPerPairing = request.matchesPerPairing,
+            seatAlternation = request.seatAlternation,
+            baseSeed = request.baseSeed
+        )
+
+        val uuid = UUID.randomUUID().toString()
+        val batch = MassSimulationBatch(
+            uuid = uuid,
+            status = MassSimulationStatus.PENDING,
+            batchType = MassSimulationBatchType.MULTI_DECK,
+            aiA = request.ai,
+            aiB = request.ai,
+            matchCount = tasks.size,
+            deckPool = decks.map { DeckRef(it.uuid, it.name) },
+            ai = request.ai,
+            matchesPerPairing = request.matchesPerPairing,
+            seatAlternation = request.seatAlternation
+        )
+        repository.save(batch)
+        logger.info(
+            "Created multi-deck simulation batch {} with {} decks and {} matches ({} pairings)",
+            uuid, decks.size, tasks.size, RoundRobinScheduleGenerator.pairings(decks.size)
+        )
+
+        val decksByUuid = decks.associateBy { it.uuid }
+        runner.runAsync { executeMultiDeckBatch(uuid, decksByUuid, tasks, request, recordLogs) }
+
+        return batch
+    }
+
     fun getBatch(uuid: String): MassSimulationBatch {
         return repository.findByUuid(uuid)
             ?: throw IllegalArgumentException("Batch not found: $uuid")
@@ -63,7 +124,7 @@ class MassSimulationService(
     }
 
     fun getMatchResults(batchUuid: String): List<MassSimulationMatchResult> {
-        val batch = repository.findByUuid(batchUuid)
+        repository.findByUuid(batchUuid)
             ?: throw IllegalArgumentException("Batch not found: $batchUuid")
         return repository.findResultsByBatchUuid(batchUuid)
     }
@@ -71,6 +132,21 @@ class MassSimulationService(
     fun getMatchLog(batchUuid: String, matchResultId: Int): MassSimulationMatchLog {
         return repository.findLog(batchUuid, matchResultId)
             ?: throw IllegalArgumentException("Log not found for batch $batchUuid match $matchResultId")
+    }
+
+    fun getRatings(batchUuid: String): List<DeckRating> {
+        val batch = repository.findByUuid(batchUuid)
+            ?: throw IllegalArgumentException("Batch not found: $batchUuid")
+        if (batch.batchType != MassSimulationBatchType.MULTI_DECK) {
+            throw IllegalArgumentException("Ratings are only available for multi-deck batches")
+        }
+        repository.findRatings(batchUuid)?.let { return it }
+        val results = repository.findResultsByBatchUuid(batchUuid)
+        val ratings = RatingAggregator.ratings(batch.deckPool, results)
+        if (batch.status == MassSimulationStatus.COMPLETED) {
+            repository.saveRatings(batchUuid, ratings)
+        }
+        return ratings
     }
 
     private fun executeBatch(batchUuid: String, request: MassSimulationRequest) {
@@ -140,16 +216,148 @@ class MassSimulationService(
             logger.info("Completed mass simulation batch {}", batchUuid)
         } catch (e: Exception) {
             logger.error("Mass simulation batch {} failed", batchUuid, e)
+            markBatchFailed(batchUuid, e)
+        }
+    }
+
+    private fun executeMultiDeckBatch(
+        batchUuid: String,
+        decksByUuid: Map<String, Deck>,
+        tasks: List<MatchTask>,
+        request: MultiDeckSimulationRequest,
+        recordLogs: Boolean
+    ) {
+        logger.info("Starting multi-deck simulation batch {}: {} matches across {} decks", batchUuid, tasks.size, decksByUuid.size)
+        try {
             val batch = repository.findByUuid(batchUuid)
-            if (batch != null) {
-                repository.save(
-                    batch.copy(
-                        status = MassSimulationStatus.FAILED,
-                        errorMessage = e.message,
-                        completedAt = Instant.now()
-                    )
-                )
+            if (batch == null) {
+                logger.error("Batch {} not found, aborting", batchUuid)
+                return
             }
+
+            repository.save(batch.copy(status = MassSimulationStatus.RUNNING))
+
+            val concurrency = (request.concurrency ?: Runtime.getRuntime().availableProcessors()).coerceAtLeast(1)
+            val progress = AtomicInteger(0)
+            val progressInterval = (tasks.size / 20).coerceAtLeast(1)
+            val updateLock = Any()
+
+            fun updateProgress(force: Boolean = false) {
+                val done = progress.get()
+                if (!force && done % progressInterval != 0) return
+                synchronized(updateLock) {
+                    val current = repository.findByUuid(batchUuid) ?: return
+                    if (current.status == MassSimulationStatus.RUNNING) {
+                        repository.save(current.copy(completedCount = done))
+                    }
+                }
+            }
+
+            val executor = Executors.newFixedThreadPool(
+                concurrency,
+                Thread.ofVirtual().name("multi-sim-", 0).factory()
+            )
+            try {
+                val futures = tasks.map { task ->
+                    executor.submit(Callable {
+                        try {
+                            simulateMultiDeckMatch(batchUuid, task, decksByUuid, request.ai, recordLogs)
+                        } catch (e: Exception) {
+                            logger.error("Multi-deck batch {} match {} failed", batchUuid, task.taskId, e)
+                            return@Callable
+                        } finally {
+                            updateProgress()
+                        }
+                    })
+                }
+                futures.forEach { it.get() }
+            } finally {
+                executor.shutdown()
+            }
+
+            val completedBatch = repository.findByUuid(batchUuid)
+            if (completedBatch == null) {
+                logger.error("Batch {} not found at completion, aborting", batchUuid)
+                return
+            }
+
+            val results = repository.findResultsByBatchUuid(batchUuid)
+            val failedCount = tasks.size - results.size
+            if (failedCount > 0) {
+                logger.warn("Multi-deck batch {} had {} failed matches", batchUuid, failedCount)
+            }
+
+            repository.save(
+                completedBatch.copy(
+                    status = MassSimulationStatus.COMPLETED,
+                    completedCount = results.size,
+                    failedCount = failedCount,
+                    avgRounds = safeAverage(results.map { it.rounds.toDouble() }),
+                    avgTurns = safeAverage(results.map { it.turns.toDouble() }),
+                    avgFidelity = safeAverage(results.map { it.fidelityScore }),
+                    deckAggregates = RatingAggregator.deckAggregates(completedBatch.deckPool, results),
+                    pairAggregates = RatingAggregator.pairAggregates(completedBatch.deckPool, results),
+                    completedAt = Instant.now()
+                )
+            )
+            repository.saveRatings(batchUuid, RatingAggregator.ratings(completedBatch.deckPool, results))
+            logger.info("Completed multi-deck simulation batch {}", batchUuid)
+        } catch (e: Exception) {
+            logger.error("Multi-deck mass simulation batch {} failed", batchUuid, e)
+            markBatchFailed(batchUuid, e)
+        }
+    }
+
+    private fun simulateMultiDeckMatch(
+        batchUuid: String,
+        task: MatchTask,
+        decksByUuid: Map<String, Deck>,
+        ai: String,
+        recordLogs: Boolean
+    ) {
+        val deckA = decksByUuid.getValue(task.deckUuidA)
+        val deckB = decksByUuid.getValue(task.deckUuidB)
+        val result = simulationService.simulate(deckA, deckB, task.seed, ai, ai)
+
+        val matchResult = MassSimulationMatchResult(
+            id = task.taskId + 1,
+            batchUuid = batchUuid,
+            seed = task.seed,
+            winnerIndex = result.gameState.winnerIndex,
+            endCause = result.gameState.endCause,
+            turns = result.gameState.turn,
+            rounds = result.gameState.round,
+            fidelityScore = result.fidelity.score,
+            statistics = result.gameState.players.map {
+                it.statistics.copy(housesChosen = it.statistics.housesChosen.toMutableMap())
+            },
+            deckUuidA = task.deckUuidA,
+            deckUuidB = task.deckUuidB
+        )
+        repository.saveResult(matchResult)
+
+        if (recordLogs) {
+            repository.saveLog(
+                MassSimulationMatchLog(
+                    matchResultId = matchResult.id,
+                    batchUuid = batchUuid,
+                    seed = task.seed,
+                    logEntries = result.gameState.log.toList()
+                )
+            )
+        }
+    }
+
+    private fun markBatchFailed(batchUuid: String, e: Exception) {
+        val batch = repository.findByUuid(batchUuid)
+        if (batch != null) {
+            repository.save(
+                batch.copy(
+                    status = MassSimulationStatus.FAILED,
+                    errorMessage = e.message,
+                    completedAt = Instant.now()
+                )
+            )
         }
     }
 

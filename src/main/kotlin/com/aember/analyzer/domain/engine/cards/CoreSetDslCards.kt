@@ -241,8 +241,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("fear") {
-            play(ReturnToHand(EnemyCreature(Scope.ALL)))
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            play(ReturnToHand(EnemyCreature(Scope.ONE)))
+            fidelity(FidelityLevel.PARTIAL, "Returns one enemy creature chosen greedily; card text is singular")
         },
     card("gateway-to-dis") {
             play(Sequence(listOf(Destroy(AnyCreature(Scope.ALL)), GainChains(3, SelfPlayer))))
