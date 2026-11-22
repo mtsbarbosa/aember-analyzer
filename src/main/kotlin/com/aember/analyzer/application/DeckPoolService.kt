@@ -53,8 +53,10 @@ class DeckPoolService(
     fun addToPool(key: String, deckUuid: String): DeckPool {
         val deck = deckRepository.findByUuid(deckUuid)
             ?: throw IllegalArgumentException("Deck not found: $deckUuid (import it first)")
-        // Creating a pool by adding its first deck is allowed even without a seed file.
+        // Unknown pools seed from the seed file when one exists (so the documented
+        // add-first flow does not silently discard it); otherwise start empty.
         val pool = poolRepository.findByKey(key)
+            ?: seedPoolIfAvailable(key)
             ?: DeckPool(key = key, deckUuids = emptyList(), updatedAt = Instant.now())
                 .also { poolRepository.save(it) }
         if (deckUuid in pool.deckUuids) return pool
@@ -96,7 +98,7 @@ class DeckPoolService(
                 ?: throw IllegalArgumentException("Pool deck not imported: $uuid")
         }
 
-        val anchor = findAnchorBatch(opponentUuids)
+        val anchor = findAnchorBatch(opponentUuids, ai)
 
         val tasks = opponentUuids.flatMapIndexed { pairIndex, opponent ->
             (0 until matchesPerPairing).map { m ->
@@ -185,7 +187,11 @@ class DeckPoolService(
             // Consistent anchored rating: replay the ladder batch's stored results,
             // add the fresh matches against the rated deck, and refit the whole
             // pool (deck included) with the same methodology as the ladder itself.
-            val nameByUuid = (opponents.map { it.uuid to it.name } + (deck.uuid to deck.name)).toMap()
+            val nameByUuid = (
+                anchor.batch.deckPool.map { it.uuid to it.name } +
+                    opponents.map { it.uuid to it.name } +
+                    (deck.uuid to deck.name)
+                ).toMap()
             val combinedPool = (anchor.batch.deckPool.map { it.uuid } + deckUuid).distinct()
             val combinedRefs = combinedPool.map { uuid -> DeckRef(uuid, nameByUuid.getValue(uuid)) }
             val combinedResults = anchor.results + freshResults(anchor.batch.uuid, outcomes)
@@ -237,14 +243,17 @@ class DeckPoolService(
 
     /**
      * Most recent completed pool ladder (multi-deck batch) whose deck pool
-     * covers all opponents and whose results are stored on disk, or null when
-     * none exists (rating then reports raw stats only).
+     * covers all opponents, whose results are stored on disk, and whose AI /
+     * seat configuration matches the requested rating run, or null when none
+     * exists (rating then reports raw stats only).
      */
-    private fun findAnchorBatch(opponentUuids: List<String>): AnchorLadder? {
+    private fun findAnchorBatch(opponentUuids: List<String>, ai: String): AnchorLadder? {
         val batches = massSimulationRepository.findAll()
             .filter {
                 it.batchType == MassSimulationBatchType.MULTI_DECK &&
-                    it.status == MassSimulationStatus.COMPLETED
+                    it.status == MassSimulationStatus.COMPLETED &&
+                    it.ai == ai &&
+                    it.seatAlternation != false
             }
             .sortedByDescending { it.completedAt }
         for (batch in batches) {
@@ -297,10 +306,17 @@ class DeckPoolService(
     }
 
     private fun seedPool(key: String): DeckPool {
-        val file = Path.of(seedDir, "$key-pool.txt")
-        require(file.exists()) {
-            "Unknown deck pool: $key (no stored pool and no seed file ${file.toAbsolutePath()})"
+        val pool = seedPoolIfAvailable(key)
+        require(pool != null) {
+            "Unknown deck pool: $key (no stored pool and no seed file ${seedFile(key).toAbsolutePath()})"
         }
+        return pool
+    }
+
+    /** Seeds from the seed file, or returns null when the file does not exist. */
+    private fun seedPoolIfAvailable(key: String): DeckPool? {
+        val file = seedFile(key)
+        if (!file.exists()) return null
         val uuids = Files.readAllLines(file)
             .map { it.trim() }
             .filter { it.isNotEmpty() && !it.startsWith("#") }
@@ -310,6 +326,8 @@ class DeckPoolService(
         logger.info("Seeded pool {} with {} decks from {}", key, uuids.size, file.toAbsolutePath())
         return pool
     }
+
+    private fun seedFile(key: String) = Path.of(seedDir, "$key-pool.txt")
 
     private fun median(values: List<Double>): Double {
         if (values.isEmpty()) return 1.0

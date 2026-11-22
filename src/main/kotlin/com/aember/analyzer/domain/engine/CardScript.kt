@@ -29,9 +29,15 @@ interface CardScript {
     fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = baseDamage
 
     /**
-     * Static ability: if true, the first creature played by this controller each turn enters play ready.
+     * Static ability: if true, this creature enters play ready (e.g., Silvertooth).
      */
     fun cardEntersReady(): Boolean = false
+
+    /**
+     * Static aura: if true, the first creature played by this controller each turn
+     * enters play ready (e.g., Speed Sigil).
+     */
+    fun readiesFirstCreatureEachTurn(): Boolean = false
 
     /**
      * Static ability: if true, this creature enters play stunned.

@@ -28,7 +28,7 @@ object BradleyTerryCalculator {
         val r = DoubleArray(n) { 1.0 }
         val next = DoubleArray(n)
 
-        repeat(maxIterations) {
+        for (iteration in 0 until maxIterations) {
             for (i in 0 until n) {
                 var denom = 0.0
                 for (j in 0 until n) {
@@ -40,7 +40,7 @@ object BradleyTerryCalculator {
             }
             val maxDelta = (0 until n).maxOf { abs(next[it] - r[it]) }
             System.arraycopy(next, 0, r, 0, n)
-            if (maxDelta < tolerance) return@repeat
+            if (maxDelta < tolerance) break
         }
 
         return r.toList()

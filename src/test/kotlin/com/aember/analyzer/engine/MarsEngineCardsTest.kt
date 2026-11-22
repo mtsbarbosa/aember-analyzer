@@ -167,7 +167,8 @@ class MarsEngineCardsTest {
 
     @Test
     fun `Zyzzix archives from hand and gains power counters on reap`() {
-        val library = libraryWith()
+        // Register john-smyth as a creature so Zyzzix can archive it from hand.
+        val library = libraryWith("john-smyth" to object : com.aember.analyzer.domain.engine.CardScript {})
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame(player0Deck = deckWith("zyzzix-the-many"))
         val player = game.activePlayer()
@@ -179,6 +180,24 @@ class MarsEngineCardsTest {
 
         assertThat(player.archives).containsExactly("john-smyth")
         assertThat(zyzzix.power).isEqualTo(6)
+        assertThat(player.amber).isEqualTo(1)
+    }
+
+    @Test
+    fun `Zyzzix archives nothing without a creature in hand`() {
+        val library = libraryWith()
+        val executor = ActionExecutor(library, idGenerator)
+        val game = makeGame(player0Deck = deckWith("zyzzix-the-many"))
+        val player = game.activePlayer()
+        val zyzzix = marsCreature("zyzzix-the-many", 0, 0)
+        player.creatures.add(zyzzix)
+        player.hand.add("battle-fleet")
+
+        executor.execute(game, UseCreatureAction(zyzzix.instanceId, ReapUse))
+
+        assertThat(player.archives).isEmpty()
+        // No counters gained; power stays at the base value.
+        assertThat(zyzzix.power).isEqualTo(3)
         assertThat(player.amber).isEqualTo(1)
     }
 
@@ -266,12 +285,15 @@ class MarsEngineCardsTest {
         executor.execute(game, UseCreatureAction(destroyer.instanceId, com.aember.analyzer.domain.engine.action.FightUse(host.instanceId)))
 
         assertThat(owner.creatures).noneMatch { it.cardId == "mars-host" }
-        assertThat(owner.archives).contains("mars-host", "biomatrix-backup")
-        assertThat(owner.discard).doesNotContain("mars-host", "biomatrix-backup")
+        assertThat(owner.archives).contains("mars-host")
+        // Attached upgrades fall off to the discard when the host is archived.
+        assertThat(owner.discard).contains("biomatrix-backup")
+        assertThat(owner.archives).doesNotContain("biomatrix-backup")
+        assertThat(owner.discard).doesNotContain("mars-host")
     }
 
     @Test
-    fun `creatures enter play ready`() {
+    fun `creatures without a readying effect enter play exhausted`() {
         val plainCreature = object : com.aember.analyzer.domain.engine.CardScript {}
         val library = libraryWith("mars-plain" to plainCreature)
         val executor = ActionExecutor(library, idGenerator)
@@ -281,6 +303,6 @@ class MarsEngineCardsTest {
         executor.execute(game, PlayCardAction("mars-plain"))
 
         val played = game.activePlayer().creatures.first { it.cardId == "mars-plain" }
-        assertThat(played.exhausted).isFalse()
+        assertThat(played.exhausted).isTrue()
     }
 }

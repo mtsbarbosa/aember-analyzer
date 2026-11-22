@@ -21,6 +21,11 @@ object DamageDestroyedTarget : Condition
 object OpponentForgedKeyLastTurn : Condition
 
 /**
+ * True when the source player has at least one creature card in hand.
+ */
+object CreatureInHand : Condition
+
+/**
  * True when the player has played at least [amount] cards of [house] during the current turn.
  */
 data class CardsOfHousePlayedThisTurn(val house: House, val amount: Int) : Condition

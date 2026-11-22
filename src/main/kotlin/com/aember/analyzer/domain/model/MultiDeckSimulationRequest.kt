@@ -12,6 +12,6 @@ data class MultiDeckSimulationRequest(
     val matchesPerPairing: Int = 10,
     val ai: String = "tactical",
     val seatAlternation: Boolean = true,
-    val baseSeed: Long = System.currentTimeMillis(),
+    val baseSeed: Long = 0L,
     val concurrency: Int? = null
 )

@@ -191,7 +191,7 @@ src/main/kotlin/com/aember/analyzer/
 - PostgreSQL catalog seeded with Core set (`CotA`, expansion 341) card definitions.
 - Master Vault deck import by UUID or local JSON file; decks persisted via JPA.
 - Full turn structure: setup, key phase, house phase, main phase, ready/draw/end phases.
-- Creatures enter play **ready** (they can reap/fight the turn they are played, per KeyForge rules). Out-of-turn plays (e.g. `playTopCard` effects) still enter exhausted.
+- Creatures enter play **exhausted** (per keyteki `PutIntoPlayAction`), except when a card says otherwise: Speed Sigil readies the first creature played each turn and Silvertooth readies itself. Out-of-turn plays (e.g. `playTopCard` effects) also enter exhausted.
 - Forge cost is computed via `ForgeRules.keyCost`: base 6 plus static modifiers from upgrades attached to opponent creatures (e.g. Jammer Pack +2A) and one-turn bonuses (e.g. Lash of Broken Dreams +3A via `keyCostNextTurnBonus`).
 - Turn denial flags on `PlayerState`: `cannotFightNextTurn` (Fogbank) suppresses fight actions for the flagged player's next turn; `deniedHouseNextTurn` (Control the Weak) and `skipsForgeNextTurn` (Miasma) work the same way.
 - Six-name rule: a player can play/use/discard at most 6 cards with the same name per round.
@@ -207,7 +207,7 @@ src/main/kotlin/com/aember/analyzer/
 - Deck query API: list, filter (by name, house, expansion), and retrieve by UUID.
 - Async mass-simulation harness: run `N` matches between two decks, store aggregate results and per-match debug logs on disk under `.simulations/`.
 - Multi-deck round-robin harness: parallel virtual-thread execution, seat alternation, per-deck/per-pair aggregates, and Bradley-Terry `Aember Score` ratings via `GET .../ratings`.
-- CLI: `mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [--debug-logs]`.
+- CLI: `mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [seed] [--debug-logs]` (default seed 0, deterministic).
 
 ### DSL / Card Coverage
 
@@ -272,7 +272,7 @@ src/main/kotlin/com/aember/analyzer/
 - `EffectAndTriggerTest` — unit tests for all recently added effects and triggers.
 - `FidelityReportServiceTest` — fidelity score/threshold tests.
 - `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
-- `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (creatures enter play ready).
+- `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (only the first creature played each turn enters play ready).
 - `MarsEngineCardsTest` — unit tests for Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth, Jammer Pack key-cost aura, Biomatrix Backup archive-on-destroy, and enter-ready creatures.
 - `TorsenControlCardsTest` — unit tests for Lash of Broken Dreams key-cost bonus, Too Much to Protect, Fogbank fight denial, Fear single-bounce, and the TacticalAI hand-wipe scoring.
 - `KeyCheatsTest` — unit tests for Key Charge, Chota Hazri, Key of Darkness (both cost branches), and Epic Quest (Knight archiving + no-cost forge after 7 Sanctum plays).
@@ -492,7 +492,7 @@ Open an issue or fix directly if you see:
 4. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
 5. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
 6. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
-7. **Reference ladder** (Phase 6 of PLAN.md): ratings are pool-relative; no curated cross-set ladder exists yet.
+7. **Reference ladder**: ratings are pool-relative; no curated cross-set ladder exists yet.
 8. **More sets** beyond Core (`CotA`) are not seeded.
 
 ## How to Add a New Card Behaviour

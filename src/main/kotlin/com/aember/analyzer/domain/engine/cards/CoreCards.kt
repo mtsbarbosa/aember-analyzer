@@ -92,7 +92,7 @@ object SpeedSigil : CardScript {
         notes = "The first creature played each turn enters play ready"
     )
 
-    override fun cardEntersReady(): Boolean = true
+    override fun readiesFirstCreatureEachTurn(): Boolean = true
 }
 
 object ShadowSelf : CardScript {
@@ -236,12 +236,8 @@ object LashOfBrokenDreams : CardScript {
 object TooMuchToProtect : CardScript {
     override fun fidelity() = CardFidelity(
         level = FidelityLevel.FULL,
-        notes = "Steals all but 6 of the opponent's amber"
+        notes = "Steals all but 6 of the opponent's amber (steals nothing if they have 6 or less)"
     )
-
-    override fun playable(game: GameState, player: PlayerState): Boolean {
-        return game.opponent().amber > 6
-    }
 
     override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
         val opponent = game.opponent()
@@ -311,7 +307,7 @@ val keyCheatDslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
             CardsOfHousePlayedThisTurn(House.SANCTUM, 7),
             Sequence(listOf(
                 SacrificeSelf,
-                ForgeKey(extraCost = -6, discountPerCardInHand = false)
+                ForgeKey(free = true, discountPerCardInHand = false)
             ))
         ))
         fidelity(FidelityLevel.FULL, "Omni: sacrifices Epic Quest and forges at no cost after 7+ Sanctum cards played this turn")
@@ -346,9 +342,9 @@ val marsEngineDslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
         fidelity(FidelityLevel.FULL, "Stuns each non-Mars creature and gives 2 chains")
     },
     card("zyzzix-the-many") {
-        reap(Sequence(listOf(ArchiveFromHand(1, SelfPlayer), AddPowerCounters(3))))
-        fight(Sequence(listOf(ArchiveFromHand(1, SelfPlayer), AddPowerCounters(3))))
-        fidelity(FidelityLevel.FULL, "AI always archives one creature from hand and adds three +1 power counters")
+        reap(Conditional(CreatureInHand, Sequence(listOf(ArchiveCreatureFromHand(1, SelfPlayer), AddPowerCounters(3)))))
+        fight(Conditional(CreatureInHand, Sequence(listOf(ArchiveCreatureFromHand(1, SelfPlayer), AddPowerCounters(3)))))
+        fidelity(FidelityLevel.FULL, "AI archives one creature from hand (if any) and adds three +1 power counters")
     },
     card("john-smyth") {
         reap(Ready(OtherFriendlyCreatureWithHouse(House.MARS)))

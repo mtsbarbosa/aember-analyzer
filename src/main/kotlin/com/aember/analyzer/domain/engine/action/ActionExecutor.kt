@@ -51,6 +51,13 @@ class ActionExecutor(
         }
 
         val instanceId = idGenerator.nextId(cardId)
+        // Creatures enter play exhausted unless a card says otherwise
+        // (Speed Sigil readies the first creature each turn; Silvertooth readies itself).
+        val isFirstCreatureThisTurn = player.creaturesPlayedThisTurn == 0
+        val globalEntersReady = isFirstCreatureThisTurn &&
+            player.cardsInPlay().any { library.scriptFor(it.cardId).readiesFirstCreatureEachTurn() }
+        val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
+        val entersReady = selfEntersReady || globalEntersReady
         val entersStunned = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersStunned()
         val inPlay = InPlayCard(
             instanceId = instanceId,
@@ -60,7 +67,7 @@ class ActionExecutor(
             zone = Zone.PLAY_AREA,
             house = catalog.house,
             type = catalog.type,
-            exhausted = false,
+            exhausted = !entersReady,
             power = catalog.power ?: 0,
             armor = catalog.armor ?: 0,
             keywords = parseKeywords(catalog.keywords),
@@ -80,6 +87,7 @@ class ActionExecutor(
                 player.creaturesPlayedThisTurn++
                 when {
                     entersStunned -> game.log("${player.name} plays ${catalog.name} (enters stunned)")
+                    entersReady -> game.log("${player.name} plays ${catalog.name} (enters ready)")
                     else -> game.log("${player.name} plays ${catalog.name}")
                 }
                 library.scriptFor(cardId).onPlay(game, player, inPlay)
@@ -302,9 +310,10 @@ class ActionExecutor(
         logCardFidelity(game, creature.cardId, "destroyed")
         val archivesInstead = creature.upgrades.any { library.scriptFor(it.cardId).archivesAttachedCreatureOnDestroyed() }
         if (archivesInstead) {
+            // The creature is archived; upgrades fall off and are discarded.
             creature.upgrades.forEach { upgrade ->
-                player.archives.add(upgrade.cardId)
-                game.log("${upgrade.cardId} goes to ${player.name}'s archives")
+                player.discard.add(upgrade.cardId)
+                game.log("${upgrade.cardId} goes to ${player.name}'s discard")
             }
             player.creatures.remove(creature)
             player.archives.add(creature.cardId)

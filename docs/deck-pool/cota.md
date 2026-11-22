@@ -2,13 +2,19 @@
 
 Per-set deck pools live in this directory: one file per set (`<set>.md`). This
 file tracks the **Core set (CotA, expansion 341)** reference pool used for
-multi-deck round-robin batches and ratings (see `PLAN.md` Phase 6). Import via
+multi-deck round-robin batches and ratings. Import via
 `POST /api/decks/import/{uuid}` or the CLI `import-deck` command. Status values:
 `imported`, `pending`, `failed`.
 
 Ratings in this document are from the deck-tracking tool (SAS / base AERC / SAS
 synergy shift `s`, win percentage `wp`, key cost `kc`) — they are informational
 context, not produced by the simulator.
+
+Simulator ladder ratings (`cota-ratings.json`) come from a full 23-deck
+round-robin (10 matches per pairing, tactical AI, seed 0) and are regenerated
+with `./gradlew bootRun --args "mass-simulate-decks cota-pool.txt 10 tactical 0"`
+whenever the simulation rules change — results from older engine versions are
+not comparable.
 
 Pool last updated: 2026-11-21 — **all 23 pool decks imported**.
 Note: Master Vault imports are rate-limited (~429 after ~15 rapid requests);

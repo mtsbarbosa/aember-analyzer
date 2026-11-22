@@ -123,12 +123,20 @@ class TorsenControlCardsTest {
     }
 
     @Test
-    fun `Too Much to Protect is unplayable when opponent has 6 or fewer amber`() {
+    fun `Too Much to Protect is legal even when the opponent has 6 or fewer amber`() {
         val library = libraryWith()
+        val executor = ActionExecutor(library, idGenerator)
         val game = makeGame()
+        val player = game.activePlayer()
+        val opponent = game.opponent()
         game.opponent().amber = 6
+        player.hand.add("too-much-to-protect")
 
-        assertThat(library.scriptFor("too-much-to-protect").playable(game, game.activePlayer())).isFalse()
+        executor.execute(game, PlayCardAction("too-much-to-protect"))
+
+        // Steal portion is wasted but the card resolves normally.
+        assertThat(player.amber).isEqualTo(0)
+        assertThat(opponent.amber).isEqualTo(6)
     }
 
     @Test

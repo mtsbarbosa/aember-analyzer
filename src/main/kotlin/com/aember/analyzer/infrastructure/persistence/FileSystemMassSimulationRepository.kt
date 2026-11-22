@@ -17,7 +17,6 @@ import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 /**
  * File-system adapter for mass-simulation artifacts.
@@ -123,7 +122,15 @@ class FileSystemMassSimulationRepository(
     }
 
     private fun writeJson(path: Path, value: Any) {
-        path.writeText(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+        // Write to a temp file in the same directory and atomically move it into
+        // place so concurrent readers never observe a partial JSON document.
+        val temp = path.resolveSibling("${path.fileName}.tmp-${java.util.UUID.randomUUID()}")
+        Files.writeString(temp, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+        try {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     private inline fun <reified T> readJson(path: Path): T {

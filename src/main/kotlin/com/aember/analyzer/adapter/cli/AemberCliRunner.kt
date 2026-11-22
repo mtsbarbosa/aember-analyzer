@@ -115,24 +115,26 @@ class AemberCliRunner(
                 val debugLogs = "--debug-logs" in rawArgs
                 val positional = rawArgs.drop(1).filter { it != "--debug-logs" }
                 val listFile = positional.getOrNull(0)
-                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [--debug-logs]")
+                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [seed] [--debug-logs]")
                 val matchesPerPairing = positional.getOrNull(1)?.toIntOrNull()
-                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [--debug-logs]")
+                    ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [seed] [--debug-logs]")
                 val ai = positional.getOrNull(2) ?: "tactical"
+                val baseSeed = positional.getOrNull(3)?.toLongOrNull() ?: 0L
 
                 val deckUuids = Files.readAllLines(Path.of(listFile))
                     .map { it.trim() }
                     .filter { it.isNotEmpty() && !it.startsWith("#") }
 
                 logger.info(
-                    "CLI mass-simulate-decks invoked with {} decks, {} matches per pairing (ai={}, debugLogs={})",
-                    deckUuids.size, matchesPerPairing, ai, debugLogs
+                    "CLI mass-simulate-decks invoked with {} decks, {} matches per pairing (ai={}, baseSeed={}, debugLogs={})",
+                    deckUuids.size, matchesPerPairing, ai, baseSeed, debugLogs
                 )
                 val batch = massSimulationService.runMultiDeckSimulation(
                     MultiDeckSimulationRequest(
                         deckUuids = deckUuids,
                         matchesPerPairing = matchesPerPairing,
-                        ai = ai
+                        ai = ai,
+                        baseSeed = baseSeed
                     ),
                     recordLogs = debugLogs
                 )

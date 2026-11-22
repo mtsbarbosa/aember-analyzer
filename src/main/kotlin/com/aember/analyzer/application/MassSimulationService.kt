@@ -204,6 +204,7 @@ class MassSimulationService(
 
             val completedBatch = batch.copy(
                 status = MassSimulationStatus.COMPLETED,
+                completedCount = results.size,
                 winsA = results.count { it.winnerIndex == 0 },
                 winsB = results.count { it.winnerIndex == 1 },
                 draws = results.count { it.winnerIndex == null },
@@ -266,6 +267,7 @@ class MassSimulationService(
                             logger.error("Multi-deck batch {} match {} failed", batchUuid, task.taskId, e)
                             return@Callable
                         } finally {
+                            progress.incrementAndGet()
                             updateProgress()
                         }
                     })

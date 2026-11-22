@@ -100,13 +100,15 @@ class GameEngine(
 
     private fun keyPhase(game: GameState) {
         val player = game.activePlayer()
+        // The one-turn bonus applies during this turn only; consume it even when
+        // the forge step is skipped (e.g. Miasma), so it cannot leak to later turns.
+        val cost = ForgeRules.keyCost(library, game, player) + player.keyCostNextTurnBonus
+        player.keyCostNextTurnBonus = 0
         if (player.skipsForgeNextTurn) {
             player.skipsForgeNextTurn = false
             game.log("${player.name} cannot forge a key this turn")
             return
         }
-        val cost = ForgeRules.keyCost(library, game, player) + player.keyCostNextTurnBonus
-        player.keyCostNextTurnBonus = 0
         while (canForgeKey(player, cost)) {
             val before = player.amber
             player.amber -= cost

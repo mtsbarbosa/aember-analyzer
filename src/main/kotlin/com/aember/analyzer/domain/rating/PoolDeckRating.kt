@@ -6,11 +6,12 @@ import java.time.Instant
  * Result of rating a single deck against a deck pool.
  *
  * The deck plays `matchesPerPairing` matches (seats alternating) against every
- * pool member. [bradleyTerry] / [aemberScore] / [percentile] are anchored on
- * the most recent stored pool-ladder ratings: the deck's strength is fitted
- * against the opponents' fixed Bradley-Terry strengths and mapped to the
- * ladder's median, so the score is directly comparable with the ladder.
- * They are null when no stored ladder covers the pool.
+ * pool member. [bradleyTerry] / [aemberScore] / [percentile] are anchored on a
+ * stored pool ladder: the ladder's stored results plus the fresh matches are
+ * refit as one pool with the ladder methodology ([RatingAggregator.ratings]),
+ * and the Aember Score is anchored on the refit pool median (opponents only,
+ * so the score is directly comparable with the ladder). They are null when no
+ * stored ladder covering the pool exists.
  */
 data class PoolDeckRating(
     val poolKey: String,

@@ -121,9 +121,11 @@ object RatingAggregator {
             val sos = if (opponents.isEmpty()) 0.0
             else opponents.sumOf { games[i][it] * winRateByIndex[it] } / opponents.sumOf { games[i][it] }
 
-            val percentile = (aggregates.count { other ->
+            // Percentile excludes the deck itself so the best deck can reach 100.
+            val percentile = if (n <= 1) 100.0
+            else (aggregates.count { other ->
                 other != agg && other.winRate < agg.winRate
-            } + 0.5 * aggregates.count { it != agg && it.winRate == agg.winRate }) / n * 100.0
+            } + 0.5 * aggregates.count { it != agg && it.winRate == agg.winRate }) / (n - 1) * 100.0
 
             val margin = if (agg.matches == 0) 0.0
             else 1.96 * sqrt(agg.winRate * (1.0 - agg.winRate) / agg.matches)

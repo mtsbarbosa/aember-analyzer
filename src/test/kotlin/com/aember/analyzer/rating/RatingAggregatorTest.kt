@@ -83,6 +83,21 @@ class RatingAggregatorTest {
     }
 
     @Test
+    fun `percentile reaches 100 for the best deck of a two-deck pool`() {
+        // deck-a sweeps every match; with a two-deck pool it must hit the 100th percentile.
+        val twoDeckPool = listOf(DeckRef("deck-a", "Deck A"), DeckRef("deck-b", "Deck B"))
+        val results = (0 until 4).map {
+            result(seed = it.toLong(), winnerIndex = 0, deckUuidA = "deck-a", deckUuidB = "deck-b")
+        }
+
+        val ratings = RatingAggregator.ratings(twoDeckPool, results)
+
+        val byUuid = ratings.associateBy { it.deckUuid }
+        assertThat(byUuid["deck-a"]!!.percentile).isEqualTo(100.0)
+        assertThat(byUuid["deck-b"]!!.percentile).isEqualTo(0.0)
+    }
+
+    @Test
     fun `sos averages opponents win rates`() {
         // deck-c only ever plays deck-a (win rate 100%) -> sos == 1.0
         val results = listOf(

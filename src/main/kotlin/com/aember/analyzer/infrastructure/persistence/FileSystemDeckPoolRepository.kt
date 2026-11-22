@@ -16,7 +16,6 @@ import kotlin.io.path.exists
 import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 /**
  * File-system adapter for deck pools and pool-rating results.
@@ -39,7 +38,7 @@ class FileSystemDeckPoolRepository(
     override fun save(pool: DeckPool) {
         val file = poolFile(pool.key)
         file.parent.createDirectories()
-        file.writeText(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(pool))
+        writeJsonAtomic(file, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(pool))
     }
 
     override fun findByKey(key: String): DeckPool? {
@@ -58,7 +57,7 @@ class FileSystemDeckPoolRepository(
             file = dir.resolve("${rating.deckUuid}-$timestamp-$suffix.json")
             suffix++
         }
-        file.writeText(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rating))
+        writeJsonAtomic(file, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(rating))
     }
 
     override fun findRatingHistory(key: String, deckUuid: String?): List<PoolDeckRating> {
@@ -76,4 +75,16 @@ class FileSystemDeckPoolRepository(
     private fun poolFile(key: String): Path = basePath.resolve("$key.json")
 
     private fun ratingsDir(key: String): Path = basePath.resolve(key).resolve("ratings")
+
+    private fun writeJsonAtomic(path: Path, content: String) {
+        // Write to a temp file in the same directory and atomically move it into
+        // place so concurrent readers never observe a partial JSON document.
+        val temp = path.resolveSibling("${path.fileName}.tmp-${java.util.UUID.randomUUID()}")
+        Files.writeString(temp, content)
+        try {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
+    }
 }

@@ -97,7 +97,7 @@ class MadameCardsTest {
     }
 
     @Test
-    fun `Speed Sigil creatures enter play ready`() {
+    fun `Speed Sigil readies only the first creature played each turn`() {
         val library = libraryWithMadameCards()
         val executor = ActionExecutor(library, idGenerator)
         val game = makeGame()
@@ -112,7 +112,21 @@ class MadameCardsTest {
         val creatures = game.activePlayer().creatures.filter { it.cardId == "fighter" }
         assertThat(creatures).hasSize(2)
         assertThat(creatures[0].exhausted).isFalse()
-        assertThat(creatures[1].exhausted).isFalse()
+        assertThat(creatures[1].exhausted).isTrue()
+    }
+
+    @Test
+    fun `creatures without a readying effect enter play exhausted`() {
+        val library = libraryWithMadameCards()
+        val executor = ActionExecutor(library, idGenerator)
+        val game = makeGame()
+        game.activePlayer().hand.add("fighter")
+
+        executor.execute(game, PlayCardAction("fighter"))
+
+        val played = game.activePlayer().creatures.find { it.cardId == "fighter" }
+        assertThat(played).isNotNull
+        assertThat(played!!.exhausted).isTrue()
     }
 
     @Test

@@ -78,6 +78,9 @@ class DeckPoolRatingTest : IntegrationTest() {
         val challenger = saveDeck("Challenger Deck")
 
         // Seed a stored ladder: poolA and poolB split their matches evenly.
+        // A third deck in the ladder pool is not played by the challenger; the
+        // anchor refit must still resolve its name from the ladder's deck pool.
+        val ladderOnly = saveDeck("Ladder Only Deck")
         val batch = MassSimulationBatch(
             uuid = UUID.randomUUID().toString(),
             status = MassSimulationStatus.COMPLETED,
@@ -85,7 +88,13 @@ class DeckPoolRatingTest : IntegrationTest() {
             aiA = "tactical",
             aiB = "tactical",
             matchCount = 4,
-            deckPool = listOf(DeckRef(poolA.uuid, poolA.name), DeckRef(poolB.uuid, poolB.name)),
+            deckPool = listOf(
+                DeckRef(poolA.uuid, poolA.name),
+                DeckRef(poolB.uuid, poolB.name),
+                DeckRef(ladderOnly.uuid, ladderOnly.name)
+            ),
+            ai = "random",
+            seatAlternation = true,
             completedAt = Instant.now()
         )
         massSimRepo.save(batch)
@@ -171,7 +180,9 @@ class DeckPoolRatingTest : IntegrationTest() {
         assertThat(rating.bradleyTerry).isNull()
         assertThat(rating.aemberScore).isNull()
         assertThat(rating.percentile).isNull()
-        assertThat(rating.winRateMargin).isGreaterThan(0.0)
+        // Margin depends on the record split; it is always finite and bounded.
+        assertThat(rating.winRateMargin).isFinite()
+        assertThat(rating.winRateMargin).isBetween(0.0, 1.97)
     }
 
     @Test
@@ -182,6 +193,81 @@ class DeckPoolRatingTest : IntegrationTest() {
             service.rateDeckAgainstPool("missing", deck.uuid)
         }.isInstanceOf(IllegalArgumentException::class.java)
             .hasMessageContaining("Unknown deck pool: missing")
+    }
+
+    @Test
+    fun `addToPool seeds an unknown pool from the seed file`() {
+        val seededDeck = saveDeck("Seeded Pool Deck")
+        val addedDeck = saveDeck("Added Deck")
+        Files.write(
+            tempDir.resolve("addpool-pool.txt"),
+            listOf("# comment", seededDeck.uuid, "")
+        )
+
+        val pool = service.addToPool("addpool", addedDeck.uuid)
+
+        // The seed file content is kept, not silently discarded by the first add.
+        assertThat(pool.deckUuids).containsExactly(seededDeck.uuid, addedDeck.uuid)
+        assertThat(poolRepo.findByKey("addpool")!!.deckUuids)
+            .containsExactly(seededDeck.uuid, addedDeck.uuid)
+    }
+
+    @Test
+    fun `addToPool creates an empty pool without a seed file`() {
+        val deck = saveDeck("Fresh Pool Deck")
+
+        val pool = service.addToPool("freshpool", deck.uuid)
+
+        assertThat(pool.deckUuids).containsExactly(deck.uuid)
+    }
+
+    @Test
+    fun `anchor ignores a ladder batch run with a different ai`() {
+        val poolDeck = saveDeck("Tactical Ladder Deck")
+        val challenger = saveDeck("Random Challenger")
+
+        val batch = MassSimulationBatch(
+            uuid = UUID.randomUUID().toString(),
+            status = MassSimulationStatus.COMPLETED,
+            batchType = MassSimulationBatchType.MULTI_DECK,
+            aiA = "tactical",
+            aiB = "tactical",
+            matchCount = 2,
+            deckPool = listOf(DeckRef(poolDeck.uuid, poolDeck.name)),
+            ai = "tactical",
+            seatAlternation = true,
+            completedAt = Instant.now()
+        )
+        massSimRepo.save(batch)
+        massSimRepo.saveResult(
+            com.aember.analyzer.domain.model.MassSimulationMatchResult(
+                id = 1,
+                batchUuid = batch.uuid,
+                seed = 1,
+                winnerIndex = 0,
+                endCause = com.aember.analyzer.domain.engine.model.EndCause.KEYS,
+                turns = 10,
+                rounds = 10,
+                fidelityScore = 90.0,
+                statistics = emptyList(),
+                deckUuidA = poolDeck.uuid,
+                deckUuidB = poolDeck.uuid
+            )
+        )
+
+        service.addToPool("aimix", poolDeck.uuid)
+
+        val rating = service.rateDeckAgainstPool(
+            poolKey = "aimix",
+            deckUuid = challenger.uuid,
+            matchesPerPairing = 1,
+            baseSeed = 0,
+            ai = "random"
+        )
+
+        // The tactical ladder must not anchor a random-AI rating.
+        assertThat(rating.anchorBatchUuid).isNull()
+        assertThat(rating.bradleyTerry).isNull()
     }
 
     @Test
