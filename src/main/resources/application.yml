@@ -27,6 +27,8 @@ aember:
   simulation:
     fidelity-threshold: 70.0
     storage-path: .simulations
+  pools:
+    seed-dir: .
 
 logging:
   level:

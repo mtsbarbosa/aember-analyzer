@@ -26,6 +26,7 @@ class GreedyTargetChooser : TargetChooser {
             is CreatureWithKeyword -> (sourcePlayer.creatures + opponent.creatures).filter { it.keywords.containsKey(selector.keyword.lowercase()) }
             is FriendlyCreatureWithHouse -> sourcePlayer.creatures.filter { it.house == selector.house }
             is OtherFriendlyCreatureWithHouse -> sourcePlayer.creatures.filter { it.house == selector.house && it.instanceId != source.instanceId }
+            is CreatureNotOfHouse -> (sourcePlayer.creatures + opponent.creatures).filter { it.house != selector.house }
             is CreatureAndNeighbors -> chooseCreature(game, selector.base, source).firstOrNull()?.let { base ->
                 val controller = game.player(base.controllerIndex)
                 val idx = controller.creatures.indexOf(base)
@@ -61,6 +62,7 @@ class GreedyTargetChooser : TargetChooser {
         val sorted = when (selector) {
             is FriendlyCreature, is FriendlyCreatureWithTrait, is FriendlyCreatureWithHouse, is OtherFriendlyCreatureWithHouse -> candidates.sortedByDescending { it.power }
             is EnemyCreature, is EnemyCreatureWithTrait, is CreatureWithKeyword, is CreatureAndNeighbors, is AllCreaturesOfChosenHouse -> candidates.sortedByDescending { it.power }
+            is CreatureNotOfHouse -> candidates.sortedByDescending { it.power }
             is AnyCreature -> {
                 val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
                 enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
@@ -77,6 +79,7 @@ class GreedyTargetChooser : TargetChooser {
             is CreatureWithKeyword -> selector.scope
             is FriendlyCreatureWithHouse -> selector.scope
             is OtherFriendlyCreatureWithHouse -> selector.scope
+            is CreatureNotOfHouse -> selector.scope
             is CreatureAndNeighbors -> Scope.ALL
             is EachOtherUndamagedCreature -> Scope.ALL
             is AllCreaturesOfChosenHouse -> Scope.ALL

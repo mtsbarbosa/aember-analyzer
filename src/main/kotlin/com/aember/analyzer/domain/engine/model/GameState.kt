@@ -26,7 +26,14 @@ data class GameState(
     var lastDamagedTargetId: String? = null,
 
     // Tracks creatures temporarily controlled by an effect (instanceId -> original controller index).
-    val temporaryControllers: MutableMap<String, Int> = mutableMapOf()
+    val temporaryControllers: MutableMap<String, Int> = mutableMapOf(),
+
+    /**
+     * Seeded per-match random source used for every in-game shuffle and random
+     * pick so matches are reproducible from their seed. GameEngine seeds this
+     * from the match seed; the default instance is only for ad-hoc usage.
+     */
+    var rng: java.util.Random = java.util.Random()
 ) {
 
     fun activePlayer(): PlayerState = players[activePlayerIndex]
@@ -73,6 +80,12 @@ enum class EndCause {
     TIMEOUT,
     DRAW
 }
+
+/**
+ * Picks a random element using the given (seeded) random source, or null when empty.
+ */
+fun <T> List<T>.randomWith(rng: java.util.Random): T? =
+    if (isEmpty()) null else this[rng.nextInt(size)]
 
 /**
  * Aggregate counts of in-match actions, useful for analyzing AI behavior and match dynamics.

@@ -30,6 +30,8 @@ class GameEngine(
         game.amberRedirector = { player, amount ->
             findAmberRedirector(game, player, amount)
         }
+        // All in-game randomness derives from the match seed.
+        game.rng = random
 
         setup(game, random)
 
@@ -46,6 +48,7 @@ class GameEngine(
                 p.drawOnCardPlayActive = false
                 p.drawOnCardPlayHouse = null
                 p.forgedKeyThisTurn = false
+                p.cardsPlayedThisTurnByHouse.clear()
             }
 
             keyPhase(game)
@@ -92,21 +95,25 @@ class GameEngine(
         game.players.forEach { player ->
             player.library.shuffle(random)
             val handSize = if (player.index == game.firstPlayerIndex) 7 else 6
-            draw(player, handSize)
+            draw(game, player, handSize)
         }
         game.log("Setup complete. First player: ${game.activePlayer().name}")
     }
 
     private fun keyPhase(game: GameState) {
         val player = game.activePlayer()
+        // The one-turn bonus applies during this turn only; consume it even when
+        // the forge step is skipped (e.g. Miasma), so it cannot leak to later turns.
+        val cost = ForgeRules.keyCost(library, game, player) + player.keyCostNextTurnBonus
+        player.keyCostNextTurnBonus = 0
         if (player.skipsForgeNextTurn) {
             player.skipsForgeNextTurn = false
             game.log("${player.name} cannot forge a key this turn")
             return
         }
-        while (canForgeKey(player)) {
+        while (canForgeKey(player, cost)) {
             val before = player.amber
-            player.amber -= 6
+            player.amber -= cost
             player.keys += 1
             player.forgedKeyThisTurn = true
             player.statistics.keysForged++
@@ -114,12 +121,12 @@ class GameEngine(
             if (!player.canForgeSecondKey) break
             player.canForgeSecondKey = false
         }
-        if (player.amber < 6) {
+        if (player.amber < cost) {
             game.log("${player.name} does not forge a key (amber: ${player.amber})")
         }
     }
 
-    private fun canForgeKey(player: PlayerState): Boolean = player.amber >= 6 && player.keys < 3
+    private fun canForgeKey(player: PlayerState, cost: Int): Boolean = player.amber >= cost && player.keys < 3
 
     private fun logHand(game: GameState, player: PlayerState) {
         val handNames = player.hand.map { cardId ->
@@ -170,6 +177,7 @@ class GameEngine(
                 ended = true
             }
         }
+        game.activePlayer().cannotFightNextTurn = false
     }
 
     private fun readyPhase(game: GameState) {
@@ -183,20 +191,20 @@ class GameEngine(
         val handSize = 6 - ceil(player.chains / 6.0).toInt()
         val toDraw = (handSize - player.hand.size).coerceAtLeast(0)
         if (toDraw > 0) {
-            draw(player, toDraw)
+            draw(game, player, toDraw)
             if (player.chains > 0) {
                 player.chains = (player.chains - 1).coerceAtLeast(0)
             }
         }
     }
 
-    private fun draw(player: PlayerState, amount: Int) {
+    private fun draw(game: GameState, player: PlayerState, amount: Int) {
         repeat(amount) {
             if (player.library.isEmpty()) {
                 if (player.discard.isEmpty()) return
                 player.library.addAll(player.discard)
                 player.discard.clear()
-                player.library.shuffle(java.util.Random())
+                player.library.shuffle(game.rng)
             }
             if (player.library.isNotEmpty()) {
                 player.hand.add(player.library.removeFirst())

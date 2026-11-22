@@ -20,6 +20,11 @@ data class FriendlyCreatureWithHouse(val house: House, val scope: Scope = Scope.
 data class OtherFriendlyCreatureWithHouse(val house: House, val scope: Scope = Scope.ONE) : CreatureSelector
 
 /**
+ * Selects creatures that do not belong to [house], across both players.
+ */
+data class CreatureNotOfHouse(val house: House, val scope: Scope = Scope.ONE) : CreatureSelector
+
+/**
  * Selects a target creature using [base], then expands the result to include its immediate neighbors.
  */
 data class CreatureAndNeighbors(val base: CreatureSelector = AnyCreature()) : CreatureSelector

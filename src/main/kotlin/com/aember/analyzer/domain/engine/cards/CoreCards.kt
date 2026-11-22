@@ -1,11 +1,13 @@
 package com.aember.analyzer.domain.engine.cards
 
 import com.aember.analyzer.domain.engine.CardScript
+import com.aember.analyzer.domain.engine.dsl.*
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
+import com.aember.analyzer.domain.engine.model.randomWith
 import com.aember.analyzer.domain.model.House
 
 object GatewayToDis : CardScript {
@@ -48,7 +50,7 @@ object Anger : CardScript {
         val target = player.creatures.firstOrNull() ?: return
         game.log("Anger readies ${target.cardId} and makes it fight")
         target.exhausted = false
-        val enemy = game.opponent().creatures.randomOrNull() ?: return
+        val enemy = game.opponent().creatures.randomWith(game.rng) ?: return
         target.attackedThisTurn = true
         enemy.attackedThisTurn = true
         // Simple fight exchange without re-triggering keyword handling for clarity.
@@ -91,7 +93,7 @@ object SpeedSigil : CardScript {
         notes = "The first creature played each turn enters play ready"
     )
 
-    override fun cardEntersReady(): Boolean = true
+    override fun readiesFirstCreatureEachTurn(): Boolean = true
 }
 
 object ShadowSelf : CardScript {
@@ -207,3 +209,147 @@ object YxilxDominator : CardScript {
 
     override fun cardEntersStunned(): Boolean = true
 }
+
+object JammerPack : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Opponent's keys cost +2 amber while attached"
+    )
+
+    override fun opponentKeyCostModifier(): Int = 2
+}
+
+object LashOfBrokenDreams : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Keys cost +3 amber during the opponent's next turn"
+    )
+
+    override fun resolveActionAbility(abilityId: String, game: GameState, player: PlayerState, card: InPlayCard) {
+        val opponent = game.opponent()
+        opponent.keyCostNextTurnBonus += 3
+        game.log("${player.name} uses Lash of Broken Dreams; keys cost +3 amber during ${opponent.name}'s next turn")
+    }
+
+    override fun actionAbilities(): List<String> = listOf("Keys cost 3A during your opponents next turn")
+}
+
+object TooMuchToProtect : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Steals all but 6 of the opponent's amber (steals nothing if they have 6 or less)"
+    )
+
+    override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
+        val opponent = game.opponent()
+        val stolen = (opponent.amber - 6).coerceAtLeast(0)
+        if (stolen <= 0) return
+        opponent.amber -= stolen
+        player.amber += stolen
+        game.log(
+            "${player.name} steals all but 6 amber from ${opponent.name} " +
+                "(${player.name}: ${player.amber - stolen} -> ${player.amber}, ${opponent.name}: ${opponent.amber + stolen} -> ${opponent.amber})"
+        )
+    }
+}
+
+object Fogbank : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Opponent cannot use creatures to fight on their next turn"
+    )
+
+    override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
+        val opponent = game.opponent()
+        opponent.cannotFightNextTurn = true
+        game.log("${player.name} plays Fogbank; ${opponent.name} cannot use creatures to fight on their next turn")
+    }
+}
+
+object BiomatrixBackup : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Attached creature goes to its owner's archives instead of being destroyed"
+    )
+
+    override fun archivesAttachedCreatureOnDestroyed(): Boolean = true
+}
+
+/**
+ * Manual DSL overrides for cards that forge keys outside the forge phase.
+ */
+val keyCheatDslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
+    card("key-charge") {
+        play(Sequence(listOf(
+            LoseAmber(1, SelfPlayer),
+            Conditional(SelfAmberAtLeast(1), ForgeKey(extraCost = 0, discountPerCardInHand = false))
+        )))
+        playableIf(SelfAmberAtLeast(7))
+        fidelity(FidelityLevel.FULL, "Loses 1 amber, then forges at current cost when affordable")
+    },
+    card("chota-hazri") {
+        play(Sequence(listOf(
+            LoseAmber(1, SelfPlayer),
+            Conditional(SelfAmberAtLeast(1), ForgeKey(extraCost = 0, discountPerCardInHand = false))
+        )))
+        fidelity(FidelityLevel.FULL, "Loses 1 amber, then forges at current cost when affordable")
+    },
+    card("key-of-darkness") {
+        play(Conditional(
+            OpponentAmberAtMost(0),
+            ForgeKey(extraCost = 2, discountPerCardInHand = false),
+            ForgeKey(extraCost = 6, discountPerCardInHand = false)
+        ))
+        fidelity(FidelityLevel.FULL, "Forges at +6 cost, or +2 when the opponent has no amber")
+    },
+    card("epic-quest") {
+        play(Archive(FriendlyCreatureWithTrait("knight", Scope.ALL)))
+        omni(Conditional(
+            CardsOfHousePlayedThisTurn(House.SANCTUM, 7),
+            Sequence(listOf(
+                SacrificeSelf,
+                ForgeKey(free = true, discountPerCardInHand = false)
+            ))
+        ))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifices Epic Quest and forges at no cost after 7+ Sanctum cards played this turn")
+    }
+)
+
+/**
+ * Manual DSL overrides for the Mars engine cards (Key Abduction / Battle Fleet
+ * package) that the generated Core set definitions cannot express.
+ */
+val marsEngineDslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
+    card("key-abduction") {
+        play(Sequence(listOf(
+            ReturnAllCreaturesOfHouseToHand(House.MARS),
+            ForgeKey(extraCost = 9, discountPerCardInHand = true)
+        )))
+        fidelity(FidelityLevel.FULL, "Returns all Mars creatures to their owners' hands, then forges a key at +9 cost reduced by 1 per card in hand")
+    },
+    card("battle-fleet") {
+        play(DrawPerCardInHand(House.MARS, SelfPlayer))
+        fidelity(FidelityLevel.FULL, "AI reveals all Mars cards in hand and draws one per card")
+    },
+    card("commpod") {
+        action("Reveal any number of Mars cards from your hand", ReadyCreaturesOfHousePerCardInHand(House.MARS, SelfPlayer))
+        fidelity(FidelityLevel.FULL, "AI reveals all Mars cards in hand; readies that many friendly Mars creatures")
+    },
+    card("phosphorus-stars") {
+        play(Sequence(listOf(
+            Stun(CreatureNotOfHouse(House.MARS, Scope.ALL)),
+            GainChains(2, SelfPlayer)
+        )))
+        fidelity(FidelityLevel.FULL, "Stuns each non-Mars creature and gives 2 chains")
+    },
+    card("zyzzix-the-many") {
+        reap(Conditional(CreatureInHand, Sequence(listOf(ArchiveCreatureFromHand(1, SelfPlayer), AddPowerCounters(3)))))
+        fight(Conditional(CreatureInHand, Sequence(listOf(ArchiveCreatureFromHand(1, SelfPlayer), AddPowerCounters(3)))))
+        fidelity(FidelityLevel.FULL, "AI archives one creature from hand (if any) and adds three +1 power counters")
+    },
+    card("john-smyth") {
+        reap(Ready(OtherFriendlyCreatureWithHouse(House.MARS)))
+        fight(Ready(OtherFriendlyCreatureWithHouse(House.MARS)))
+        fidelity(FidelityLevel.PARTIAL, "Readies another friendly Mars creature; non-Agent restriction not enforced")
+    }
+)

@@ -9,6 +9,7 @@ import com.aember.analyzer.domain.engine.GameEngine
 import com.aember.analyzer.domain.engine.fidelity.FidelityReportService
 import com.aember.analyzer.domain.ai.RandomAI
 import org.slf4j.LoggerFactory
+import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.ports.DeckRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -34,7 +35,16 @@ class SimulationService(
             ?: throw IllegalArgumentException("Deck not found: $deckUuidA")
         val deckB = deckRepository.findByUuid(deckUuidB)
             ?: throw IllegalArgumentException("Deck not found: $deckUuidB")
+        return simulate(deckA, deckB, seed, aiA, aiB)
+    }
 
+    fun simulate(
+        deckA: Deck,
+        deckB: Deck,
+        seed: Long,
+        aiA: String = "tactical",
+        aiB: String = "tactical"
+    ): SimulationOutcome {
         val playerA = createAI(aiA)
         val playerB = createAI(aiB)
         val engine = GameEngine(cardLibrary, playerA, playerB)

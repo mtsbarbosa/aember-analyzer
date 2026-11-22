@@ -395,6 +395,27 @@ class PhaseOneCardsTest {
     }
 
     @Test
+    fun `Silvertooth does not ready other creatures`() {
+        // Silvertooth's readying is self-only; it must not act as a Speed Sigil aura.
+        val library = CardLibrary(mapOf(
+            "silvertooth" to catalogCard("silvertooth", House.SHADOWS, CardType.CREATURE, power = 2),
+            "other" to catalogCard("other", House.SHADOWS, CardType.CREATURE, power = 2)
+        ))
+        library.register("silvertooth", Silvertooth)
+        val executor = ActionExecutor(library, idGenerator)
+        val game = makeGame()
+        val player = game.activePlayer()
+        player.creatures.add(creature("silvertooth", 1, 0).copy(house = House.SHADOWS))
+        player.hand.add("other")
+
+        executor.execute(game, PlayCardAction("other"))
+
+        val played = player.creatures.find { it.cardId == "other" }
+        assertThat(played).isNotNull
+        assertThat(played!!.exhausted).isTrue()
+    }
+
+    @Test
     fun `Yxilx Dominator enters play stunned`() {
         val library = CardLibrary(mapOf(
             "yxilx-dominator" to catalogCard("yxilx-dominator", House.MARS, CardType.CREATURE, power = 5)

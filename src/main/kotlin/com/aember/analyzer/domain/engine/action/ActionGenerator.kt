@@ -52,6 +52,9 @@ class ActionGenerator(
                 actions.addAll(generateCreatureUses(game, creature))
             }
         }
+        if (player.cannotFightNextTurn) {
+            actions.removeAll { it is UseCreatureAction && it.useType is FightUse }
+        }
 
         // Use artifacts (non-Omni abilities require the artifact's house)
         player.artifacts.filter { !it.exhausted }.forEach { artifact ->

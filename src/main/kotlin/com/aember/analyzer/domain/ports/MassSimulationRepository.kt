@@ -3,6 +3,7 @@ package com.aember.analyzer.domain.ports
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
+import com.aember.analyzer.domain.rating.DeckRating
 
 /**
  * Driven port for persisting and retrieving mass-simulation artifacts.
@@ -22,4 +23,8 @@ interface MassSimulationRepository {
     fun saveLog(log: MassSimulationMatchLog)
 
     fun findLog(batchUuid: String, matchResultId: Int): MassSimulationMatchLog?
+
+    fun saveRatings(batchUuid: String, ratings: List<DeckRating>)
+
+    fun findRatings(batchUuid: String): List<DeckRating>?
 }

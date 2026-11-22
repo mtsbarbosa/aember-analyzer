@@ -96,6 +96,12 @@ data class ArchiveFromDiscard(val amount: Int, val player: TargetPlayer) : Effec
 
 data class ArchiveFromHand(val amount: Int, val player: TargetPlayer) : Effect
 
+/**
+ * Archives a creature from hand. When no creature is in hand nothing is archived
+ * (e.g., Zyzzix the Many's reap/fight ability).
+ */
+data class ArchiveCreatureFromHand(val amount: Int, val player: TargetPlayer) : Effect
+
 data class LoseAllAmber(val player: TargetPlayer) : Effect
 
 data class GainAmberOpponent(val amount: Int) : Effect
@@ -103,6 +109,27 @@ data class GainAmberOpponent(val amount: Int) : Effect
 data class Exhaust(val target: CreatureSelector) : Effect
 
 data class ShuffleHandAndDiscardIntoDeck(val player: TargetPlayer) : Effect
+
+data class ReturnAllCreaturesOfHouseToHand(val house: House) : Effect
+
+/**
+ * Forges a key outside the key forge step. [extraCost] modifies the current key
+ * cost; [free] forges at no cost regardless of key-cost auras (e.g., Epic Quest).
+ * [discountPerCardInHand] reduces the cost by 1 per card in hand (e.g., Key Abduction).
+ */
+data class ForgeKey(
+    val extraCost: Int = 0,
+    val discountPerCardInHand: Boolean = false,
+    val free: Boolean = false
+) : Effect
+
+data class DrawPerCardInHand(val house: House, val player: TargetPlayer) : Effect
+
+data class ReadyCreaturesOfHousePerCardInHand(val house: House, val player: TargetPlayer) : Effect
+
+data class AddPowerCounters(val amount: Int) : Effect
+
+data object SacrificeSelf : Effect
 
 data class Sequence(val effects: List<Effect>) : Effect
 

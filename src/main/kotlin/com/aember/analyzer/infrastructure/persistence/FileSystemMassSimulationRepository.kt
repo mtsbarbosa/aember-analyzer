@@ -3,6 +3,7 @@ package com.aember.analyzer.infrastructure.persistence
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
+import com.aember.analyzer.domain.rating.DeckRating
 import com.aember.analyzer.domain.ports.MassSimulationRepository
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -16,13 +17,13 @@ import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.name
 import kotlin.io.path.readText
-import kotlin.io.path.writeText
 
 /**
  * File-system adapter for mass-simulation artifacts.
  *
  * Layout:
  *   {storagePath}/{batchUuid}/batch.json
+ *   {storagePath}/{batchUuid}/ratings.json
  *   {storagePath}/{batchUuid}/matches/{index}-{yyyyMMdd-HHmmss}-{seed}/result.json
  *   {storagePath}/{batchUuid}/matches/{index}-{yyyyMMdd-HHmmss}-{seed}/log.json
  */
@@ -89,6 +90,18 @@ class FileSystemMassSimulationRepository(
         return if (logFile.exists()) readJson(logFile) else null
     }
 
+    override fun saveRatings(batchUuid: String, ratings: List<DeckRating>) {
+        val dir = batchPath(batchUuid)
+        Files.createDirectories(dir)
+        writeJson(dir.resolve(RATINGS_FILE), ratings)
+    }
+
+    override fun findRatings(batchUuid: String): List<DeckRating>? {
+        val file = batchPath(batchUuid).resolve(RATINGS_FILE)
+        if (!file.exists()) return null
+        return objectMapper.readValue(file.readText())
+    }
+
     private fun findMatchDir(batchUuid: String, matchResultId: Int): Path? {
         val matchesDir = batchPath(batchUuid).resolve(MATCHES_DIR)
         if (!matchesDir.exists()) return null
@@ -109,7 +122,15 @@ class FileSystemMassSimulationRepository(
     }
 
     private fun writeJson(path: Path, value: Any) {
-        path.writeText(objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+        // Write to a temp file in the same directory and atomically move it into
+        // place so concurrent readers never observe a partial JSON document.
+        val temp = path.resolveSibling("${path.fileName}.tmp-${java.util.UUID.randomUUID()}")
+        Files.writeString(temp, objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+        try {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE)
+        } catch (e: java.nio.file.AtomicMoveNotSupportedException) {
+            Files.move(temp, path, java.nio.file.StandardCopyOption.REPLACE_EXISTING)
+        }
     }
 
     private inline fun <reified T> readJson(path: Path): T {
@@ -120,6 +141,7 @@ class FileSystemMassSimulationRepository(
         private const val BATCH_FILE = "batch.json"
         private const val RESULT_FILE = "result.json"
         private const val LOG_FILE = "log.json"
+        private const val RATINGS_FILE = "ratings.json"
         private const val MATCHES_DIR = "matches"
     }
 }

@@ -51,8 +51,14 @@ class ActionExecutor(
         }
 
         val instanceId = idGenerator.nextId(cardId)
+        // Creatures enter play exhausted unless a card says otherwise
+        // (Speed Sigil readies the first creature played each turn, by either
+        // player; Silvertooth readies itself). Artifacts also enter exhausted.
         val isFirstCreatureThisTurn = player.creaturesPlayedThisTurn == 0
-        val globalEntersReady = isFirstCreatureThisTurn && player.cardsInPlay().any { library.scriptFor(it.cardId).cardEntersReady() }
+        val globalEntersReady = catalog.type == CardType.CREATURE && isFirstCreatureThisTurn &&
+            game.players.any { p ->
+                p.cardsInPlay().any { library.scriptFor(it.cardId).readiesFirstCreatureEachTurn() }
+            }
         val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
         val entersReady = selfEntersReady || globalEntersReady
         val entersStunned = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersStunned()
@@ -113,6 +119,7 @@ class ActionExecutor(
         }
 
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
+        player.cardsPlayedThisTurnByHouse[catalog.house] = (player.cardsPlayedThisTurnByHouse[catalog.house] ?: 0) + 1
         player.statistics.cardsPlayed++
         game.actionsThisPhase++
 
@@ -120,7 +127,7 @@ class ActionExecutor(
         if (player.drawOnCardPlayActive) {
             val drawHouse = player.drawOnCardPlayHouse
             if (drawHouse == null || drawHouse == catalog.house) {
-                drawCards(player, 1)
+                drawCards(game, player, 1)
                 game.log("${player.name} draws 1 card from effect")
             }
         }
@@ -304,6 +311,18 @@ class ActionExecutor(
 
     private fun destroyCreature(game: GameState, player: PlayerState, creature: InPlayCard) {
         logCardFidelity(game, creature.cardId, "destroyed")
+        val archivesInstead = creature.upgrades.any { library.scriptFor(it.cardId).archivesAttachedCreatureOnDestroyed() }
+        if (archivesInstead) {
+            // The creature is archived; upgrades fall off and are discarded.
+            creature.upgrades.forEach { upgrade ->
+                player.discard.add(upgrade.cardId)
+                game.log("${upgrade.cardId} goes to ${player.name}'s discard")
+            }
+            player.creatures.remove(creature)
+            player.archives.add(creature.cardId)
+            game.log("${creature.cardId} goes to ${player.name}'s archives instead of being destroyed")
+            return
+        }
         library.scriptFor(creature.cardId).onDestroyed(game, player, creature)
         // Move upgrades to discard
         creature.upgrades.forEach { player.discard.add(it.cardId) }
@@ -324,13 +343,13 @@ class ActionExecutor(
             .find { it.instanceId == instanceId }
     }
 
-    private fun drawCards(player: PlayerState, amount: Int) {
+    private fun drawCards(game: GameState, player: PlayerState, amount: Int) {
         repeat(amount) {
             if (player.library.isEmpty()) {
                 if (player.discard.isEmpty()) return
                 player.library.addAll(player.discard)
                 player.discard.clear()
-                player.library.shuffle(java.util.Random())
+                player.library.shuffle(game.rng)
             }
             if (player.library.isNotEmpty()) {
                 player.hand.add(player.library.removeFirst())

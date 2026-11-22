@@ -29,9 +29,15 @@ interface CardScript {
     fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = baseDamage
 
     /**
-     * Static ability: if true, the first creature played by this controller each turn enters play ready.
+     * Static ability: if true, this creature enters play ready (e.g., Silvertooth).
      */
     fun cardEntersReady(): Boolean = false
+
+    /**
+     * Static aura: if true, the first creature played by this controller each turn
+     * enters play ready (e.g., Speed Sigil).
+     */
+    fun readiesFirstCreatureEachTurn(): Boolean = false
 
     /**
      * Static ability: if true, this creature enters play stunned.
@@ -53,6 +59,18 @@ interface CardScript {
      * Used for placement decisions (e.g., Shadow Self, taunt creatures).
      */
     fun protectsNeighbors(): Boolean = false
+
+    /**
+     * Static upgrade ability: the controller of the attached creature's opponent pays this
+     * much extra amber to forge keys (e.g., Jammer Pack).
+     */
+    fun opponentKeyCostModifier(): Int = 0
+
+    /**
+     * Static upgrade ability: if true, the attached creature goes to its owner's archives
+     * instead of being destroyed (e.g., Biomatrix Backup).
+     */
+    fun archivesAttachedCreatureOnDestroyed(): Boolean = false
 
     fun onBeforeReap(game: GameState, player: PlayerState, card: InPlayCard) {}
 

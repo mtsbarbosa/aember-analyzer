@@ -1,6 +1,6 @@
 # Agent Handoff — aember-analyzer
 
-Last updated: 2026-11-20
+Last updated: 2026-11-21
 
 ## Project Goal
 
@@ -67,7 +67,36 @@ The app runs on `http://localhost:8080`.
 - `GET /api/mass-simulations/{uuid}/matches/{id}/logs` — get the debug log + fidelity log for one match.
 
 Batch status values: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`.
+Batch type values: `TWO_DECK`, `MULTI_DECK`.
 Results and logs are stored on disk under `.simulations/` (gitignored), not in Postgres.
+
+### Multi-Deck Round-Robin & Ratings
+
+- `POST /api/mass-simulations/multi` — start an async round-robin across a pool of decks.
+  - Header `X-Debug: true` — opt-in per-match verbose log storage (off by default).
+  - Request body: `{ "deckUuids": ["...", "..."], "matchesPerPairing": 10, "ai": "tactical", "seatAlternation": true, "baseSeed": 12345, "concurrency": null }`
+  - Runs `matchesPerPairing` matches per unordered deck pair; seats alternate per match so first-player bias cancels; deterministic seeds are `baseSeed + globalTaskIndex`.
+  - Matches execute in parallel on bounded virtual-thread workers (default concurrency = available processors); per-match failures are recorded as `failedCount` without failing the batch.
+  - `IllegalArgumentException` validation errors return `400` via `RestExceptionHandler`.
+- `GET /api/mass-simulations/{uuid}/ratings` — deck ratings (multi-deck batches only):
+  - Win/loss/draw record, raw win rate with ±95% margin, strength of schedule (SoS), Bradley-Terry strength (max-likelihood iterative fit, draws count as half wins, smoothing 0.5), **Aember Score** = `50 + 10 * log10(r_i / r_median)`, percentile, and a `lowConfidence` flag (< 20 games).
+  - Ratings are computed at batch completion and persisted as `ratings.json` in the batch directory; the endpoint serves the stored copy and lazily backfills older batches.
+
+### Deck Pools
+
+Named pools (e.g. `cota`) back single-deck rating. Pools persist as `.simulations/pools/{key}.json`
+and seed lazily from `{aember.pools.seed-dir}/{key}-pool.txt` (default dir = working dir; `cota-pool.txt`).
+
+- `GET /api/pools/{key}` — pool members.
+- `POST /api/pools/{key}/decks` — add an imported deck (body `{"deckUuid": "..."}`); creates the pool if unknown.
+- `DELETE /api/pools/{key}/decks/{deckUuid}` — remove a deck.
+- `POST /api/pools/{key}/ratings/{deckUuid}?matchesPerPairing=10&baseSeed=0&ai=tactical` — synchronous
+  single-deck rating: plays the deck against every pool member (parallel virtual threads, seat
+  alternation, ~1s for 220 matches), returns raw record + per-opponent results, and — when a completed
+  multi-deck ladder batch covers the pool — an anchored rating: the ladder's stored results plus the
+  fresh matches are refit via `RatingAggregator.ratings`, Aember Score anchored on the pool median
+  (directly comparable with the ladder). Snapshots saved to `.simulations/pools/{key}/ratings/`.
+- `GET /api/pools/{key}/ratings/{deckUuid}` — history of stored snapshots.
 
 ### curl Examples
 
@@ -80,6 +109,9 @@ curl "http://localhost:8080/api/decks"
 
 # Filter decks by house and expansion
 curl "http://localhost:8080/api/decks?house=Dis&expansion=341"
+
+# Get full deck details (cards included)
+curl "http://localhost:8080/api/decks/{deck-uuid}"
 
 # Run a single AI-vs-AI match (slim summary)
 curl "http://localhost:8080/api/simulate/{deck-a-uuid}/{deck-b-uuid}?seed=42&aiA=tactical&aiB=tactical"
@@ -108,6 +140,33 @@ curl "http://localhost:8080/api/mass-simulations/{batch-uuid}/matches"
 
 # Get debug log + fidelity log for match #1
 curl "http://localhost:8080/api/mass-simulations/{batch-uuid}/matches/1/logs"
+
+# Start an async multi-deck round-robin ladder
+curl -X POST http://localhost:8080/api/mass-simulations/multi \
+  -H "Content-Type: application/json" \
+  -d '{
+    "deckUuids": ["{deck-1-uuid}", "{deck-2-uuid}", "{deck-3-uuid}"],
+    "matchesPerPairing": 10,
+    "ai": "tactical",
+    "seatAlternation": true,
+    "baseSeed": 12345
+  }'
+
+# Get deck ratings for a multi-deck batch (persisted as ratings.json)
+curl "http://localhost:8080/api/mass-simulations/{batch-uuid}/ratings"
+
+# Deck pools: view members, add a deck, rate a single deck against the pool
+curl "http://localhost:8080/api/pools/cota"
+curl -X POST http://localhost:8080/api/pools/cota/decks \
+  -H "Content-Type: application/json" \
+  -d '{ "deckUuid": "{master-vault-uuid}" }'
+curl -X DELETE http://localhost:8080/api/pools/cota/decks/{deck-uuid}
+
+# Rate a deck synchronously against the pool (~1s); anchored Aember Score
+curl -X POST "http://localhost:8080/api/pools/cota/ratings/{deck-uuid}?matchesPerPairing=10&baseSeed=0&ai=tactical"
+
+# History of stored rating snapshots for a deck
+curl "http://localhost:8080/api/pools/cota/ratings/{deck-uuid}"
 ```
 
 ## Architecture
@@ -129,10 +188,12 @@ src/main/kotlin/com/aember/analyzer/
 ## Current State
 
 ### What works
-
 - PostgreSQL catalog seeded with Core set (`CotA`, expansion 341) card definitions.
 - Master Vault deck import by UUID or local JSON file; decks persisted via JPA.
 - Full turn structure: setup, key phase, house phase, main phase, ready/draw/end phases.
+- Creatures enter play **exhausted** (per keyteki `PutIntoPlayAction`), except when a card says otherwise: Speed Sigil readies the first creature played each turn and Silvertooth readies itself. Out-of-turn plays (e.g. `playTopCard` effects) also enter exhausted.
+- Forge cost is computed via `ForgeRules.keyCost`: base 6 plus static modifiers from upgrades attached to opponent creatures (e.g. Jammer Pack +2A) and one-turn bonuses (e.g. Lash of Broken Dreams +3A via `keyCostNextTurnBonus`).
+- Turn denial flags on `PlayerState`: `cannotFightNextTurn` (Fogbank) suppresses fight actions for the flagged player's next turn; `deniedHouseNextTurn` (Control the Weak) and `skipsForgeNextTurn` (Miasma) work the same way.
 - Six-name rule: a player can play/use/discard at most 6 cards with the same name per round.
 - Rule engine handles Core-set keywords:
   - `alpha`, `omega`, `elusive`, `skirmish`, `taunt`, `hazardous`, `assault`, `deploy`
@@ -145,11 +206,13 @@ src/main/kotlin/com/aember/analyzer/
 - REST endpoints and CLI commands for import and simulation.
 - Deck query API: list, filter (by name, house, expansion), and retrieve by UUID.
 - Async mass-simulation harness: run `N` matches between two decks, store aggregate results and per-match debug logs on disk under `.simulations/`.
+- Multi-deck round-robin harness: parallel virtual-thread execution, seat alternation, per-deck/per-pair aggregates, and Bradley-Terry `Aember Score` ratings via `GET .../ratings`.
+- CLI: `mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [seed] [--debug-logs]` (default seed 0, deterministic).
 
 ### DSL / Card Coverage
 
 - `domain/engine/cards/CoreSetDslCards.kt` contains ~368 of 370 Core cards generated from `tools/generate-core-cards.py`.
-- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`, `Drumble`, `EtherSpider`, `ShadowSelf`, `SpeedSigil`, `ControlTheWeak`, `Miasma`, `TendrilsOfPain`, `Arise`, `Silvertooth`, `YxilxDominator`.
+- Manual overrides live in `domain/engine/cards/CoreCards.kt`: `BadPenny`, `Anger`, `GatewayToDis`, `Drumble`, `EtherSpider`, `ShadowSelf`, `SpeedSigil`, `ControlTheWeak`, `Miasma`, `TendrilsOfPain`, `Arise`, `Silvertooth`, `YxilxDominator`, `JammerPack`, `BiomatrixBackup`, `LashOfBrokenDreams` (keys +3A next turn via `keyCostNextTurnBonus`), `TooMuchToProtect` (steal all but 6), `Fogbank` (no fights next turn via `cannotFightNextTurn`), plus two manual DSL lists (`marsEngineDslCardOverrides`: Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth; `keyCheatDslCardOverrides`: Key Charge, Chota Hazri, Key of Darkness, Epic Quest — all forge keys outside the forge phase via the `ForgeKey` effect).
 - `CardScript` exposes static-ability hooks so generic engine code never checks card names:
   - `cardEntersReady()` — e.g. Speed Sigil, Silvertooth.
   - `cardEntersStunned()` — e.g. Yxilx Dominator.
@@ -157,6 +220,8 @@ src/main/kotlin/com/aember/analyzer/
   - `capturesOpponentAmberGains()` — e.g. Ether Spider.
   - `protectsNeighbors()` — used for placement; e.g. Shadow Self (also `taunt` keyword is checked directly).
   - `modifyFightDamage(...)` — e.g. Ether Spider, Shadow Self.
+  - `opponentKeyCostModifier()` — upgrade aura; e.g. Jammer Pack.
+  - `archivesAttachedCreatureOnDestroyed()` — upgrade; e.g. Biomatrix Backup.
 - Supported triggers: `Play`, `Reap`, `Fight`, `Before Fight`, `After Fight`, `Before Reap`, `After Reap`, `Destroyed`, `Action`, `Omni`.
 - Supported effect types in `domain/engine/dsl/Effect.kt`:
   - `GainAmber`, `GainAmberOnTriggerThisTurn`, `DrawOnCardPlayThisTurn`, `StealAmber`, `CaptureAmber`, `LoseAmber`, `GainAmberOpponent`, `LoseAllAmber`, `GainAmberEqualToOpponentKeys`
@@ -172,17 +237,20 @@ src/main/kotlin/com/aember/analyzer/
   - `GainChains`, `LoseChains`
   - `DenyHouseNextTurn`, `TakeControlUntilEndOfTurn`, `TakeControlOfEnemyFlankCreature`
   - `SkipForgeNextTurn`, `ReturnCreaturesOfHouseFromDiscardToHand`
+  - `ReturnAllCreaturesOfHouseToHand`, `ForgeKey`, `DrawPerCardInHand`, `ReadyCreaturesOfHousePerCardInHand`, `AddPowerCounters`, `SacrificeSelf`
   - `Sequence`, `Conditional`
 - Supported conditions in `domain/engine/dsl/Condition.kt`:
   - `OpponentHasMoreAmber`, `SelfHasMoreAmber`, `OpponentHasFewerCreatures`, `SelfHasFewerCreatures`
   - `OpponentAmberAtLeast(amount)`, `OpponentAmberAtMost(amount)`, `OpponentAmberExactly(amount)`, `SelfAmberAtLeast(amount)`
   - `StealSucceeded`, `DamageDestroyedTarget`
   - `OpponentForgedKeyLastTurn`
+  - `CardsOfHousePlayedThisTurn(house, amount)` — per-turn play counter (`cardsPlayedThisTurnByHouse`)
   - `Always`
 - Supported creature selectors in `domain/engine/dsl/Target.kt`:
   - `FriendlyCreature`, `EnemyCreature`, `AnyCreature`
   - `FriendlyCreatureWithTrait`, `EnemyCreatureWithTrait`, `CreatureWithKeyword`
   - `FriendlyCreatureWithHouse`, `OtherFriendlyCreatureWithHouse`
+  - `CreatureNotOfHouse` (both players)
   - `CreatureAndNeighbors(base)`, `EachOtherUndamagedCreature`, `AllCreaturesOfChosenHouse`, `LastDamagedTarget`
 - Play restrictions: `CardDefinition.playableIf(condition)` prevents a card from being generated as a legal play action when the condition is false.
 
@@ -204,6 +272,13 @@ src/main/kotlin/com/aember/analyzer/
 - `EffectAndTriggerTest` — unit tests for all recently added effects and triggers.
 - `FidelityReportServiceTest` — fidelity score/threshold tests.
 - `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
+- `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (only the first creature played each turn enters play ready).
+- `MarsEngineCardsTest` — unit tests for Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth, Jammer Pack key-cost aura, Biomatrix Backup archive-on-destroy, and enter-ready creatures.
+- `TorsenControlCardsTest` — unit tests for Lash of Broken Dreams key-cost bonus, Too Much to Protect, Fogbank fight denial, Fear single-bounce, and the TacticalAI hand-wipe scoring.
+- `KeyCheatsTest` — unit tests for Key Charge, Chota Hazri, Key of Darkness (both cost branches), and Epic Quest (Knight archiving + no-cost forge after 7 Sanctum plays).
+- `RoundRobinScheduleGeneratorTest` — pair counts, seat alternation, deterministic seeds.
+- `BradleyTerryCalculatorTest` / `RatingAggregatorTest` — rating math (dominant decks, circular records, draws as half wins, SoS, aggregates).
+- `MultiDeckMassSimulationControllerWebTest` — end-to-end multi-deck batch: 3 decks × 2 matches, aggregates, ratings endpoint, log opt-in, validation errors.
 - Integration tests for catalog seeding, deck import, and deck queries.
 
 Run `./gradlew test` — all tests currently pass.
@@ -234,8 +309,9 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 | Fidelity | `domain/engine/fidelity/FidelityLevel.kt`, `CardFidelity.kt`, `FidelityReportService.kt` |
 | AI | `domain/ai/TacticalAI.kt`, `AISettings.kt`, `GreedyAI.kt`, `RandomAI.kt` |
 | Services | `application/SimulationService.kt`, `MassSimulationService.kt`, `MassSimulationAsyncExecutor.kt`, `DeckImportService.kt` |
-| Storage | `infrastructure/persistence/FileSystemMassSimulationRepository.kt` |
-| CLI/REST | `adapter/cli/AemberCliRunner.kt`, `adapter/rest/SimulationController.kt`, `MassSimulationController.kt`, `DeckController.kt` |
+| Ratings | `domain/rating/BradleyTerryCalculator.kt`, `RatingAggregator.kt`, `DeckRating.kt` |
+| Storage | `infrastructure/persistence/FileSystemMassSimulationRepository.kt`, `FileSystemDeckPoolRepository.kt` |
+| CLI/REST | `adapter/cli/AemberCliRunner.kt`, `adapter/rest/SimulationController.kt`, `MassSimulationController.kt`, `DeckController.kt`, `DeckPoolController.kt` |
 | Tests | `src/test/kotlin/com/aember/analyzer/engine/*`, `src/test/kotlin/com/aember/analyzer/simulation/*` |
 
 ## How to Analyze a Gameplay Log
@@ -416,7 +492,7 @@ Open an issue or fix directly if you see:
 4. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
 5. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
 6. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
-7. **Deck scoring** (SoS / Bradley-Terry) is not started.
+7. **Reference ladder**: ratings are pool-relative; no curated cross-set ladder exists yet.
 8. **More sets** beyond Core (`CotA`) are not seeded.
 
 ## How to Add a New Card Behaviour

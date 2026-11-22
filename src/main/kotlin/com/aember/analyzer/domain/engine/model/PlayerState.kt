@@ -32,7 +32,10 @@ data class PlayerState(
     var drawOnCardPlayHouse: House? = null,
     var forgedKeyThisTurn: Boolean = false,
     var forgedKeyLastTurn: Boolean = false,
-    var skipsForgeNextTurn: Boolean = false
+    var skipsForgeNextTurn: Boolean = false,
+    var keyCostNextTurnBonus: Int = 0,
+    var cannotFightNextTurn: Boolean = false,
+    val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()
 ) {
 
     fun cardsInPlay(): List<InPlayCard> = creatures + artifacts
