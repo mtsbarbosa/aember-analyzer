@@ -180,9 +180,10 @@ class DeckPoolRatingTest : IntegrationTest() {
         assertThat(rating.bradleyTerry).isNull()
         assertThat(rating.aemberScore).isNull()
         assertThat(rating.percentile).isNull()
-        // Margin depends on the record split; it is always finite and bounded.
+        // Margin depends on the record split; it is always finite and bounded
+        // (max 1.96 * sqrt(0.25 / 1) with 1 match, here well under 1.0).
         assertThat(rating.winRateMargin).isFinite()
-        assertThat(rating.winRateMargin).isBetween(0.0, 1.97)
+        assertThat(rating.winRateMargin).isBetween(0.0, 1.0)
     }
 
     @Test
@@ -268,6 +269,86 @@ class DeckPoolRatingTest : IntegrationTest() {
         // The tactical ladder must not anchor a random-AI rating.
         assertThat(rating.anchorBatchUuid).isNull()
         assertThat(rating.bradleyTerry).isNull()
+    }
+
+    @Test
+    fun `anchor ignores a ladder batch without seat alternation`() {
+        val poolDeck = saveDeck("No-Alternation Ladder Deck")
+        val challenger = saveDeck("Alternation Challenger")
+
+        val batch = MassSimulationBatch(
+            uuid = UUID.randomUUID().toString(),
+            status = MassSimulationStatus.COMPLETED,
+            batchType = MassSimulationBatchType.MULTI_DECK,
+            aiA = "random",
+            aiB = "random",
+            matchCount = 2,
+            deckPool = listOf(DeckRef(poolDeck.uuid, poolDeck.name)),
+            ai = "random",
+            seatAlternation = false,
+            completedAt = Instant.now()
+        )
+        massSimRepo.save(batch)
+
+        service.addToPool("noalt", poolDeck.uuid)
+
+        val rating = service.rateDeckAgainstPool(
+            poolKey = "noalt",
+            deckUuid = challenger.uuid,
+            matchesPerPairing = 1,
+            baseSeed = 0,
+            ai = "random"
+        )
+
+        assertThat(rating.anchorBatchUuid).isNull()
+        assertThat(rating.bradleyTerry).isNull()
+    }
+
+    @Test
+    fun `anchor matches the batch ai case-insensitively`() {
+        val poolDeck = saveDeck("Case AI Ladder Deck")
+        val challenger = saveDeck("Case Challenger")
+
+        val batch = MassSimulationBatch(
+            uuid = UUID.randomUUID().toString(),
+            status = MassSimulationStatus.COMPLETED,
+            batchType = MassSimulationBatchType.MULTI_DECK,
+            aiA = "TACTICAL",
+            aiB = "TACTICAL",
+            matchCount = 2,
+            deckPool = listOf(DeckRef(poolDeck.uuid, poolDeck.name)),
+            ai = "TACTICAL",
+            seatAlternation = true,
+            completedAt = Instant.now()
+        )
+        massSimRepo.save(batch)
+        massSimRepo.saveResult(
+            com.aember.analyzer.domain.model.MassSimulationMatchResult(
+                id = 1,
+                batchUuid = batch.uuid,
+                seed = 1,
+                winnerIndex = 0,
+                endCause = com.aember.analyzer.domain.engine.model.EndCause.KEYS,
+                turns = 10,
+                rounds = 10,
+                fidelityScore = 90.0,
+                statistics = emptyList(),
+                deckUuidA = poolDeck.uuid,
+                deckUuidB = poolDeck.uuid
+            )
+        )
+
+        service.addToPool("caseai", poolDeck.uuid)
+
+        val rating = service.rateDeckAgainstPool(
+            poolKey = "caseai",
+            deckUuid = challenger.uuid,
+            matchesPerPairing = 1,
+            baseSeed = 0,
+            ai = "tactical"
+        )
+
+        assertThat(rating.anchorBatchUuid).isEqualTo(batch.uuid)
     }
 
     @Test

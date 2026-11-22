@@ -116,6 +116,47 @@ class MadameCardsTest {
     }
 
     @Test
+    fun `Speed Sigil readies the first creature played by the opposing player`() {
+        val library = libraryWithMadameCards()
+        val executor = ActionExecutor(library, idGenerator)
+        // Player 1 is active; the sigil belongs to player 0.
+        val game = makeGame(activePlayerIndex = 1)
+        game.players[0].artifacts.add(
+            InPlayCard(
+                instanceId = "sigil-1", cardId = "speed-sigil", ownerIndex = 0, controllerIndex = 0,
+                zone = Zone.PLAY_AREA, house = House.UNTAMED, type = CardType.ARTIFACT
+            )
+        )
+        game.players[1].hand.add("defender")
+
+        executor.execute(game, PlayCardAction("defender"))
+
+        val played = game.players[1].creatures.find { it.cardId == "defender" }
+        assertThat(played).isNotNull
+        assertThat(played!!.exhausted).isFalse()
+    }
+
+    @Test
+    fun `Speed Sigil does not ready artifacts`() {
+        val library = libraryWithMadameCards()
+        val executor = ActionExecutor(library, idGenerator)
+        val game = makeGame()
+        game.activePlayer().hand.add("speed-sigil")
+        game.activePlayer().hand.add("warsong")
+        game.activePlayer().hand.add("fighter")
+
+        executor.execute(game, PlayCardAction("speed-sigil"))
+        executor.execute(game, PlayCardAction("warsong"))
+        // The sigil's slot is not consumed by the artifact; the creature still readies.
+        executor.execute(game, PlayCardAction("fighter"))
+
+        val artifact = game.activePlayer().artifacts.find { it.cardId == "warsong" }
+        val played = game.activePlayer().creatures.find { it.cardId == "fighter" }
+        assertThat(artifact!!.exhausted).isTrue()
+        assertThat(played!!.exhausted).isFalse()
+    }
+
+    @Test
     fun `creatures without a readying effect enter play exhausted`() {
         val library = libraryWithMadameCards()
         val executor = ActionExecutor(library, idGenerator)

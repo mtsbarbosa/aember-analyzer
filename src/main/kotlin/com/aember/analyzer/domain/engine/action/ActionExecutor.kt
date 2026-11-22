@@ -52,10 +52,13 @@ class ActionExecutor(
 
         val instanceId = idGenerator.nextId(cardId)
         // Creatures enter play exhausted unless a card says otherwise
-        // (Speed Sigil readies the first creature each turn; Silvertooth readies itself).
+        // (Speed Sigil readies the first creature played each turn, by either
+        // player; Silvertooth readies itself). Artifacts also enter exhausted.
         val isFirstCreatureThisTurn = player.creaturesPlayedThisTurn == 0
-        val globalEntersReady = isFirstCreatureThisTurn &&
-            player.cardsInPlay().any { library.scriptFor(it.cardId).readiesFirstCreatureEachTurn() }
+        val globalEntersReady = catalog.type == CardType.CREATURE && isFirstCreatureThisTurn &&
+            game.players.any { p ->
+                p.cardsInPlay().any { library.scriptFor(it.cardId).readiesFirstCreatureEachTurn() }
+            }
         val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
         val entersReady = selfEntersReady || globalEntersReady
         val entersStunned = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersStunned()
@@ -124,7 +127,7 @@ class ActionExecutor(
         if (player.drawOnCardPlayActive) {
             val drawHouse = player.drawOnCardPlayHouse
             if (drawHouse == null || drawHouse == catalog.house) {
-                drawCards(player, 1)
+                drawCards(game, player, 1)
                 game.log("${player.name} draws 1 card from effect")
             }
         }
@@ -340,13 +343,13 @@ class ActionExecutor(
             .find { it.instanceId == instanceId }
     }
 
-    private fun drawCards(player: PlayerState, amount: Int) {
+    private fun drawCards(game: GameState, player: PlayerState, amount: Int) {
         repeat(amount) {
             if (player.library.isEmpty()) {
                 if (player.discard.isEmpty()) return
                 player.library.addAll(player.discard)
                 player.discard.clear()
-                player.library.shuffle(java.util.Random())
+                player.library.shuffle(game.rng)
             }
             if (player.library.isNotEmpty()) {
                 player.hand.add(player.library.removeFirst())

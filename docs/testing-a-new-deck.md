@@ -85,10 +85,11 @@ new deck appended.
 2. Run the ladder (pairs grow linearly: 23 decks → 253 pairs, 24 → 276):
 
    ```bash
-   ./gradlew bootRun --args "mass-simulate-decks cota-pool.txt 10 tactical"
+   ./gradlew bootRun --args "mass-simulate-decks cota-pool.txt 10 tactical 0"
    ```
 
-   (10 matches per pairing with seat alternation; ~2s per 1,000 matches.)
+   (10 matches per pairing with seat alternation; default seed 0 — pass a different
+   seed for a different deterministic run. ~2s per 1,000 matches.)
    Alternatively via REST:
 
    ```bash

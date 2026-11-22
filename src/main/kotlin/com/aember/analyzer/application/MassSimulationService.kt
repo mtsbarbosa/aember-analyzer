@@ -244,12 +244,13 @@ class MassSimulationService(
             val updateLock = Any()
 
             fun updateProgress(force: Boolean = false) {
-                val done = progress.get()
-                if (!force && done % progressInterval != 0) return
                 synchronized(updateLock) {
+                    val done = progress.get()
+                    if (!force && done % progressInterval != 0) return
                     val current = repository.findByUuid(batchUuid) ?: return
                     if (current.status == MassSimulationStatus.RUNNING) {
-                        repository.save(current.copy(completedCount = done))
+                        // Never move the counter backwards if a stale writer raced ahead.
+                        repository.save(current.copy(completedCount = maxOf(current.completedCount, done)))
                     }
                 }
             }

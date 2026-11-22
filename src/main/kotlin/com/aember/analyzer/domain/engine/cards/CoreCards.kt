@@ -7,6 +7,7 @@ import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
+import com.aember.analyzer.domain.engine.model.randomWith
 import com.aember.analyzer.domain.model.House
 
 object GatewayToDis : CardScript {
@@ -49,7 +50,7 @@ object Anger : CardScript {
         val target = player.creatures.firstOrNull() ?: return
         game.log("Anger readies ${target.cardId} and makes it fight")
         target.exhausted = false
-        val enemy = game.opponent().creatures.randomOrNull() ?: return
+        val enemy = game.opponent().creatures.randomWith(game.rng) ?: return
         target.attackedThisTurn = true
         enemy.attackedThisTurn = true
         // Simple fight exchange without re-triggering keyword handling for clarity.

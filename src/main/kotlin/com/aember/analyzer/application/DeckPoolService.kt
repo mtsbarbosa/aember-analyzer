@@ -252,7 +252,7 @@ class DeckPoolService(
             .filter {
                 it.batchType == MassSimulationBatchType.MULTI_DECK &&
                     it.status == MassSimulationStatus.COMPLETED &&
-                    it.ai == ai &&
+                    it.ai?.lowercase() == ai.lowercase() &&
                     it.seatAlternation != false
             }
             .sortedByDescending { it.completedAt }

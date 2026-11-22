@@ -30,6 +30,8 @@ class GameEngine(
         game.amberRedirector = { player, amount ->
             findAmberRedirector(game, player, amount)
         }
+        // All in-game randomness derives from the match seed.
+        game.rng = random
 
         setup(game, random)
 
@@ -93,7 +95,7 @@ class GameEngine(
         game.players.forEach { player ->
             player.library.shuffle(random)
             val handSize = if (player.index == game.firstPlayerIndex) 7 else 6
-            draw(player, handSize)
+            draw(game, player, handSize)
         }
         game.log("Setup complete. First player: ${game.activePlayer().name}")
     }
@@ -189,20 +191,20 @@ class GameEngine(
         val handSize = 6 - ceil(player.chains / 6.0).toInt()
         val toDraw = (handSize - player.hand.size).coerceAtLeast(0)
         if (toDraw > 0) {
-            draw(player, toDraw)
+            draw(game, player, toDraw)
             if (player.chains > 0) {
                 player.chains = (player.chains - 1).coerceAtLeast(0)
             }
         }
     }
 
-    private fun draw(player: PlayerState, amount: Int) {
+    private fun draw(game: GameState, player: PlayerState, amount: Int) {
         repeat(amount) {
             if (player.library.isEmpty()) {
                 if (player.discard.isEmpty()) return
                 player.library.addAll(player.discard)
                 player.discard.clear()
-                player.library.shuffle(java.util.Random())
+                player.library.shuffle(game.rng)
             }
             if (player.library.isNotEmpty()) {
                 player.hand.add(player.library.removeFirst())

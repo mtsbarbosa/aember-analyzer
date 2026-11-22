@@ -92,6 +92,7 @@ class MassSimulationControllerWebTest : IntegrationTest() {
 
         if (completedBatch.status == MassSimulationStatus.COMPLETED) {
             assertThat(completedBatch.winsA + completedBatch.winsB + completedBatch.draws).isEqualTo(3)
+            assertThat(completedBatch.completedCount).isEqualTo(3)
             assertThat(completedBatch.avgRounds).isNotNull
             assertThat(completedBatch.avgFidelity).isNotNull
 

@@ -119,7 +119,9 @@ class AemberCliRunner(
                 val matchesPerPairing = positional.getOrNull(1)?.toIntOrNull()
                     ?: throw IllegalArgumentException("Usage: mass-simulate-decks <deck-list-file> <matches-per-pairing> [ai] [seed] [--debug-logs]")
                 val ai = positional.getOrNull(2) ?: "tactical"
-                val baseSeed = positional.getOrNull(3)?.toLongOrNull() ?: 0L
+                val baseSeed = positional.getOrNull(3)
+                    ?.let { it.toLongOrNull() ?: throw IllegalArgumentException("Invalid seed: '$it' (must be an integer)") }
+                    ?: 0L
 
                 val deckUuids = Files.readAllLines(Path.of(listFile))
                     .map { it.trim() }

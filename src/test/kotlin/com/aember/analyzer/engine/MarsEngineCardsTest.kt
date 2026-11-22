@@ -146,6 +146,29 @@ class MarsEngineCardsTest {
     }
 
     @Test
+    fun `Commpod readies a stunned creature but keeps its stun`() {
+        val library = libraryWith()
+        val executor = ActionExecutor(library, idGenerator)
+        val game = makeGame(player0Deck = deckWith("zyzzix-the-many"))
+        val player = game.activePlayer()
+        player.artifacts.add(
+            InPlayCard(
+                instanceId = "commpod-a", cardId = "commpod", ownerIndex = 0, controllerIndex = 0,
+                zone = Zone.PLAY_AREA, house = House.MARS, type = CardType.ARTIFACT
+            )
+        )
+        player.hand.add("zyzzix-the-many")
+        val stunned = marsCreature("mars-stunned", 0, 0, exhausted = true).apply { stun = true }
+        player.creatures.add(stunned)
+
+        executor.execute(game, UseArtifactAction("commpod-a", "Reveal any number of Mars cards from your hand"))
+
+        // Ready clears exhaustion only; stun is removed by using the creature.
+        assertThat(stunned.exhausted).isFalse()
+        assertThat(stunned.stun).isTrue()
+    }
+
+    @Test
     fun `Phosphorus Stars stuns every non-Mars creature and gives 2 chains`() {
         val library = libraryWith()
         val executor = ActionExecutor(library, idGenerator)

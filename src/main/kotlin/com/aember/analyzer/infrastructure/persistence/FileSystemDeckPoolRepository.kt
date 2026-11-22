@@ -65,6 +65,8 @@ class FileSystemDeckPoolRepository(
         if (!dir.exists()) return emptyList()
         return Files.list(dir).use { stream ->
             stream.filter { it.isRegularFile() }
+                // Only committed snapshots end in .json; skip in-flight temp files.
+                .filter { it.name.endsWith(".json") }
                 .filter { deckUuid == null || it.name.startsWith("$deckUuid-") }
                 .toList()
                 .sortedByDescending { it.name } // timestamp suffix keeps files chronologically ordered

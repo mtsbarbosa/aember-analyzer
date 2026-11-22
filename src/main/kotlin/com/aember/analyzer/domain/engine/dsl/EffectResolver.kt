@@ -6,6 +6,7 @@ import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.Zone
+import com.aember.analyzer.domain.engine.model.randomWith
 import com.aember.analyzer.domain.model.CardType
 import com.aember.analyzer.domain.model.House
 import kotlin.math.min
@@ -237,7 +238,7 @@ class EffectResolver(
                 if (player.discard.isEmpty()) return
                 player.library.addAll(player.discard)
                 player.discard.clear()
-                player.library.shuffle(java.util.Random())
+                player.library.shuffle(game.rng)
             }
             if (player.library.isNotEmpty()) {
                 player.hand.add(player.library.removeFirst())
@@ -248,7 +249,7 @@ class EffectResolver(
 
     private fun discardRandom(game: GameState, player: PlayerState, amount: Int) {
         repeat(amount.coerceAtMost(player.hand.size)) {
-            val card = player.hand.random()
+            val card = player.hand[game.rng.nextInt(player.hand.size)]
             player.hand.remove(card)
             player.discard.add(card)
         }
@@ -367,7 +368,7 @@ class EffectResolver(
         val attackers = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
         val attacker = attackers.firstOrNull() ?: return
         attacker.exhausted = false
-        val defender = game.opponent().creatures.randomOrNull() ?: return
+        val defender = game.opponent().creatures.randomWith(game.rng) ?: return
         val attackerDamage = library?.scriptFor(attacker.cardId)?.modifyFightDamage(true, attacker.power) ?: attacker.power
         val defenderDamage = library?.scriptFor(defender.cardId)?.modifyFightDamage(false, defender.power) ?: defender.power
         defender.damage += attackerDamage
@@ -421,7 +422,7 @@ class EffectResolver(
         player.library.addAll(player.discard)
         player.discard.clear()
         player.discard.addAll(oldDeck)
-        player.library.shuffle(java.util.Random())
+        player.library.shuffle(game.rng)
         game.log("${player.name} swaps deck and discard pile")
     }
 
@@ -453,13 +454,13 @@ class EffectResolver(
     private fun archiveFromHand(game: GameState, player: PlayerState, amount: Int) {
         val archived = mutableListOf<String>()
         repeat(amount.coerceAtMost(player.hand.size)) {
-            val cardId = player.hand.random()
+            val cardId = player.hand.randomWith(game.rng) ?: return
             player.hand.remove(cardId)
             archived.add(cardId)
             player.archives.add(cardId)
         }
         val names = archived.joinToString(", ") { cardName(it) }
-        game.log("${player.name} archives $amount card(s) from hand: $names")
+        game.log("${player.name} archives ${archived.size} card(s) from hand: $names")
     }
 
     /**
@@ -480,7 +481,7 @@ class EffectResolver(
             player.archives.add(cardId)
         }
         val names = archived.joinToString(", ") { cardName(it) }
-        game.log("${player.name} archives $amount creature(s) from hand: $names")
+        game.log("${player.name} archives ${archived.size} creature(s) from hand: $names")
         return true
     }
 
@@ -529,7 +530,7 @@ class EffectResolver(
         player.library.addAll(player.discard)
         player.hand.clear()
         player.discard.clear()
-        player.library.shuffle(java.util.Random())
+        player.library.shuffle(game.rng)
         game.log("${player.name} shuffles hand and discard into deck")
     }
 
@@ -588,17 +589,12 @@ class EffectResolver(
         val count = target.hand.count { cardId ->
             target.deck.cards.find { it.cardId == cardId }?.effectiveHouse == effect.house
         }
-        // Readying a stunned creature removes the stun (KeyForge rules).
+        // Readying only clears exhaustion; a stunned creature keeps its stun
+        // until it is used (KeyForge rulebook).
         val readied = target.creatures
             .filter { it.house == effect.house && it.exhausted }
             .take(count)
-        readied.forEach {
-            it.exhausted = false
-            if (it.stun) {
-                it.stun = false
-                game.log("${it.cardId} is unstunned")
-            }
-        }
+        readied.forEach { it.exhausted = false }
         game.log("${target.name} readies ${readied.size} ${effect.house.name.lowercase()} creature(s)")
     }
 
@@ -615,7 +611,7 @@ class EffectResolver(
     }
 
     private fun playTopCardOfHouse(game: GameState, player: PlayerState, house: House) {
-        ensureLibraryNotEmpty(player)
+        ensureLibraryNotEmpty(game, player)
         val discarded = mutableListOf<String>()
         var played: String? = null
         while (player.library.isNotEmpty()) {
@@ -656,14 +652,14 @@ class EffectResolver(
     }
 
     private fun discardTopDeck(game: GameState, player: PlayerState) {
-        ensureLibraryNotEmpty(player)
+        ensureLibraryNotEmpty(game, player)
         val cardId = player.library.removeFirstOrNull() ?: return
         player.discard.add(cardId)
         game.log("${player.name} destroys the top card of their deck: ${cardName(cardId)}")
     }
 
     private fun addTopCardOfHouseToHand(game: GameState, player: PlayerState, house: House) {
-        ensureLibraryNotEmpty(player)
+        ensureLibraryNotEmpty(game, player)
         val discarded = mutableListOf<String>()
         var found: String? = null
         while (player.library.isNotEmpty()) {
@@ -704,11 +700,11 @@ class EffectResolver(
         game.log("${sourcePlayer.name} takes control of ${target.cardId} with Smiling Ruth until end of turn")
     }
 
-    private fun ensureLibraryNotEmpty(player: PlayerState) {
+    private fun ensureLibraryNotEmpty(game: GameState, player: PlayerState) {
         if (player.library.isEmpty() && player.discard.isNotEmpty()) {
             player.library.addAll(player.discard)
             player.discard.clear()
-            player.library.shuffle(java.util.Random())
+            player.library.shuffle(game.rng)
         }
     }
 
