@@ -22,7 +22,7 @@ import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.io.path.exists
-import kotlin.math.log10
+import com.aember.analyzer.domain.rating.AemberScale
 import kotlin.math.sqrt
 
 /**
@@ -211,8 +211,8 @@ class DeckPoolService(
             val poolMedian = median(poolStrengths)
 
             bradleyTerry = newRating.bradleyTerry
-            aemberScore = 50.0 + 10.0 * log10(newRating.bradleyTerry / poolMedian)
-            val poolScores = poolStrengths.map { 50.0 + 10.0 * log10(it / poolMedian) }
+            aemberScore = AemberScale.score(newRating.bradleyTerry, poolMedian)
+            val poolScores = poolStrengths.map { AemberScale.score(it, poolMedian) }
             percentile = (poolScores.count { it < aemberScore } +
                 0.5 * poolScores.count { it == aemberScore }) / poolScores.size * 100.0
             anchorBatchUuid = anchor.batch.uuid

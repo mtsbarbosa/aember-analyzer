@@ -2,7 +2,6 @@ package com.aember.analyzer.domain.rating
 
 import com.aember.analyzer.domain.model.DeckRef
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
-import kotlin.math.log10
 import kotlin.random.Random
 
 /** Percentile confidence interval on an Aember Score. */
@@ -44,7 +43,7 @@ object RatingBootstrap {
                 .map { strengths[it] }
             val median = RatingAggregator.median(reference)
             deckPool.forEachIndexed { i, ref ->
-                samples.getValue(ref.uuid) += 50.0 + 10.0 * log10(strengths[i] / median)
+                samples.getValue(ref.uuid) += AemberScale.score(strengths[i], median)
             }
         }
 

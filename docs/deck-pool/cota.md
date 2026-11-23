@@ -10,11 +10,12 @@ Ratings in this document are from the deck-tracking tool (SAS / base AERC / SAS
 synergy shift `s`, win percentage `wp`, key cost `kc`) — they are informational
 context, not produced by the simulator.
 
-Simulator ladder ratings (`cota-ratings.json`) come from a full 23-deck
-round-robin (10 matches per pairing, tactical AI, seed 0) and are regenerated
-with `./gradlew bootRun --args "mass-simulate-decks cota-pool.txt 10 tactical 0"`
-whenever the simulation rules change — results from older engine versions are
-not comparable.
+Simulator ladder standings live in exactly one place, `cota-ladder.md`, which is
+**generated** from a completed batch with `python3 tools/ladder-report.py <batchUuid>`
+(never edit it by hand; no scores are copied into this file). Start a ladder with
+`POST /api/mass-simulations/multi` or
+`./gradlew bootRun --args "mass-simulate-decks cota-pool.txt 30 tactical 12345"`. Results
+from older engine versions are not comparable; the run table below says which batch is current.
 
 Pool last updated: 2026-11-21 — **all 23 pool decks imported**.
 Note: Master Vault imports are rate-limited (~429 after ~15 rapid requests);
@@ -97,13 +98,12 @@ Note: "Galilee el Obtuso" (S+) and "Galilee, o Engenhoso" (S) are different deck
 | 2026-11-21 | `77b6f0fe-649e-4091-9f47-aa7e08055d9b` | 2,530 (23 decks × 10 per pairing) | tactical | Full pool; avg fidelity 85.5%, avg rounds 7.9 |
 | 2026-11-21 | `0de5f424-0f5b-45b3-ab96-ced1f4c6409c` | 2,530 (23 decks × 10 per pairing) | tactical | After Mars-engine + control-card pass & enter-ready fix; avg fidelity 85.8%, avg rounds 8.1 |
 | 2026-11-21 | `2e34c9c4-8ea0-4976-b8a5-24906e737a39` | 2,530 (23 decks × 10 per pairing) | tactical | After key-cheat pass (Key Charge, Chota Hazri, Key of Darkness, Epic Quest); avg fidelity 85.9% |
-| 2026-11-21 | `33272b10-6b66-45c4-9f4b-92f0ee6d2687` | 2,530 (23 decks × 10 per pairing) | tactical | After rules-review fixes (Speed Sigil global/creature-only, seeded in-game RNG, fully deterministic replays); avg fidelity 85.8%, avg rounds 12.3. `cota-ratings.json` reflects this run |
+| 2026-11-21 | `33272b10-6b66-45c4-9f4b-92f0ee6d2687` | 2,530 (23 decks × 10 per pairing) | tactical | After rules-review fixes (Speed Sigil global/creature-only, seeded in-game RNG, fully deterministic replays); avg fidelity 85.8%, avg rounds 12.3. |
 | 2026-11-22 | `083dc1b0-1e96-49ce-8433-1c630b3e2ea8` | 25,830 (42 decks × 30 per pairing, seed 12345) | tactical | Phase-5 reference baseline; avg fidelity ~85%, 0 failures / 0 draws |
-| 2026-11-22 | `fad7c062-1c9b-40df-8c59-325f460ee1fc` | 25,830 (42 decks × 30 per pairing, seed 12345) | tactical | After Phase 0+1 (splash, poison, moribund fight triggers); avg fidelity 85.1%, verified 66.2%, avg rounds 11.6, 0 failures / 0 draws. Compare with `tools/ladder-compare.py` (`docs/fidelity/ladder-phi1-vs-baseline.txt`) |
+| 2026-11-22 | `fad7c062-1c9b-40df-8c59-325f460ee1fc` | 25,830 (42 decks × 30 per pairing, seed 12345) | tactical | After Phase 0+1 (splash, poison, moribund fight triggers); avg fidelity 85.1%, verified 66.2%, avg rounds 11.6, 0 failures / 0 draws. **Current ladder** (`cota-ladder.md`); diff against the baseline with `tools/ladder-compare.py` |
 
-Run 4 top (by Aember Score): Giulia (57.0), Chang (56.7), Galilee el Obtuso (55.6), Violet (55.3),
-The Public Butcher Brewer (54.5). Bottom: Xipty (42.4), Torsen (42.7), Chaos (44.2). All runs
-before 4 predate the rules-review fixes and are not comparable with run 4.
+Stored ratings from before Aember Score scale v2 used the legacy scale `50 + 10·log10(r/median)`; the tools convert
+them to the current `50 + 12.5·ln(r/median)` when reading stored `ratings.json`. Runs before the 42-deck ladder predate the rules-review fixes and are not comparable with later runs.
 
 ## How to import missing decks
 

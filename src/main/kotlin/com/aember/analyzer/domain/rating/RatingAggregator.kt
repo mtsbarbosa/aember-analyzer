@@ -2,7 +2,6 @@ package com.aember.analyzer.domain.rating
 
 import com.aember.analyzer.domain.model.DeckRef
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
-import kotlin.math.log10
 import kotlin.math.sqrt
 
 /**
@@ -122,11 +121,12 @@ object RatingAggregator {
                 winRateMargin = margin,
                 sos = sos,
                 bradleyTerry = strengths[i],
-                aemberScore = 50.0 + 10.0 * log10(strengths[i] / median),
+                aemberScore = AemberScale.score(strengths[i], median),
                 percentile = percentile,
                 lowConfidence = agg.matches < lowConfidenceThreshold,
                 aemberScoreLow = intervals[ref.uuid]?.low,
-                aemberScoreHigh = intervals[ref.uuid]?.high
+                aemberScoreHigh = intervals[ref.uuid]?.high,
+                scaleVersion = AemberScale.VERSION
             )
         }.sortedByDescending { it.aemberScore }
     }

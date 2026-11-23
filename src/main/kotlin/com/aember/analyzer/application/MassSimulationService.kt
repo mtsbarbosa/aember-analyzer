@@ -15,6 +15,7 @@ import com.aember.analyzer.domain.model.MassSimulationStatus
 import com.aember.analyzer.domain.model.MatchTask
 import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import com.aember.analyzer.domain.model.RoundRobinScheduleGenerator
+import com.aember.analyzer.domain.rating.AemberScale
 import com.aember.analyzer.domain.rating.DeckRating
 import com.aember.analyzer.domain.rating.RatingAggregator
 import com.aember.analyzer.domain.rating.TierValidation
@@ -150,7 +151,9 @@ class MassSimulationService(
         if (batch.batchType != MassSimulationBatchType.MULTI_DECK) {
             throw IllegalArgumentException("Ratings are only available for multi-deck batches")
         }
-        repository.findRatings(batchUuid)?.let { return it }
+        repository.findRatings(batchUuid)
+            ?.takeIf { stored -> stored.all { it.scaleVersion == AemberScale.VERSION } }
+            ?.let { return it }
         val results = repository.findResultsByBatchUuid(batchUuid)
         val ratings = RatingAggregator.ratings(batch.deckPool, results, bootstrapIterations = BOOTSTRAP_ITERATIONS)
         if (batch.status == MassSimulationStatus.COMPLETED) {

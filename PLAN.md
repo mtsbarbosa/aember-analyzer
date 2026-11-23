@@ -3,7 +3,7 @@
 ## Context
 
 The first 42-deck CotA ladder (25,830 matches, 0 failures, 0 draws) gave precise ratings
-(95% bootstrap intervals ≈ ±0.7 Aember Score) but only moderate agreement with the owner's
+(95% bootstrap intervals ≈ ±0.7 Aember Score on the legacy scale, ≈ ±2 on the current one) but only moderate agreement with the owner's
 hand-assigned tiers: **Spearman 0.44, pairwise agreement 67.5%**. Top (S+/A) and bottom (C/Z)
 tiers separate; the middle does not. Outliers: Seraphina (S+) ranked 36/42, Torsen (S) 41/42,
 Chang (A) 3/42, Patricia (Z) 17/42. Since sampling noise is small, the remaining error is

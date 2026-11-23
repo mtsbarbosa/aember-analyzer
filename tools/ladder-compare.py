@@ -20,22 +20,8 @@ import json
 import os
 import sys
 
-ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-
-def load_ratings(uuid):
-    path = os.path.join(ROOT, ".simulations", uuid, "ratings.json")
-    if not os.path.exists(path):
-        sys.exit(f"No ratings.json for batch {uuid} (has it completed?)")
-    return json.load(open(path))
-
-
-def load_names(uuid):
-    path = os.path.join(ROOT, ".simulations", uuid, "batch.json")
-    if not os.path.exists(path):
-        return {}
-    batch = json.load(open(path))
-    return {d["uuid"]: d["name"] for d in batch.get("deckPool", [])}
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ratings_io import load_names, load_ratings  # noqa: E402
 
 
 def ranks_from_ratings(ratings):

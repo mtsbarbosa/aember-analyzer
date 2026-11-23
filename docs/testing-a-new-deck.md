@@ -142,7 +142,7 @@ other members only).
 | `winRate` ± `winRateMargin` | Raw win rate over all matches (±95% CI); below 50% margin with `lowConfidence=true` means treat with suspicion |
 | `sos` | Strength of schedule — check it before celebrating: a high win rate vs. weak opponents is worth less |
 | `bradleyTerry` | Maximum-likelihood strength (draws = half win, smoothing 0.5) — comparable *within the run only* |
-| `aemberScore` | `50 + 10·log10(r/r_median)` — 50 = pool median; 57 ≈ 5x stronger than median, 43 ≈ 1/5x |
+| `aemberScore` | `50 + 12.5·ln(r/r_median)` — 50 = pool median; ≈ 1 point per 2pp win-rate edge vs an equal deck (2 pts subtle, 5 pts clear). Scale v2; pre-v2 stored snapshots used `50 + 10·log10(r/r_median)` |
 | `percentile` | Rank within the pool |
 
 Caveats:
@@ -152,6 +152,6 @@ Caveats:
   To track a new deck against the historical ladder, re-run the whole pool
   (new deck included) in one batch and compare with the recorded previous run.
 - Record the run: batch UUID, date, pool file version, and the ratings JSON
-  snapshot (see `docs/deck-pool/cota.md` / `cota-ratings.json` for the format).
+  snapshot (see `.simulations/pools/{key}/ratings/` for the stored format; current pool standings are in `docs/deck-pool/cota-ladder.md`).
 - If the new deck lands far from its SAS/AERC tier, audit its fidelity first
   (Step 2) — divergence usually means engine coverage, not deck strength.
