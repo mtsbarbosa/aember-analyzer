@@ -12,7 +12,7 @@ import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 
 class DslCardScript(
-    private val definition: CardDefinition,
+    internal val definition: CardDefinition,
     private val resolver: EffectResolver
 ) : CardScript {
 

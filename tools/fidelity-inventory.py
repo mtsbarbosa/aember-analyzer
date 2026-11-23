@@ -9,6 +9,8 @@ Usage:
   python3 tools/fidelity-inventory.py [--pack PATH] [--keyteki-cards DIR]
       [--server URL --pool KEY] [--out docs/fidelity/core-inventory.csv]
       [--decks-dir DIR]  # alternatively: directory of deck JSON files (cards[].cardId/count)
+      [--check-drift]    # Phase 4 spec drift check (CI): exit 1 if keyteki card files
+                         # changed / appeared / disappeared relative to the committed CSV
 
 Pool impact = number of pool decks that contain the card (needs the running server, or
 --decks-dir). Priority = pool_impact * (1 + cluster_size / 100), where cluster_size is the
@@ -155,6 +157,41 @@ def verified_ids():
     return out
 
 
+def check_drift(csv_path, cards_dir):
+    """Compare keyteki card-file hashes in the committed CSV with the current sources.
+
+    Fails (returns non-zero) when a keyteki card file changed, appeared or disappeared
+    since the CSV was generated — those cards must be re-reviewed before the next batch.
+    """
+    kt = keyteki_features(cards_dir)
+    stored = {}
+    with open(csv_path, newline="", encoding="utf8") as f:
+        for row in csv.DictReader(f):
+            if row["keyteki_sha"]:
+                stored[row["id"]] = row["keyteki_sha"]
+    current = {catalog_id(kid): v["sha"] for kid, v in kt.items()}
+    changed = sorted(cid for cid in stored if cid in current and current[cid] != stored[cid])
+    appeared = sorted(set(current) - set(stored))
+    disappeared = sorted(set(stored) - set(current))
+    if changed:
+        print(f"DRIFT: {len(changed)} keyteki card file(s) changed since the inventory was generated:")
+        for cid in changed:
+            print(f"  {cid}: {stored[cid]} -> {current[cid]}")
+    if appeared:
+        print(f"DRIFT: {len(appeared)} new keyteki card file(s) not in the inventory:")
+        for cid in appeared:
+            print(f"  {cid}")
+    if disappeared:
+        print(f"DRIFT: {len(disappeared)} inventoried card file(s) missing from keyteki now:")
+        for cid in disappeared:
+            print(f"  {cid}")
+    if changed or appeared or disappeared:
+        print("Re-run the inventory and re-review the affected cards, then commit the new CSV.")
+        return 1
+    print(f"Spec drift check OK: {len(stored)} keyteki card files unchanged.")
+    return 0
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pack", default=os.path.expanduser("~/work/keyteki/master-vault-data/packs/CotA.json"))
@@ -163,7 +200,12 @@ def main():
     ap.add_argument("--pool", default="cota")
     ap.add_argument("--decks-dir", default=None)
     ap.add_argument("--out", default=os.path.join(ROOT, "docs/fidelity/core-inventory.csv"))
+    ap.add_argument("--check-drift", action="store_true",
+                    help="compare keyteki card-file hashes against the committed CSV; exit 1 on drift")
     args = ap.parse_args()
+
+    if args.check_drift:
+        return check_drift(args.out, args.keyteki_cards)
 
     cards = load_cards(args.pack)
     dsl = parse_dsl_levels(os.path.join(CARDS_DIR, "CoreSetDslCards.kt"))

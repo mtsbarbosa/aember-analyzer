@@ -1,11 +1,10 @@
 package com.aember.analyzer.domain.engine
 
-import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.model.CatalogCard
 
 /**
- * Registry of hand-ported card behaviours. Unknown cards fall back to a vanilla script that
+ * Registry of hand-ported card behaviors. Unknown cards fall back to a vanilla script that
  * does nothing, so the engine can still run games while card coverage is incomplete.
  */
 class CardLibrary(
@@ -19,6 +18,8 @@ class CardLibrary(
     }
 
     fun scriptFor(cardId: String): CardScript = scripts[cardId] ?: VanillaCardScript
+
+    fun registeredIds(): Set<String> = scripts.keys.toSet()
 
     fun cardData(cardId: String): CatalogCard? = catalog[cardId]
 

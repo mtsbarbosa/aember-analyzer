@@ -7,7 +7,6 @@ import com.aember.analyzer.domain.model.CatalogCard
 import com.aember.analyzer.infrastructure.config.buildCoreCardLibrary
 import com.aember.analyzer.infrastructure.persistence.JsonCardCatalogLoader
 import com.fasterxml.jackson.databind.ObjectMapper
-import java.nio.file.Path
 
 /**
  * Builds the real Core-set [CardLibrary] (catalog + generated DSL + manual scripts) without
@@ -21,9 +20,14 @@ object CoreCardLibrary {
     val keytekiDataPath: String =
         System.getenv("KEYTEKI_DATA_PATH") ?: "/home/mateus/work/keyteki/master-vault-data"
 
-    private val catalog: Map<String, CatalogCard> by lazy {
+    /** Full Core-set catalog, shared by the library and by tests that audit card coverage. */
+    val cards: List<CatalogCard> by lazy {
         val loader = JsonCardCatalogLoader(ObjectMapper(), keytekiDataPath)
-        loader.loadCoreSet().associateBy { it.id }
+        loader.loadCoreSet()
+    }
+
+    private val catalog: Map<String, CatalogCard> by lazy {
+        cards.associateBy { it.id }
     }
 
     fun create(targetChooser: TargetChooser = GreedyTargetChooser()): CardLibrary =
