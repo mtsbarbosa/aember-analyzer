@@ -77,9 +77,14 @@ class EffectResolver(
         register<Draw> { game, player, _, effect -> drawCards(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<DiscardRandom> { game, player, _, effect -> discardRandom(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<ReturnToHand> { game, _, sourceCard, effect -> returnToHand(game, sourceCard, effect) }
+        register<DenyCardUseNextTurn> { game, player, _, _ -> game.opponent(player).cannotUseCardsNextTurn = true }
+        register<DenyActionCardsNextTurn> { game, player, _, _ -> game.opponent(player).deniedCardTypeNextTurn = CardType.ACTION }
+        register<DenyCreatureFightsNextTurn> { game, player, _, _ -> game.opponent(player).cannotFightNextTurn = true }
+        register<ReduceAmberTo> { game, _, _, effect -> reduceAmberTo(game, effect) }
+        register<ShuffleSelfIntoDeck> { game, _, sourceCard, _ -> shuffleSelfIntoDeck(game, sourceCard) }
         register<Archive> { game, player, _, effect -> archive(game, player, effect) }
         register<Purge> { game, _, _, effect -> purge(game, effect) }
-        register<Heal> { game, _, _, effect -> heal(game, effect) }
+        register<Heal> { game, _, sourceCard, effect -> heal(game, sourceCard, effect) }
         register<Ready> { game, _, _, effect -> ready(game, effect) }
         register<Fight> { game, _, _, effect -> fight(game, effect) }
         register<GainChains> { game, player, _, effect -> targetPlayer(game, player, effect.player).chains += effect.amount }
@@ -385,8 +390,13 @@ class EffectResolver(
     private fun returnToHand(game: GameState, sourceCard: InPlayCard, effect: ReturnToHand) {
         val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
+            // Removal is by controller so taken-control creatures are found too.
+            val controller = game.player(target.controllerIndex)
+            controller.creatures.remove(target)
+            // Upgrades fall off to the discard (mirrors the destroy path).
+            target.upgrades.forEach { upgrade -> controller.discard.add(upgrade.cardId) }
+            target.upgrades.clear()
             val owner = game.player(target.ownerIndex)
-            owner.creatures.remove(target)
             owner.hand.add(target.cardId)
             game.log("${target.cardId} returns to hand")
             val event = CardLeftPlay(target.instanceId, target.cardId, target.ownerIndex, target.controllerIndex)
@@ -417,11 +427,39 @@ class EffectResolver(
         }
     }
 
-    private fun heal(game: GameState, effect: Heal) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun heal(game: GameState, sourceCard: InPlayCard, effect: Heal) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
             target.damage = (target.damage - effect.amount).coerceAtLeast(0)
             game.log("${target.cardId} heals ${effect.amount}")
+        }
+    }
+
+    private fun reduceAmberTo(game: GameState, effect: ReduceAmberTo) {
+        game.players.forEach { player ->
+            if (player.amber >= effect.threshold) {
+                val before = player.amber
+                player.amber = effect.cap
+                game.log("${player.name} is reduced to ${effect.cap} amber (${player.name}: $before -> ${player.amber})")
+            }
+        }
+    }
+
+    private fun shuffleSelfIntoDeck(game: GameState, sourceCard: InPlayCard) {
+        // Removal is by controller so taken-control cards are found too.
+        val controller = game.player(sourceCard.controllerIndex)
+        val removed = controller.creatures.remove(sourceCard) || controller.artifacts.remove(sourceCard)
+        if (removed) {
+            // Upgrades fall off to the discard (mirrors the destroy path).
+            sourceCard.upgrades.forEach { upgrade -> controller.discard.add(upgrade.cardId) }
+            sourceCard.upgrades.clear()
+            val owner = game.player(sourceCard.ownerIndex)
+            owner.library.add(sourceCard.cardId)
+            owner.library.shuffle(game.rng)
+            game.log("${sourceCard.cardId} shuffles into ${owner.name}'s deck")
+            if (library != null) {
+                EventBus.emit(library, game, CardLeftPlay(sourceCard.instanceId, sourceCard.cardId, sourceCard.ownerIndex, sourceCard.controllerIndex))
+            }
         }
     }
 

@@ -74,6 +74,22 @@ class FileSystemDeckPoolRepository(
         }
     }
 
+    override fun delete(key: String): Boolean {
+        require(SAFE_KEY.matches(key)) { "Invalid pool key: $key" }
+        val file = poolFile(key)
+        val dir = basePath.resolve(key)
+        val existed = file.exists() || dir.exists()
+        Files.deleteIfExists(file)
+        if (dir.exists()) {
+            Files.walk(dir).use { s -> s.sorted(Comparator.reverseOrder()).forEach { Files.delete(it) } }
+        }
+        return existed
+    }
+
+    private companion object {
+        val SAFE_KEY = Regex("[a-zA-Z0-9][a-zA-Z0-9_-]*")
+    }
+
     private fun poolFile(key: String): Path = basePath.resolve("$key.json")
 
     private fun ratingsDir(key: String): Path = basePath.resolve(key).resolve("ratings")

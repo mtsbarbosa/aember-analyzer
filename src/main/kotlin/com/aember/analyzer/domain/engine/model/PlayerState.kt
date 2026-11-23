@@ -35,6 +35,8 @@ data class PlayerState(
     var skipsForgeNextTurn: Boolean = false,
     var keyCostNextTurnBonus: Int = 0,
     var cannotFightNextTurn: Boolean = false,
+    var cannotUseCardsNextTurn: Boolean = false,
+    var deniedCardTypeNextTurn: com.aember.analyzer.domain.model.CardType? = null,
     /** Derived by EffectRegistry.recalculate (e.g. The Vaultkeeper): amber cannot be stolen. */
     var amberCannotBeStolen: Boolean = false,
     val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()

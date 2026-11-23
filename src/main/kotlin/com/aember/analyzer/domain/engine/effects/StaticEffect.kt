@@ -86,4 +86,16 @@ class StaticEffectsBuilder {
             requireFlank = requireFlank
         )
     }
+
+    /** Key-cost modifier whose amount is computed per state (e.g. Iron Obelisk). */
+    fun modifyKeyCostDynamic(
+        payer: PayerScope,
+        dynamic: (GameState, InPlayCard) -> Int
+    ) {
+        effects += StaticEffect(
+            StaticEffectKind.KEY_COST_MODIFIER,
+            payer = payer,
+            dynamicAmount = dynamic
+        )
+    }
 }

@@ -130,6 +130,16 @@ class MassSimulationService(
             ?: throw IllegalArgumentException("Batch not found: $uuid")
     }
 
+    /** Teardown: deletes a finished batch and all its on-disk artifacts. Running batches are refused. */
+    fun deleteBatch(uuid: String) {
+        val batch = getBatch(uuid)
+        require(batch.status != com.aember.analyzer.domain.model.MassSimulationStatus.RUNNING &&
+            batch.status != com.aember.analyzer.domain.model.MassSimulationStatus.PENDING) {
+            "Batch $uuid is ${batch.status}; wait for it to finish before deleting"
+        }
+        repository.delete(uuid)
+    }
+
     fun listBatches(): List<MassSimulationBatch> {
         return repository.findAll()
     }

@@ -5,6 +5,7 @@ import com.aember.analyzer.domain.rating.TierValidation
 import com.aember.analyzer.domain.model.MassSimulationRequest
 import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -45,6 +46,12 @@ class MassSimulationController(
         val batch = massSimulationService.getBatch(uuid)
         val fidelityCards = massSimulationService.getCardFidelity(uuid)
         return ResponseEntity.ok(batch.toDto(fidelityCards))
+    }
+
+    @DeleteMapping("/{uuid}")
+    fun deleteBatch(@PathVariable uuid: String): ResponseEntity<Void> {
+        massSimulationService.deleteBatch(uuid)
+        return ResponseEntity.noContent().build()
     }
 
     @GetMapping("/{uuid}/ratings")

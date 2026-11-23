@@ -173,5 +173,7 @@ class MassSimulationServiceProgressTest {
         override fun saveCardFidelity(batchUuid: String, stats: List<CardFidelityStats>) = Unit
 
         override fun findCardFidelity(batchUuid: String): List<CardFidelityStats>? = null
+
+        override fun delete(batchUuid: String): Boolean = batches.remove(batchUuid) != null
     }
 }

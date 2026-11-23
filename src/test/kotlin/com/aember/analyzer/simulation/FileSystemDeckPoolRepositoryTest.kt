@@ -99,4 +99,23 @@ class FileSystemDeckPoolRepositoryTest {
         assertThat(history).hasSize(2)
         assertThat(history.map { it.wins }).containsOnly(5)
     }
+
+    @Test
+    fun `delete removes pool file and rating snapshots`() {
+        val repo = repository()
+        repo.save(DeckPool(key = "smoke-x", deckUuids = listOf("a"), updatedAt = Instant.now()))
+        repo.saveRating("smoke-x", rating("a"))
+
+        assertThat(repo.delete("smoke-x")).isTrue()
+        assertThat(repo.findByKey("smoke-x")).isNull()
+        assertThat(repo.findRatingHistory("smoke-x")).isEmpty()
+        assertThat(repo.delete("smoke-x")).isFalse()
+    }
+
+    @Test
+    fun `delete rejects path traversal keys`() {
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalArgumentException::class.java) {
+            repository().delete("../etc")
+        }
+    }
 }

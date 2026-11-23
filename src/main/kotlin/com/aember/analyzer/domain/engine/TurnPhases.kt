@@ -104,6 +104,18 @@ internal object TurnPhases {
     }
 
     /**
+     * Consumes the per-turn denial flags of the player whose main phase just ended
+     * (Fogbank/Foggify fight denial, Skippy Timehog use denial, Scrambler Storm
+     * action-play denial). Shared by the engine loop and the scenario harness.
+     */
+    fun endMainPhase(game: GameState) {
+        val player = game.activePlayer()
+        player.cannotFightNextTurn = false
+        player.cannotUseCardsNextTurn = false
+        player.deniedCardTypeNextTurn = null
+    }
+
+    /**
      * The shared end-of-turn sequence (ready, draw refill, turn switch). Returns true when
      * the game has ended, so callers can stop without starting the next turn.
      */

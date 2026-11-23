@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController
  * REST adapter for named deck pools.
  *
  * - `GET    /api/pools/{key}`                        — pool members
+ * - `DELETE /api/pools/{key}`                       — teardown: delete pool + stored ratings
  * - `POST   /api/pools/{key}/decks`                  — add an imported deck to the pool
  * - `DELETE /api/pools/{key}/decks/{deckUuid}`       — remove a deck from the pool
  * - `POST   /api/pools/{key}/ratings/{deckUuid}`     — rate a deck against the pool (synchronous)
@@ -31,6 +32,12 @@ class DeckPoolController(
     @GetMapping("/{key}")
     fun getPool(@PathVariable key: String): ResponseEntity<DeckPoolDto> {
         return ResponseEntity.ok(deckPoolService.getPool(key).toDto())
+    }
+
+    @DeleteMapping("/{key}")
+    fun deletePool(@PathVariable key: String): ResponseEntity<Void> {
+        deckPoolService.deletePool(key)
+        return ResponseEntity.noContent().build()
     }
 
     @PostMapping("/{key}/decks")

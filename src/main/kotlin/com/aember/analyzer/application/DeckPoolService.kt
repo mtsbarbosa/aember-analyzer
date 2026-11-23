@@ -51,6 +51,11 @@ class DeckPoolService(
         return poolRepository.findByKey(key) ?: seedPool(key)
     }
 
+    /** Teardown: deletes the pool file and its stored rating snapshots. Seeded pools re-seed lazily on next read. */
+    fun deletePool(key: String) {
+        require(poolRepository.delete(key)) { "Pool not found: $key" }
+    }
+
     fun addToPool(key: String, deckUuid: String): DeckPool {
         val deck = deckRepository.findByUuid(deckUuid)
             ?: throw IllegalArgumentException("Deck not found: $deckUuid (import it first)")

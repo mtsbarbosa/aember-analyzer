@@ -33,4 +33,7 @@ interface MassSimulationRepository {
     fun saveCardFidelity(batchUuid: String, stats: List<CardFidelityStats>)
 
     fun findCardFidelity(batchUuid: String): List<CardFidelityStats>?
+
+    /** Removes the whole batch directory (batch, matches, ratings, fidelity); returns false if it did not exist. */
+    fun delete(batchUuid: String): Boolean
 }

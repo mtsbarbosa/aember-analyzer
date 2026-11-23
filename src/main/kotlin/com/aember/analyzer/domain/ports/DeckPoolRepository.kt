@@ -15,4 +15,7 @@ interface DeckPoolRepository {
     fun saveRating(key: String, rating: PoolDeckRating)
 
     fun findRatingHistory(key: String, deckUuid: String? = null): List<PoolDeckRating>
+
+    /** Removes the pool membership file and all stored rating snapshots; returns false if neither existed. */
+    fun delete(key: String): Boolean
 }

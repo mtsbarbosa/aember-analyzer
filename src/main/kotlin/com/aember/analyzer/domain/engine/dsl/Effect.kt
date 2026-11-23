@@ -113,6 +113,19 @@ data class GainAmberOpponent(val amount: Int) : Effect
 /** The opponent of the player resolving this effect loses amber (min 0). */
 data class LoseAmberOpponent(val amount: Int) : Effect
 
+/** Next-turn denials (Skippy Timehog, Scrambler Storm, Foggify). */
+object DenyCardUseNextTurn : Effect
+
+object DenyActionCardsNextTurn : Effect
+
+object DenyCreatureFightsNextTurn : Effect
+
+/** Each player with [threshold] or more amber is reduced to [cap] (Doorstep to Heaven). */
+data class ReduceAmberTo(val threshold: Int, val cap: Int) : Effect
+
+/** Shuffles the card resolving this effect from play into its owner's deck. */
+data object ShuffleSelfIntoDeck : Effect
+
 /**
  * Amber movement tied to the creature referenced by the event currently being
  * dispatched (Phase 2.2 reactions, e.g. Soul Snatcher / Tolas / Krump).

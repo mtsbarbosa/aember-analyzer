@@ -112,8 +112,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("iron-obelisk") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent { modifyKeyCostDynamic(PayerScope.OPPONENT_OF_CONTROLLER) { game, source ->
+                game.player(source.controllerIndex).creatures.count { it.house == House.BROBNAR && it.damage > 0 }
+            } }
+            fidelity(FidelityLevel.FULL, "Opponent's keys cost +1 amber per friendly damaged Brobnar creature")
         },
     card("mighty-javelin") {
             omni(DealDamage(4, AnyCreature()))
@@ -261,8 +263,9 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("yo-mama-mastery") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(Heal(99, SelfCreature))
+            persistent { addKeyword(Keyword.TAUNT, 1, HostCreatureScope) }
+            fidelity(FidelityLevel.FULL, "Upgrade: host gains taunt; Play: fully heal this creature")
         },
     card("a-fair-game") {
             play(GainAmber(1))
@@ -513,8 +516,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Some effect sentences not mapped")
         },
     card("foggify") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DenyCreatureFightsNextTurn)
+            fidelity(FidelityLevel.FULL, "Opponent cannot use creatures to fight on their next turn (plays and discards allowed)")
         },
     card("help-from-future-self") {
             play(NoEffect)
@@ -561,8 +564,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("scrambler-storm") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DenyActionCardsNextTurn)
+            fidelity(FidelityLevel.FULL, "Opponent cannot play action cards on their next turn")
         },
     card("sloppy-labwork") {
             play(ArchiveFromHand(1, SelfPlayer))
@@ -687,13 +690,13 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("skippy-timehog") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DenyCardUseNextTurn)
+            fidelity(FidelityLevel.FULL, "Opponent cannot use any cards next turn; plays and discards still allowed")
         },
     card("timetraveller") {
             play(Draw(2, SelfPlayer))
-            action("Shuffle Timetraveller into your deck", NoEffect)
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            action("Shuffle Timetraveller into your deck", ShuffleSelfIntoDeck)
+            fidelity(FidelityLevel.FULL, "Play: draw 2 cards; Action: shuffle Timetraveller into its owner's deck")
         },
     card("titan-mechanic") {
             persistent {
@@ -848,7 +851,8 @@ val coreSetCards = listOf(
     card("chuff-ape") {
             reap(NoEffect)
             fight(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            entersPlayStunned()
+            fidelity(FidelityLevel.PARTIAL, "Taunt + enters play stunned implemented; Fight/Reap sacrifice-another-and-heal not implemented")
         },
     card("ether-spider") {
             play(NoEffect)
@@ -981,8 +985,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("doorstep-to-heaven") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(ReduceAmberTo(threshold = 6, cap = 5))
+            fidelity(FidelityLevel.FULL, "Each player with 6 or more amber is reduced to 5")
         },
     card("glorious-few") {
             play(GainAmber(1))
@@ -1072,7 +1076,7 @@ val coreSetCards = listOf(
         },
     card("champion-anaphiel") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Taunt keyword; handled by the keyword engine")
         },
     card("champion-tabris") {
             fight(CaptureAmber(1, FriendlyCreature()))
@@ -1127,8 +1131,8 @@ val coreSetCards = listOf(
         },
     card("lady-maxena") {
             play(Stun(AnyCreature()))
-            action("Return Lady Maxena to its owners hand", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            action("Return Lady Maxena to its owner's hand", ReturnToHand(SelfCreature))
+            fidelity(FidelityLevel.FULL, "Play: stun a creature; Action: return Lady Maxena to its owner's hand")
         },
     card("lord-golgotha") {
             beforeFight(NoEffect)
@@ -1347,7 +1351,7 @@ val coreSetCards = listOf(
         },
     card("macis-asp") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Skirmish + Poison keywords; handled by the keyword engine")
         },
     card("mack-the-knife") {
             action("Deal 1D to a creature", Sequence(listOf(DealDamage(1, AnyCreature()), GainAmber(1))))
@@ -1534,7 +1538,7 @@ val coreSetCards = listOf(
         },
     card("ancient-bear") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Assault 2 keyword; handled by the keyword engine")
         },
     card("bigtwig") {
             reap(NoEffect)
@@ -1549,7 +1553,7 @@ val coreSetCards = listOf(
     },
     card("briar-grubbling") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Hazardous 5 keyword; handled by the keyword engine")
         },
     card("chota-hazri") {
             play(LoseAmber(1, SelfPlayer))
@@ -1588,19 +1592,19 @@ val coreSetCards = listOf(
         },
     card("snufflegator") {
             play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            fidelity(FidelityLevel.FULL, "Skirmish keyword; handled by the keyword engine")
         },
     card("lupo-the-scarred") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DealDamage(2, EnemyCreature()))
+            fidelity(FidelityLevel.FULL, "Skirmish keyword; Play: deal 2 damage to an enemy creature")
         },
     card("mighty-tiger") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            play(DealDamage(4, EnemyCreature()))
+            fidelity(FidelityLevel.FULL, "Play: deal 4 damage to an enemy creature")
         },
     card("murmook") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent { modifyKeyCost(1, PayerScope.OPPONENT_OF_CONTROLLER) }
+            fidelity(FidelityLevel.FULL, "Opponent's keys cost +1 amber (persistent key-cost modifier)")
         },
     card("mushroom-man") {
             persistent {
@@ -1639,10 +1643,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("way-of-the-bear") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent { addKeyword(Keyword.ASSAULT, 2, HostCreatureScope) }
+            fidelity(FidelityLevel.FULL, "Upgrade: host gains assault 2")
         },
     card("way-of-the-wolf") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent { addKeyword(Keyword.SKIRMISH, 1, HostCreatureScope) }
+            fidelity(FidelityLevel.FULL, "Upgrade: host gains skirmish")
         })

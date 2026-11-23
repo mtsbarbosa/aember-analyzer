@@ -30,6 +30,11 @@ data class CreatureNotOfHouse(val house: House, val scope: Scope = Scope.ONE) : 
 data class CreatureAndNeighbors(val base: CreatureSelector = AnyCreature()) : CreatureSelector
 
 /**
+ * Selects the source card itself (for an upgrade, its host creature).
+ */
+data object SelfCreature : CreatureSelector
+
+/**
  * Selects all undamaged creatures other than the source card.
  */
 data object EachOtherUndamagedCreature : CreatureSelector

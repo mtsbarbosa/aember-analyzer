@@ -106,7 +106,7 @@ object EffectRegistry {
                         PayerScope.OPPONENT_OF_CONTROLLER -> effectiveController != payer.index
                         PayerScope.ANY -> true
                     }
-                    if (applies) modifier += effect.amount
+                    if (applies) modifier += effect.dynamicAmount?.invoke(game, source) ?: effect.amount
                 }
         }
         return modifier

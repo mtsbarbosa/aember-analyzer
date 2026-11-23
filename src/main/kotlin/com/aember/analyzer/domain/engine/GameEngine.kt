@@ -135,7 +135,7 @@ class GameEngine(
                 ended = true
             }
         }
-        game.activePlayer().cannotFightNextTurn = false
+        TurnPhases.endMainPhase(game)
     }
 
     private fun checkGameOver(game: GameState): Boolean = TurnPhases.checkGameOver(game)

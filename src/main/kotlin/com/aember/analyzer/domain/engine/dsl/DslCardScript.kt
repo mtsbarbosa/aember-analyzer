@@ -20,6 +20,8 @@ class DslCardScript(
 
     override fun staticEffects(): List<StaticEffect> = definition.staticEffects
 
+    override fun cardEntersStunned(): Boolean = definition.entersPlayStunned
+
     override fun useRestrictions(): List<UseRestriction> = definition.useRestrictions
 
     override fun selfRestrictions(): List<SelfRestriction> = definition.selfRestrictions

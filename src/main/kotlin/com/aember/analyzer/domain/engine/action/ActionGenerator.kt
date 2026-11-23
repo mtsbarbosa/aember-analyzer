@@ -76,7 +76,8 @@ class ActionGenerator(
             player.hand.distinct().forEach { cardId ->
                 val card = library.cardData(cardId) ?: return@forEach
                 val houseOk = isHouseMatch(card.house, activeHouse) || mayPlayHouse(card.house)
-                if (houseOk && canUseCardName(player, cardId) && !blockedByCannotPlay(card.type)) {
+                val typeDenied = player.deniedCardTypeNextTurn == card.type
+                if (houseOk && !typeDenied && canUseCardName(player, cardId) && !blockedByCannotPlay(card.type)) {
                     if (!card.keywords.any { it.startsWith("alpha") } || game.actionsThisPhase == 0) {
                         if (library.scriptFor(cardId).playable(game, player)) {
                             actions.addAll(generatePlayActions(player, cardId, card.type))
@@ -129,6 +130,13 @@ class ActionGenerator(
                         actions.add(UseArtifactAction(artifact.instanceId, ability))
                     }
             }
+        }
+
+        // Skippy Timehog: "cannot use any cards next turn" — plays and discards
+        // are still allowed, creature/artifact uses (incl. Omni) are not. Applied
+        // after all use generation so it strips every use action.
+        if (player.cannotUseCardsNextTurn) {
+            actions.removeAll { it is UseCreatureAction || it is UseArtifactAction }
         }
 
         // Discard from hand

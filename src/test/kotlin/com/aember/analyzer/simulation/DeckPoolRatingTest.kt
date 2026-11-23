@@ -465,6 +465,11 @@ class DeckPoolRatingTest : IntegrationTest() {
 
         override fun findByKey(key: String): DeckPool? = pools[key]
 
+        override fun delete(key: String): Boolean {
+            val removed = stored.removeAll { it.first == key }
+            return pools.remove(key) != null || removed
+        }
+
         override fun saveRating(key: String, rating: com.aember.analyzer.domain.rating.PoolDeckRating) {
             stored += key to PoolRatingRecord(rating)
         }

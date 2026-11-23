@@ -36,6 +36,12 @@ class GreedyTargetChooser : TargetChooser {
                     listOf(base)
                 }
             } ?: emptyList()
+            is SelfCreature -> {
+                val host = source.hostId?.let { id ->
+                    game.players.asSequence().flatMap { it.creatures.asSequence() }.find { it.instanceId == id }
+                }
+                listOf(host ?: source)
+            }
             is EachOtherUndamagedCreature -> {
                 val opponentPlayer = game.players[1 - source.controllerIndex]
                 (sourcePlayer.creatures + opponentPlayer.creatures)
@@ -68,6 +74,7 @@ class GreedyTargetChooser : TargetChooser {
                 enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
             }
             is EachOtherUndamagedCreature -> candidates
+            is SelfCreature -> candidates
             is LastDamagedTarget -> candidates
         }
         val scope = when (selector) {
@@ -82,6 +89,7 @@ class GreedyTargetChooser : TargetChooser {
             is CreatureNotOfHouse -> selector.scope
             is CreatureAndNeighbors -> Scope.ALL
             is EachOtherUndamagedCreature -> Scope.ALL
+            is SelfCreature -> Scope.ONE
             is AllCreaturesOfChosenHouse -> Scope.ALL
             is LastDamagedTarget -> Scope.ONE
         }

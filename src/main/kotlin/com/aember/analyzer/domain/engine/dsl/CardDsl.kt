@@ -27,6 +27,7 @@ class CardDefinition(
     var staticEffects: List<com.aember.analyzer.domain.engine.effects.StaticEffect> = emptyList(),
     var useRestrictions: List<UseRestriction> = emptyList(),
     var selfRestrictions: List<SelfRestriction> = emptyList(),
+    var entersPlayStunned: Boolean = false,
     var reactions: List<Reaction> = emptyList(),
     var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
@@ -137,6 +138,11 @@ fun CardDefinition.restrictions(block: UseRestrictionsBuilder.() -> Unit) {
     val builder = UseRestrictionsBuilder().apply(block)
     useRestrictions = builder.auraRestrictions
     selfRestrictions = builder.selfRestrictions
+}
+
+/** This creature enters play stunned (e.g. Chuff Ape). */
+fun CardDefinition.entersPlayStunned() {
+    entersPlayStunned = true
 }
 
 fun CardDefinition.fidelity(level: FidelityLevel, notes: String = "") {

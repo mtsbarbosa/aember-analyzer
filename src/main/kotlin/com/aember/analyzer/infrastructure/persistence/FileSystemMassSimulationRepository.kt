@@ -115,6 +115,14 @@ class FileSystemMassSimulationRepository(
         return objectMapper.readValue(file.readText())
     }
 
+    override fun delete(batchUuid: String): Boolean {
+        require(SAFE_UUID.matches(batchUuid)) { "Invalid batch id: $batchUuid" }
+        val dir = batchPath(batchUuid)
+        if (!dir.exists()) return false
+        Files.walk(dir).use { s -> s.sorted(Comparator.reverseOrder()).forEach { Files.delete(it) } }
+        return true
+    }
+
     private fun findMatchDir(batchUuid: String, matchResultId: Int): Path? {
         val matchesDir = batchPath(batchUuid).resolve(MATCHES_DIR)
         if (!matchesDir.exists()) return null
@@ -152,6 +160,7 @@ class FileSystemMassSimulationRepository(
 
     companion object {
         private const val BATCH_FILE = "batch.json"
+        private val SAFE_UUID = Regex("[a-fA-F0-9-]{8,64}")
         private const val RESULT_FILE = "result.json"
         private const val LOG_FILE = "log.json"
         private const val RATINGS_FILE = "ratings.json"
