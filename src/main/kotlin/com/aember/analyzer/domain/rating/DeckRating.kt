@@ -20,5 +20,8 @@ data class DeckRating(
     val bradleyTerry: Double,
     val aemberScore: Double,
     val percentile: Double,
-    val lowConfidence: Boolean
+    val lowConfidence: Boolean,
+    /** 95% bootstrap interval on [aemberScore]; null when not computed. */
+    val aemberScoreLow: Double? = null,
+    val aemberScoreHigh: Double? = null
 )

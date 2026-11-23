@@ -83,37 +83,18 @@ object RatingAggregator {
     fun ratings(
         deckPool: List<DeckRef>,
         results: List<MassSimulationMatchResult>,
-        lowConfidenceThreshold: Int = 20
+        lowConfidenceThreshold: Int = 20,
+        bootstrapIterations: Int = 0
     ): List<DeckRating> {
         if (deckPool.isEmpty()) return emptyList()
         val aggregates = deckAggregates(deckPool, results)
         val n = deckPool.size
 
-        val wins = Array(n) { DoubleArray(n) }
-        val games = Array(n) { DoubleArray(n) }
-        val index = deckPool.withIndex().associate { (i, ref) -> ref.uuid to i }
-        for (result in results) {
-            val uuidA = result.deckUuidA ?: continue
-            val uuidB = result.deckUuidB ?: continue
-            val i = index[uuidA] ?: continue
-            val j = index[uuidB] ?: continue
-            games[i][j] += 1.0
-            games[j][i] += 1.0
-            when (result.winnerIndex) {
-                0 -> wins[i][j] += 1.0
-                1 -> wins[j][i] += 1.0
-                else -> {
-                    wins[i][j] += 0.5
-                    wins[j][i] += 0.5
-                }
-            }
-        }
-
-        val strengths = BradleyTerryCalculator.normalize(
-            BradleyTerryCalculator.computeStrengths(wins, games)
-        )
+        val (wins, games) = pairMatrices(deckPool, results)
+        val strengths = BradleyTerryCalculator.normalize(BradleyTerryCalculator.computeStrengths(wins, games))
         val median = median(strengths)
         val winRateByIndex = aggregates.map { it.winRate }
+        val intervals = RatingBootstrap.scoreIntervals(deckPool, results, bootstrapIterations)
 
         return deckPool.mapIndexed { i, ref ->
             val agg = aggregates[i]
@@ -143,9 +124,45 @@ object RatingAggregator {
                 bradleyTerry = strengths[i],
                 aemberScore = 50.0 + 10.0 * log10(strengths[i] / median),
                 percentile = percentile,
-                lowConfidence = agg.matches < lowConfidenceThreshold
+                lowConfidence = agg.matches < lowConfidenceThreshold,
+                aemberScoreLow = intervals[ref.uuid]?.low,
+                aemberScoreHigh = intervals[ref.uuid]?.high
             )
         }.sortedByDescending { it.aemberScore }
+    }
+
+    /** Normalized Bradley-Terry strengths (geometric mean 1), in [deckPool] order. */
+    fun strengths(deckPool: List<DeckRef>, results: List<MassSimulationMatchResult>): List<Double> {
+        val (wins, games) = pairMatrices(deckPool, results)
+        return BradleyTerryCalculator.normalize(BradleyTerryCalculator.computeStrengths(wins, games))
+    }
+
+    /** Pairwise win (draw = 0.5) and game-count matrices, indexed in [deckPool] order. */
+    private fun pairMatrices(
+        deckPool: List<DeckRef>,
+        results: List<MassSimulationMatchResult>
+    ): Pair<Array<DoubleArray>, Array<DoubleArray>> {
+        val n = deckPool.size
+        val wins = Array(n) { DoubleArray(n) }
+        val games = Array(n) { DoubleArray(n) }
+        val index = deckPool.withIndex().associate { (i, ref) -> ref.uuid to i }
+        for (result in results) {
+            val uuidA = result.deckUuidA ?: continue
+            val uuidB = result.deckUuidB ?: continue
+            val i = index[uuidA] ?: continue
+            val j = index[uuidB] ?: continue
+            games[i][j] += 1.0
+            games[j][i] += 1.0
+            when (result.winnerIndex) {
+                0 -> wins[i][j] += 1.0
+                1 -> wins[j][i] += 1.0
+                else -> {
+                    wins[i][j] += 0.5
+                    wins[j][i] += 0.5
+                }
+            }
+        }
+        return wins to games
     }
 
     private class MutableRecord {
@@ -172,7 +189,7 @@ object RatingAggregator {
         return if ((poolIndex[a] ?: 0) <= (poolIndex[b] ?: 0)) a to b else b to a
     }
 
-    private fun median(values: List<Double>): Double {
+    internal fun median(values: List<Double>): Double {
         if (values.isEmpty()) return 1.0
         val sorted = values.sorted()
         val mid = sorted.size / 2

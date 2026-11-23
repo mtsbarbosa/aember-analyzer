@@ -13,6 +13,8 @@ import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import com.aember.analyzer.domain.model.RoundRobinScheduleGenerator
 import com.aember.analyzer.domain.rating.DeckRating
 import com.aember.analyzer.domain.rating.RatingAggregator
+import com.aember.analyzer.domain.rating.TierValidation
+import com.aember.analyzer.domain.rating.TierValidator
 import com.aember.analyzer.domain.ports.DeckRepository
 import com.aember.analyzer.domain.ports.MassSimulationRepository
 import com.aember.analyzer.domain.ports.MassSimulationRunner
@@ -33,6 +35,10 @@ class MassSimulationService(
 ) {
 
     private val logger = LoggerFactory.getLogger(MassSimulationService::class.java)
+
+    private companion object {
+        const val BOOTSTRAP_ITERATIONS = 200
+    }
 
     fun runMassSimulation(request: MassSimulationRequest): MassSimulationBatch {
         val deckA = deckRepository.findByUuid(request.deckUuidA)
@@ -142,12 +148,16 @@ class MassSimulationService(
         }
         repository.findRatings(batchUuid)?.let { return it }
         val results = repository.findResultsByBatchUuid(batchUuid)
-        val ratings = RatingAggregator.ratings(batch.deckPool, results)
+        val ratings = RatingAggregator.ratings(batch.deckPool, results, bootstrapIterations = BOOTSTRAP_ITERATIONS)
         if (batch.status == MassSimulationStatus.COMPLETED) {
             repository.saveRatings(batchUuid, ratings)
         }
         return ratings
     }
+
+    /** Spearman check of a batch's ratings against external tier labels (higher = better). */
+    fun validateTiers(batchUuid: String, tiers: Map<String, Double>): TierValidation =
+        TierValidator.validate(getRatings(batchUuid), tiers)
 
     private fun executeBatch(batchUuid: String, request: MassSimulationRequest) {
         logger.info("Starting mass simulation batch {}: {} matches", batchUuid, request.matchCount)
@@ -303,7 +313,7 @@ class MassSimulationService(
                     completedAt = Instant.now()
                 )
             )
-            repository.saveRatings(batchUuid, RatingAggregator.ratings(completedBatch.deckPool, results))
+            repository.saveRatings(batchUuid, RatingAggregator.ratings(completedBatch.deckPool, results, bootstrapIterations = BOOTSTRAP_ITERATIONS))
             logger.info("Completed multi-deck simulation batch {}", batchUuid)
         } catch (e: Exception) {
             logger.error("Multi-deck mass simulation batch {} failed", batchUuid, e)

@@ -78,8 +78,9 @@ Results and logs are stored on disk under `.simulations/` (gitignored), not in P
   - Runs `matchesPerPairing` matches per unordered deck pair; seats alternate per match so first-player bias cancels; deterministic seeds are `baseSeed + globalTaskIndex`.
   - Matches execute in parallel on bounded virtual-thread workers (default concurrency = available processors); per-match failures are recorded as `failedCount` without failing the batch.
   - `IllegalArgumentException` validation errors return `400` via `RestExceptionHandler`.
+- `POST /api/mass-simulations/{uuid}/tier-validation` — body `{"tiers": {"<deckUuid>": 6.0, ...}}` (higher = better, e.g. S+=6 … Z=0); returns Spearman rank correlation and pairwise agreement between the ladder's Aember Scores and your hand-assigned tiers (needs ≥ 3 labelled decks). Use it to check whether the rating tracks real strength.
 - `GET /api/mass-simulations/{uuid}/ratings` — deck ratings (multi-deck batches only):
-  - Win/loss/draw record, raw win rate with ±95% margin, strength of schedule (SoS), Bradley-Terry strength (max-likelihood iterative fit, draws count as half wins, smoothing 0.5), **Aember Score** = `50 + 10 * log10(r_i / r_median)`, percentile, and a `lowConfidence` flag (< 20 games).
+  - Win/loss/draw record, raw win rate with ±95% margin, strength of schedule (SoS), Bradley-Terry strength (max-likelihood iterative fit, draws count as half wins, smoothing 0.5), **Aember Score** = `50 + 10 * log10(r_i / r_median)`, percentile, and a `lowConfidence` flag (< 20 games), plus `aemberScoreLow` / `aemberScoreHigh` — a 95% stratified-bootstrap interval (200 resamples, seeded) on the Aember Score.
   - Ratings are computed at batch completion and persisted as `ratings.json` in the batch directory; the endpoint serves the stored copy and lazily backfills older batches.
 
 ### Deck Pools
@@ -95,7 +96,8 @@ and seed lazily from `{aember.pools.seed-dir}/{key}-pool.txt` (default dir = wor
   alternation, ~1s for 220 matches), returns raw record + per-opponent results, and — when a completed
   multi-deck ladder batch covers the pool — an anchored rating: the ladder's stored results plus the
   fresh matches are refit via `RatingAggregator.ratings`, Aember Score anchored on the pool median
-  (directly comparable with the ladder). Snapshots saved to `.simulations/pools/{key}/ratings/`.
+  (directly comparable with the ladder), with `aemberScoreLow/High` bootstrap bounds and a `timeouts` count
+  (round-limit games counted as draws; a high share compresses differences). Snapshots saved to `.simulations/pools/{key}/ratings/`.
 - `GET /api/pools/{key}/ratings/{deckUuid}` — history of stored snapshots.
 
 ### curl Examples

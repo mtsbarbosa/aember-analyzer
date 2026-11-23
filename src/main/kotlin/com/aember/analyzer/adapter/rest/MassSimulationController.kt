@@ -1,6 +1,7 @@
 package com.aember.analyzer.adapter.rest
 
 import com.aember.analyzer.application.MassSimulationService
+import com.aember.analyzer.domain.rating.TierValidation
 import com.aember.analyzer.domain.model.MassSimulationRequest
 import com.aember.analyzer.domain.model.MultiDeckSimulationRequest
 import org.springframework.http.ResponseEntity
@@ -49,6 +50,15 @@ class MassSimulationController(
         return ResponseEntity.ok(massSimulationService.getRatings(uuid).map { it.toDto() })
     }
 
+    /** Body: `{ "tiers": { "<deckUuid>": 6.0, ... } }` — higher is better (e.g. S+=6 ... Z=0). */
+    @PostMapping("/{uuid}/tier-validation")
+    fun validateTiers(
+        @PathVariable uuid: String,
+        @RequestBody request: TierValidationRequest
+    ): ResponseEntity<TierValidation> {
+        return ResponseEntity.ok(massSimulationService.validateTiers(uuid, request.tiers))
+    }
+
     @GetMapping("/{uuid}/matches")
     fun getMatchResults(@PathVariable uuid: String): ResponseEntity<List<MassSimulationMatchResultDto>> {
         val batch = massSimulationService.getBatch(uuid)
@@ -64,3 +74,5 @@ class MassSimulationController(
         return ResponseEntity.ok(massSimulationService.getMatchLog(uuid, id).toDto())
     }
 }
+
+data class TierValidationRequest(val tiers: Map<String, Double>)

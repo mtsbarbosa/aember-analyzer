@@ -8,6 +8,7 @@ import com.aember.analyzer.domain.model.MassSimulationMatchResult
 import com.aember.analyzer.domain.model.MassSimulationStatus
 import com.aember.analyzer.domain.rating.PoolDeckRating
 import com.aember.analyzer.domain.rating.RatingAggregator
+import com.aember.analyzer.domain.rating.RatingBootstrap
 import com.aember.analyzer.domain.ports.DeckPoolRepository
 import com.aember.analyzer.domain.ports.DeckRepository
 import com.aember.analyzer.domain.ports.MassSimulationRepository
@@ -183,6 +184,8 @@ class DeckPoolService(
         var percentile: Double? = null
         var anchorBatchUuid: String? = null
         var anchorRatedAt: Instant? = null
+        var scoreLow: Double? = null
+        var scoreHigh: Double? = null
         if (anchor != null) {
             // Consistent anchored rating: replay the ladder batch's stored results,
             // add the fresh matches against the rated deck, and refit the whole
@@ -197,6 +200,12 @@ class DeckPoolService(
             val combinedResults = anchor.results + freshResults(anchor.batch.uuid, outcomes)
 
             val ratings = RatingAggregator.ratings(combinedRefs, combinedResults)
+            val referenceUuids = combinedPool.filter { it != deckUuid }.toSet()
+            val interval = RatingBootstrap.scoreIntervals(
+                combinedRefs, combinedResults, iterations = 200, referenceUuids = referenceUuids
+            )[deckUuid]
+            scoreLow = interval?.low
+            scoreHigh = interval?.high
             val newRating = ratings.first { it.deckUuid == deckUuid }
             val poolStrengths = ratings.filter { it.deckUuid != deckUuid }.map { it.bradleyTerry }
             val poolMedian = median(poolStrengths)
@@ -230,7 +239,10 @@ class DeckPoolService(
             bradleyTerry = bradleyTerry,
             aemberScore = aemberScore,
             percentile = percentile,
-            lowConfidence = totalMatches < 20
+            lowConfidence = totalMatches < 20,
+            aemberScoreLow = scoreLow,
+            aemberScoreHigh = scoreHigh,
+            timeouts = outcomes.count { it.endCause == com.aember.analyzer.domain.engine.model.EndCause.TIMEOUT }
         )
         poolRepository.saveRating(poolKey, rating)
         return rating

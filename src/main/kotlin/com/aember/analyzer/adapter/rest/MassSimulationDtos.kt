@@ -87,7 +87,9 @@ data class DeckRatingDto(
     val bradleyTerry: Double,
     val aemberScore: Double,
     val percentile: Double,
-    val lowConfidence: Boolean
+    val lowConfidence: Boolean,
+    val aemberScoreLow: Double? = null,
+    val aemberScoreHigh: Double? = null
 )
 
 data class MassSimulationMatchResultDto(
@@ -186,7 +188,9 @@ fun DeckRating.toDto(): DeckRatingDto = DeckRatingDto(
     bradleyTerry = bradleyTerry,
     aemberScore = aemberScore,
     percentile = percentile,
-    lowConfidence = lowConfidence
+    lowConfidence = lowConfidence,
+    aemberScoreLow = aemberScoreLow,
+    aemberScoreHigh = aemberScoreHigh
 )
 
 fun MassSimulationMatchResult.toDto(batch: MassSimulationBatch): MassSimulationMatchResultDto {

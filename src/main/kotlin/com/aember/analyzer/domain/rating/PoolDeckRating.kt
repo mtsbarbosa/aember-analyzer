@@ -33,7 +33,12 @@ data class PoolDeckRating(
     val bradleyTerry: Double?,
     val aemberScore: Double?,
     val percentile: Double?,
-    val lowConfidence: Boolean
+    val lowConfidence: Boolean,
+    /** 95% bootstrap interval on [aemberScore]; null without an anchor ladder. */
+    val aemberScoreLow: Double? = null,
+    val aemberScoreHigh: Double? = null,
+    /** Matches that hit the round limit (counted as draws); a high share compresses rating differences. */
+    val timeouts: Int = 0
 ) {
     data class OpponentResult(
         val deckUuid: String,
