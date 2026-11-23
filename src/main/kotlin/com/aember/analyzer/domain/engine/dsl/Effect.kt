@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
+import com.aember.analyzer.domain.engine.model.GameState
+import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.model.House
 
 sealed interface Effect
@@ -38,7 +40,44 @@ data class ReturnCreaturesOfHouseFromDiscardToHand(val player: TargetPlayer) : E
 
 data class StealAmber(val amount: Int) : Effect
 
-data class CaptureAmber(val amount: Int, val target: CreatureSelector) : Effect
+/**
+ * A creature captures [amount] amber from [from]'s pool onto the selected creature.
+ * The pool owner defaults to the opponent; self-capture (Pandemonium's enemy half)
+ * passes [SelfPlayer] so the resolving player's own amber is locked away.
+ */
+data class CaptureAmber(
+    val amount: Int,
+    val target: CreatureSelector,
+    val from: TargetPlayer = OpponentPlayer
+) : Effect
+
+/**
+ * Capture with a dynamic amount computed at resolution (Yxili Marauder: 1A per
+ * friendly ready Mars creature; Gatekeeper/Drumble: all but N).
+ */
+data class CaptureAmberDynamic(
+    val amount: (GameState, PlayerState) -> Int,
+    val target: CreatureSelector,
+    val from: TargetPlayer = OpponentPlayer
+) : Effect
+
+/**
+ * Each selected creature captures [amountPerEach] amber (Pandemonium, Honorable
+ * Claim, Unguarded Camp). [maxTargets] optionally limits how many creatures
+ * capture (Unguarded Camp: one per excess creature).
+ */
+data class CaptureEach(
+    val amountPerEach: Int = 1,
+    val target: CreatureSelector,
+    val maxTargets: ((GameState, PlayerState) -> Int)? = null,
+    val from: TargetPlayer = OpponentPlayer
+) : Effect
+
+/**
+ * The fight participant referenced by the dispatched event captures amber
+ * (Francus: the destroyed-by-me defender triggers; Take Hostages: the attacker).
+ */
+data class EventSubjectCaptures(val amount: Int, val subject: EventSubject = EventSubject.ATTACKER) : Effect
 
 data class LoseAmber(val amount: Int, val player: TargetPlayer) : Effect
 
@@ -184,7 +223,13 @@ data class DrawPerCardInHand(val house: House, val player: TargetPlayer) : Effec
 
 data class ReadyCreaturesOfHousePerCardInHand(val house: House, val player: TargetPlayer) : Effect
 
-data class AddPowerCounters(val amount: Int) : Effect
+data class AddPowerCounters(val amount: Int, val target: CreatureSelector = SelfCreature) : Effect
+
+/** Power counters with a dynamic amount (Martian Hounds: 2 per damaged creature). */
+data class AddPowerCountersDynamic(
+    val amount: (GameState, PlayerState) -> Int,
+    val target: CreatureSelector
+) : Effect
 
 data object SacrificeSelf : Effect
 
@@ -214,6 +259,50 @@ data class GrantDamageImmunity(val target: CreatureSelector) : Effect
 
 /** The next [count] creatures/artifacts the resolving player plays enter play ready (Soft Landing). */
 data class NextPlaysEnterReady(val count: Int) : Effect
+
+/**
+ * Heals [amount] damage from every creature in play (both sides) and gains
+ * [gainPerHealed] amber per creature actually healed (Cleansing Wave).
+ */
+data class HealEach(val amount: Int = 1, val gainPerHealed: Int = 0) : Effect
+
+/**
+ * Greedily picks the house with the most creatures in the resolving player's
+ * discard pile and returns all of them to hand (Arise!).
+ */
+data class ReturnChosenHouseCreaturesFromDiscard(val gainChains: Int = 0) : Effect
+
+/**
+ * Returns an artifact or flank creature (either side) to its owner's hand
+ * (Snudge); greedy pick prefers the opponent's artifact, then their strongest
+ * flank creature.
+ */
+data object ReturnArtifactOrFlankCreatureToHand : Effect
+
+/**
+ * Uses an opponent's ready artifact that has an Action ability, as if it were
+ * the resolving player's (Nexus reap, Remote Access play).
+ */
+data object UseOpponentArtifact : Effect
+
+/**
+ * Reveals all [house] cards from the resolving player's hand (greedy: all of
+ * them) and deals their count as damage (Mothergun).
+ */
+data class DealDamagePerHouseCardInHand(val house: House, val target: CreatureSelector) : Effect
+
+/**
+ * Purges a creature from either player's discard pile (Eater of the Dead);
+ * sets `lastPurgedFromDiscard` so [PurgedTarget] can gate follow-up effects.
+ */
+data object PurgeCreatureFromDiscard : Effect
+
+/**
+ * The resolving player may play one card of a house other than [notHouse] this
+ * turn (Phase Shift: "You may play one non-Logos card this turn"). Consumed by
+ * `ActionGenerator`; the allowance is spent by the first such play.
+ */
+data class MayPlayNonHouseThisTurn(val notHouse: House) : Effect
 
 data class Sequence(val effects: List<Effect>) : Effect
 

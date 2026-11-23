@@ -31,8 +31,11 @@ Last updated: 2026-11-22
   | After Phase 3 (b) cost-direction fix (`b3218876`) | sacrifice/shuffle-away/exhaust now pick the cheapest friendly (`EffectResolver.cheapestFirst`); ladder-neutral | 0.999 | 99.3% | 0.373 | — |
   | Phase 3.5 audit fix (`fec052e9`) | Bait and Switch `playableIf(OpponentHasMoreAmber)` (keyteki gates the play); ladder-neutral | 1.00 | 99.9% | 0.374 | — |
   | Override-list refactor (`03ea7290`) | all hand-edited DSL blocks moved to `dslCardOverrides` (CoreCards.kt) + generator skip-list; regen now byte-identical — Known Gap #12 retired; ladder-neutral | 1.00 | 100% | 0.374 | — |
+  | Phase 3 batch (c) (`d5aecfb9`) | capture/power-counter mechanics + 17 cards (Hypnotic Command fix, Phase Shift, Arise!, Nexus/Remote Access, Snudge, Cleansing Wave, Mothergun, Eater of the Dead, Mugwump, Francus, Take Hostages, Gatekeeper, Drumble, Pandemonium, Honorable Claim, Unguarded Camp, Mindwarper, Martian Hounds, Yxili Marauder play) + GreedyTargetChooser source-opponent fix | 0.984 | 95.8% | 0.412 | 66.6% |
 
-  Batch health every run: 0 failures, 0 draws, avg rounds ~11.6. Declared fidelity 85.1% → 86.0% → 86.4% → 86.8% → 88.2% → 92.3%.
+- **Phase 3 batch (c) — done (17 DSL FULL + arise/drumble via manual scripts).** Capture is a first-class mechanic now: `CaptureAmber` gained a `from` pool owner (default opponent; Pandemonium's enemy half locks away the player's own amber), plus `CaptureAmberDynamic` (Yxili Marauder: 1A per friendly ready Mars creature; Gatekeeper all-but-5; Drumble capture-all with `playableIf(OpponentAmberAtLeast(7))`) and `CaptureEach` (per-creature captures: Pandemonium undamaged both sides, Honorable Claim Knights, Unguarded Camp one friendly per excess creature via `SelfHasMoreCreatures` + `maxTargets` lambda, Mindwarper/Hypnotic Command enemy creatures capture 1 from their own side — Hypnotic Command was dishonestly `TakeControlUntilEndOfTurn` before). Event-driven capture: `EventSubjectCaptures` (Francus after fight-destroyed; Take Hostages turn-scoped via `ActivateTurnReaction` — friendly fighters capture 1A for the remainder of the turn). Power counters generalized: `AddPowerCounters(target)` (default self keeps Zyzzix) + `AddPowerCountersDynamic` (Martian Hounds: 2 per damaged creature in play); Mugwump reaction (fight-destroyed → fully heal + counter); Eater of the Dead Fight/Reap purges from either discard (`PurgeCreatureFromDiscard` + `PurgedTarget` condition). Conditionals: Cleansing Wave `HealEach(gainPerHealed)`; Mothergun `DealDamagePerHouseCardInHand` (reveals all Mars cards, greedy); Arise! (manual script upgraded: greedy house = most creatures in discard, now reading real catalog houses — the Scenario harness decks carry `DeckCard` entries so `deck.cards` lookups work); Nexus/Remote Access `UseOpponentArtifact` (uses the opponent's first ready artifact with an Action ability, as if ours); Snudge `ReturnArtifactOrFlankCreatureToHand` (opponent artifact first, else strongest enemy flank creature); Phase Shift `MayPlayNonHouseThisTurn(LOGOS)` (PlayerState flag consumed by `ActionGenerator`: one off-house non-Logos play per turn, active-house plays don't spend the allowance). Engine fix found by the Nexus test: `GreedyTargetChooser` resolved the opponent relative to the **active** player instead of the source card's controller — wrong whenever an effect's source is used by someone else (e.g. a cannon fired through Nexus); now `game.players[1 - sourcePlayer.index]`. 25 tests in `Phase3BatchCTest`. Declared FULL 198 → 215; declared fidelity 92.3% → **93.9%**; no-effect crowd 107 → 93. Ladder (`d5aecfb9`): rank corr 0.984 / agreement 95.8% vs the override refactor, avg rounds 13.4, tier validation **0.412 / 66.6%** — the first tier gain since Phase 2.2 (was 0.374/64.7%), the capture/power-counter cards genuinely help track the external tiers (biggest movers: "Procione" −4.6, Curtius −4.0). Not in `verified-cards.txt` (no ported keyteki specs). All 17 new blocks live in `dslCardOverrides` + the generator skip-list; arise/drumble keep their manual scripts (the registration guard caught drumble being left in the skip-list without an override).
+
+  Batch health every run: 0 failures, 0 draws, avg rounds ~11.6-13.5. Declared fidelity 85.1% → 86.0% → 86.4% → 86.8% → 88.2% → 92.3% → 93.9%.
 
   **Phase 2.2 investigation (why tier validation dipped).** The dip is **tier-label staleness, not an
   engine bug**. Evidence:
@@ -57,7 +60,7 @@ Last updated: 2026-11-22
   led by urchin / shadow-self / charette / silvertooth / tocsin / shooler.
 
   Diffs: `docs/fidelity/20261123__02_11_20-ladder-phi1-vs-baseline.txt`, `20261123__02_52_50-ladder-phi21-vs-phi1.txt`,
-  `20261123__03_19_30-ladder-phi22-vs-phi21.txt`; standings: `docs/deck-pool/cota-ladder.md`.
+  `20261123__03_19_30-ladder-phi22-vs-phi21.txt`; standings: `docs/deck-pool/cota-ladder.md`. Batch (c) diff: `docs/fidelity/20261123__22_27_55-ladder-batchc-vs-override.txt`; standings: `docs/deck-pool/cota-ladder.md`.
 
 ## Project Goal
 
@@ -448,7 +451,7 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 |------|-------|
 | Engine entry point | `domain/engine/GameEngine.kt`, `domain/engine/TurnPhases.kt` |
 | Action execution | `domain/engine/action/ActionExecutor.kt`, `ActionGenerator.kt` |
-| DSL effects | `domain/engine/dsl/Effect.kt`, `EffectResolver.kt`, `CardDsl.kt`, `DslCardScript.kt` |
+| DSL effects | `domain/engine/dsl/Effect.kt`, `EffectResolver.kt` (dispatcher + shared helpers) + `EffectResolverAmber/Combat/Cards/Control/Reactions.kt` (handler groups), `CardDsl.kt`, `DslCardScript.kt` |
 | Static effects | `domain/engine/effects/EffectRegistry.kt`, `StaticEffect.kt`, `UseRestriction.kt` |
 | Event bus | `domain/engine/events/GameEvent.kt`, `EventBus.kt`, `dsl/CardDsl.kt` (reactions) |
 | Card definitions | `domain/engine/cards/CoreSetDslCards.kt`, `CoreCards.kt` |

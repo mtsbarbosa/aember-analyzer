@@ -30,6 +30,7 @@ internal object TurnPhases {
             p.forgedKeyThisTurn = false
             p.cardsPlayedThisTurnByHouse.clear()
             p.nextPlaysEnterReady = 0
+            p.mayPlayNonHouseThisTurn = null
         }
         keyPhase(game, library)
     }

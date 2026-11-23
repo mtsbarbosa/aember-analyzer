@@ -1,0 +1,47 @@
+ladder comparison: 03ea7290-d454-4f0c-88cf-e1c445e71ef8 -> d5aecfb9-8f8b-42e9-80e6-98d3a1ca0cae
+generated: 2026-11-23 22:28:58 UTC
+rank correlation between ladders: 0.984 | pairwise agreement: 95.8%
+
+rank deck                                          old  new  drk    old    new     dA   win%
+   1 Galilee el Obtuso, Canciller de la Estación     1    1    0   79.0   78.8   -0.2   88.4
+   2 Chang, Tower Baroness                           2    2    0   77.4   76.1   -1.3   86.0
+   3 Violet, a Grosseira, Inventora do Cemitério     3    3    0   71.3   69.3   -1.9   78.7
+   4 Ingrid, Quanland Borrower                       5    4    1   65.0   64.7   -0.3   72.5
+   5 Giulia, Xamã do Monumento Vítreo                4    5   -1   66.3   64.4   -1.9   72.1
+   6 Mehitabel, a Raivosa, Protetora do Retiro       8    6    2   62.5   63.9   +1.4   71.4
+   7 Accomplished Porthos of the Bar                 7    7    0   63.4   63.7   +0.3   71.1
+   8 The Public Butcher Brewer of Quakehell          6    8   -2   63.9   62.4   -1.5   69.2
+   9 Fignor, the Crook of Carnivals                 13    9    4   58.3   60.0   +1.7   65.4
+  10 U. Smitheson, the Square Bard                   9   10   -1   60.9   59.1   -1.8   64.0
+  11 Galilee, o Engenhoso, Traidor da Loja          10   11   -1   60.0   58.6   -1.4   63.2
+  12 Mustabos, Spawn of Bestispike                  11   12   -1   59.7   58.4   -1.3   62.8
+  13 Martínez, Marshcot's Painter                   12   13   -1   59.0   58.0   -1.0   62.2
+  14 Patricia, Hacker da Vila Primordial            14   14    0   56.8   55.6   -1.2   58.1
+  15 Time-stopper Kadence Lockenpsen                16   15    1   54.4   53.2   -1.3   53.9
+  16 Lazzaro “Ascia” lo Scaltro                     17   16    1   53.7   52.6   -1.1   52.9
+  17 Rutherford a Dourada                           18   17    1   52.4   52.2   -0.2   52.1
+  18 “Procione”, Scriba di Missilespezzato          15   18   -3   55.7   51.2   -4.6   50.4
+  19 The Boy who Basically Headbutts Heaven         19   19    0   52.1   50.8   -1.3   49.8
+  20 P. Crowe, Vicedirettrice di Cigliafugace       20   20    0   51.8   50.2   -1.6   48.7
+  21 "Greeneyes" Ulysses, Circuit Tickler           27   21    6   48.5   50.2   +1.7   48.6
+  22 Gold la Magnifique                             21   22   -1   50.3   49.8   -0.5   48.0
+  23 Seraphina, a Opulenta, Filósofa do Museu       25   23    2   48.7   48.5   -0.2   45.6
+  24 Zeb, Bandit of the Quirky Cell                 22   24   -2   49.7   47.5   -2.2   43.9
+  25 Everlasting “Linguini” Lewry                   24   25   -1   48.8   47.2   -1.5   43.4
+  26 Benedict, Oldhell's Eunuch                     29   26    3   47.0   46.2   -0.8   41.5
+  27 Boxmon, the Raving Tower Butcher               30   27    3   46.8   45.9   -0.9   41.1
+  28 The Quick Sycophant of Claybourne              32   28    4   45.5   45.6   +0.2   40.7
+  29 Vitositus, the Enchantress Traveller           23   29   -6   49.1   45.6   -3.5   40.6
+  30 Blindingly Shamed Olga                         28   30   -2   47.3   45.3   -2.0   40.0
+  31 Curtius, the Sycophant of Constellations       26   31   -5   48.5   44.5   -4.0   38.7
+  32 Fast Benedora of the Acropolis                 33   32    1   45.4   44.4   -0.9   38.5
+  33 Eraz-Toth, the Solid City Doctor               31   33   -2   46.7   44.1   -2.5   38.0
+  34 Parthenia “Garra”, a Precavida                 34   34    0   44.2   43.3   -0.9   36.7
+  35 Jules Y. Laserson, Junior                      35   35    0   41.4   42.4   +1.0   35.1
+  36 Zoe Molren, Khan di Timonebecero               36   36    0   41.1   41.2   +0.1   33.3
+  37 González the Swiftly Secret                    38   37    1   39.4   38.9   -0.4   29.6
+  38 D. Ewing, the Canyon Rogue                     37   38   -1   40.4   38.4   -2.0   28.8
+  39 Chaos, Baltiholt's Deuce                       41   39    2   35.3   37.9   +2.6   28.0
+  40 Torsen, Duca Tossico                           39   40   -1   36.1   35.2   -0.9   24.1
+  41 Gideon "Dreaded Hellfire" de La Mare           40   41   -1   35.6   34.5   -1.1   23.2
+  42 Xipty J. Buwaaoki, The Fifteenth               42   42    0   34.7   31.8   -2.8   19.8

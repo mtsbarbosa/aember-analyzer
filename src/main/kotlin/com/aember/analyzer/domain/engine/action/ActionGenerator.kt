@@ -69,13 +69,27 @@ class ActionGenerator(
                     (player.cardsPlayedThisTurnByHouse[house] ?: 0) < restriction.perTurn
             }
 
+        /**
+         * Phase Shift: may play one card of a house other than [cardHouse] this
+         * turn. The allowance is consumed by the first such play (plays of the
+         * active house or of [cardHouse] itself do not spend it).
+         */
+        fun mayPlayNonHouse(cardHouse: House): Boolean {
+            val notHouse = player.mayPlayNonHouseThisTurn ?: return false
+            if (cardHouse == notHouse || isHouseMatch(cardHouse, activeHouse)) return false
+            val used = player.cardsPlayedThisTurnByHouse.entries
+                .filter { it.key != notHouse && it.key != activeHouse }
+                .sumOf { it.value }
+            return used < 1
+        }
+
         val playLimitReached = playLimitReached()
 
         // Play cards from hand
         if (!playLimitReached) {
             player.hand.distinct().forEach { cardId ->
                 val card = library.cardData(cardId) ?: return@forEach
-                val houseOk = isHouseMatch(card.house, activeHouse) || mayPlayHouse(card.house)
+                val houseOk = isHouseMatch(card.house, activeHouse) || mayPlayHouse(card.house) || mayPlayNonHouse(card.house)
                 val typeDenied = player.deniedCardTypeNextTurn == card.type
                 if (houseOk && !typeDenied && canUseCardName(player, cardId) && !blockedByCannotPlay(card.type)) {
                     if (!card.keywords.any { it.startsWith("alpha") } || game.actionsThisPhase == 0) {

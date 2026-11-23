@@ -39,6 +39,8 @@ data class PlayerState(
     var deniedCardTypeNextTurn: com.aember.analyzer.domain.model.CardType? = null,
     /** Soft Landing: the next N creatures/artifacts this player plays enter play ready. */
     var nextPlaysEnterReady: Int = 0,
+    /** Phase Shift: this player may play one card of a house other than this one this turn. */
+    var mayPlayNonHouseThisTurn: House? = null,
     /** Derived by EffectRegistry.recalculate (e.g. The Vaultkeeper): amber cannot be stolen. */
     var amberCannotBeStolen: Boolean = false,
     val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()

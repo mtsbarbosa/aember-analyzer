@@ -73,6 +73,18 @@ data object NeighborOfSelf : CreatureSelector
  */
 data object CreatureNotOnFlank : CreatureSelector
 
+/**
+ * Selects all friendly creatures without damage (Pandemonium: "each undamaged
+ * creature captures 1<A> from its opponent").
+ */
+data object EachFriendlyUndamagedCreature : CreatureSelector
+
+/**
+ * Selects all enemy creatures without damage (Pandemonium's second half:
+ * each enemy undamaged creature captures 1<A> from its own side).
+ */
+data object EachEnemyUndamagedCreature : CreatureSelector
+
 sealed interface TargetPlayer
 data object SelfPlayer : TargetPlayer
 data object OpponentPlayer : TargetPlayer

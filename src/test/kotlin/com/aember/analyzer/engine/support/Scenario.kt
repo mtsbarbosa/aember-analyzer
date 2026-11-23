@@ -14,13 +14,13 @@ import com.aember.analyzer.domain.engine.action.RemoveStunUse
 import com.aember.analyzer.domain.engine.action.UseArtifactAction
 import com.aember.analyzer.domain.engine.action.UseCreatureAction
 import com.aember.analyzer.domain.engine.action.ActionAbilityUse
-import com.aember.analyzer.domain.engine.model.EndCause
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.Zone
 import com.aember.analyzer.domain.model.CardType
 import com.aember.analyzer.domain.model.Deck
+import com.aember.analyzer.domain.model.DeckCard
 import com.aember.analyzer.domain.model.House
 import java.util.Random
 
@@ -84,6 +84,24 @@ class ScenarioSpec {
                     .mapNotNull { library.cardData(it)?.house }
                     .distinct()
             }
+            // Manual scripts (e.g. Arise) inspect deck.cards for card houses, so the
+            // scenario deck carries DeckCard entries for every card placed anywhere.
+            val deckCards = (spec.hand + spec.deck + spec.discard + spec.archives +
+                spec.inPlay.map { it.cardId })
+                .distinct()
+                .mapNotNull { cardId ->
+                    library.cardData(cardId)?.let {
+                        DeckCard(
+                            cardId = cardId,
+                            count = 1,
+                            effectiveHouse = it.house,
+                            maverick = false,
+                            anomaly = false,
+                            enhancements = emptyList(),
+                            isNonDeck = false
+                        )
+                    }
+                }
             PlayerState(
                 index = index,
                 name = "Player ${index + 1}",
@@ -93,7 +111,7 @@ class ScenarioSpec {
                     expansion = 341,
                     identity = "scenario",
                     houses = houses,
-                    cards = emptyList()
+                    cards = deckCards
                 ),
                 library = spec.deck.toMutableList(),
                 hand = spec.hand.toMutableList(),

@@ -6,7 +6,6 @@ import com.aember.analyzer.domain.engine.events.*
 import com.aember.analyzer.domain.engine.effects.EnemyOfHouseScope
 import com.aember.analyzer.domain.engine.effects.FriendlyCreaturesScope
 import com.aember.analyzer.domain.engine.effects.FriendlyFlankCreaturesScope
-import com.aember.analyzer.domain.engine.effects.FriendlyOfHouseScope
 import com.aember.analyzer.domain.engine.effects.FriendlyWithTraitScope
 import com.aember.analyzer.domain.engine.effects.HostCreatureScope
 import com.aember.analyzer.domain.engine.effects.NeighborsOfSelfScope
@@ -389,7 +388,7 @@ val marsEngineDslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
 )
 
 /**
- * Hand-written DSL definitions for cards whose behavior is too specific for
+ * Handwritten DSL definitions for cards whose behavior is too specific for
  * generator rules (Phase 2 static/reaction/restriction cards, Phase 3 batches
  * and earlier hand patches). The generated file keeps `NoEffect` placeholders
  * for these ids; this list wins at registration (see buildCoreCardLibrary), so
@@ -1157,18 +1156,162 @@ val dslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
     },
     card("yxili-marauder") {
 
-        play(CaptureAmber(1, FriendlyCreature()))
+        play(CaptureAmberDynamic({ _, player -> player.creatures.count { it.house == House.MARS && !it.exhausted } }, SelfCreature))
         persistent {
             modifyPower(SelfScope) { _, source -> source.capturedAmber }
         }
-        fidelity(FidelityLevel.PARTIAL, "Aura (+1 power per amber on it) implemented; play captures a fixed 1 amber instead of 1 per friendly ready Mars creature")
-    
+        fidelity(FidelityLevel.FULL, "Aura: +1 power per amber on it; Play: capture 1A per friendly ready Mars creature")
+
     },
     card("yxilo-bolter") {
 
         reap(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget)))))
         fight(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget)))))
         fidelity(FidelityLevel.FULL, "All effect sentences mapped")
-    
+
+    },
+
+    // ---------------------------------------------------------------------
+    // Phase 3 batch (c): capture / power counters / conditionals
+    // ---------------------------------------------------------------------
+    card("hypnotic-command") {
+
+        play(CaptureEach(1, EnemyCreature(Scope.ALL), maxTargets = { _, player ->
+            player.creatures.count { it.house == House.MARS }
+        }))
+        fidelity(FidelityLevel.FULL, "Play: for each friendly Mars creature, an enemy creature captures 1A from its own side")
+
+    },
+    card("mindwarper") {
+
+        action("Choose an enemy creature", CaptureEach(1, EnemyCreature()))
+        fidelity(FidelityLevel.FULL, "Action: an enemy creature captures 1A from its own side")
+
+    },
+    card("pandemonium") {
+
+        play(Sequence(listOf(
+            CaptureEach(1, EachFriendlyUndamagedCreature),
+            CaptureEach(1, EachEnemyUndamagedCreature, from = SelfPlayer)
+        )))
+        fidelity(FidelityLevel.FULL, "Play: each undamaged creature captures 1A from its opponent")
+
+    },
+    card("honorable-claim") {
+
+        play(CaptureEach(1, FriendlyCreatureWithTrait("knight", Scope.ALL)))
+        fidelity(FidelityLevel.FULL, "Play: each friendly Knight creature captures 1A")
+
+    },
+    card("unguarded-camp") {
+
+        playableIf(SelfHasMoreCreatures)
+        play(CaptureEach(1, FriendlyCreature(Scope.ALL), maxTargets = { game, player ->
+            game.opponent(player).creatures.size.let { player.creatures.size - it }
+        }))
+        fidelity(FidelityLevel.FULL, "Play: one friendly creature per excess creature captures 1A (only playable when ahead on creatures)")
+
+    },
+    card("gatekeeper") {
+
+        playableIf(OpponentAmberAtLeast(7))
+        play(CaptureAmberDynamic({ game, player -> (game.opponent(player).amber - 5).coerceAtLeast(0) }, SelfCreature))
+        fidelity(FidelityLevel.FULL, "Play: if the opponent has 7A or more, capture all but 5 of it")
+
+    },
+    card("take-hostages") {
+
+        play(ActivateTurnReaction("friendly creature fights"))
+        reaction(
+            "for the remainder of the turn, each time a friendly creature fights, it captures 1A",
+            effect = EventSubjectCaptures(1, EventSubject.ATTACKER),
+            subscription = true,
+            matches = { _, player, _, event ->
+                event is FightResolved && event.attackerController == player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Play: friendly fighters capture 1A for the remainder of the turn")
+
+    },
+    card("francus") {
+
+        reaction(
+            "after an enemy creature is destroyed fighting Francus, Francus captures 1A",
+            effect = EventSubjectCaptures(1, EventSubject.ATTACKER),
+            matches = { _, player, card, event ->
+                event is FightResolved && event.defenderDestroyed &&
+                    event.attackerCardId == card.cardId && event.attackerController == player.index &&
+                    event.defenderController != player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Reaction: after an enemy creature is destroyed fighting Francus, Francus captures 1A")
+
+    },
+    card("mugwump") {
+
+        reaction(
+            "after an enemy creature is destroyed fighting Mugwump, fully heal Mugwump and give it a +1 power counter",
+            effect = Sequence(listOf(Heal(1, SelfCreature, fully = true), AddPowerCounters(1, SelfCreature))),
+            matches = { _, player, card, event ->
+                event is FightResolved && event.defenderDestroyed &&
+                    event.attackerCardId == card.cardId && event.attackerController == player.index &&
+                    event.defenderController != player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Reaction: after an enemy creature is destroyed fighting Mugwump, Mugwump fully heals and gains a +1 power counter")
+
+    },
+    card("martian-hounds") {
+
+        play(AddPowerCountersDynamic(
+            { game, _ -> game.players.sumOf { it.creatures.count { c -> c.damage > 0 } } * 2 },
+            AnyCreature()
+        ))
+        fidelity(FidelityLevel.FULL, "Play: give a creature two +1 power counters per damaged creature in play")
+
+    },
+    card("eater-of-the-dead") {
+
+        reap(Sequence(listOf(PurgeCreatureFromDiscard, Conditional(PurgedTarget, AddPowerCounters(1, SelfCreature)))))
+        fight(Sequence(listOf(PurgeCreatureFromDiscard, Conditional(PurgedTarget, AddPowerCounters(1, SelfCreature)))))
+        fidelity(FidelityLevel.FULL, "Fight/Reap: purge a creature from a discard pile; if you do, gain a +1 power counter")
+
+    },
+    card("cleansing-wave") {
+
+        play(HealEach(1, gainPerHealed = 1))
+        fidelity(FidelityLevel.FULL, "Play: heal 1 damage from each creature and gain 1A per creature healed")
+
+    },
+    card("mothergun") {
+
+        action("Reveal any number of Mars cards from your hand", DealDamagePerHouseCardInHand(House.MARS, AnyCreature()))
+        fidelity(FidelityLevel.FULL, "Action: reveals all Mars cards from hand (greedy) and deals damage equal to that count to a creature")
+
+    },
+    card("nexus") {
+
+        reap(UseOpponentArtifact)
+        fidelity(FidelityLevel.FULL, "Elusive keyword; Reap: use an opponent's ready artifact (first one with an Action ability) as if it were yours")
+
+    },
+    card("remote-access") {
+
+        play(UseOpponentArtifact)
+        fidelity(FidelityLevel.FULL, "Play: use an opponent's ready artifact (first one with an Action ability) as if it were yours")
+
+    },
+    card("snudge") {
+
+        reap(ReturnArtifactOrFlankCreatureToHand)
+        fight(ReturnArtifactOrFlankCreatureToHand)
+        fidelity(FidelityLevel.FULL, "Fight/Reap: return the opponent's artifact (or strongest flank creature) to its owner's hand")
+
+    },
+    card("phase-shift") {
+
+        play(MayPlayNonHouseThisTurn(House.LOGOS))
+        fidelity(FidelityLevel.FULL, "Play: you may play one non-Logos card this turn")
+
     },
 )

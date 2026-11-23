@@ -8,6 +8,7 @@ object OpponentHasMoreAmber : Condition
 object SelfHasMoreAmber : Condition
 object OpponentHasFewerCreatures : Condition
 object SelfHasFewerCreatures : Condition
+object SelfHasMoreCreatures : Condition
 object TargetIsDamaged : Condition
 object Always : Condition
 
@@ -22,6 +23,9 @@ object OpponentForgedKeyLastTurn : Condition
 
 /** True when the last Sacrifice effect in this resolution removed a creature. */
 object SacrificedTarget : Condition
+
+/** True when the last PurgeCreatureFromDiscard effect purged a card (Eater of the Dead). */
+object PurgedTarget : Condition
 
 /** True when at least [amount] damage was healed by the last Heal effect in this resolution. */
 data class HealedAtLeast(val amount: Int) : Condition

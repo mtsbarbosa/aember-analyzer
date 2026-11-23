@@ -1,7 +1,6 @@
 package com.aember.analyzer.domain.engine.model
 
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
-import com.aember.analyzer.domain.model.Deck
 
 /**
  * Mutable root state for a single KeyForge match.
@@ -27,6 +26,7 @@ data class GameState(
     var lastHealAmount: Int = 0,
     var lastHealedTargetId: String? = null,
     var lastSacrificeSucceeded: Boolean = false,
+    var lastPurgedFromDiscard: Int = 0,
 
     /** The event currently being dispatched by the EventBus, for event-aware effects. */
     var currentEvent: com.aember.analyzer.domain.engine.events.GameEvent? = null,

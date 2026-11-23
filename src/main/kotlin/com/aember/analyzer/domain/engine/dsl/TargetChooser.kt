@@ -2,7 +2,6 @@ package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
-import com.aember.analyzer.domain.engine.model.PlayerState
 
 interface TargetChooser {
     fun chooseCreature(game: GameState, selector: CreatureSelector, source: InPlayCard): List<InPlayCard>
@@ -16,7 +15,7 @@ class GreedyTargetChooser : TargetChooser {
         source: InPlayCard
     ): List<InPlayCard> {
         val sourcePlayer = game.player(source.controllerIndex)
-        val opponent = game.opponent()
+        val opponent = game.players[1 - sourcePlayer.index]
         val candidates = when (selector) {
             is FriendlyCreature -> sourcePlayer.creatures
             is EnemyCreature -> opponent.creatures
@@ -90,6 +89,8 @@ class GreedyTargetChooser : TargetChooser {
                     !isFlank
                 }
             }
+            is EachFriendlyUndamagedCreature -> sourcePlayer.creatures.filter { it.damage == 0 }
+            is EachEnemyUndamagedCreature -> opponent.creatures.filter { it.damage == 0 }
         }
         val sorted = when (selector) {
             is FriendlyCreature, is FriendlyCreatureWithTrait, is FriendlyCreatureWithHouse, is OtherFriendlyCreatureWithHouse -> candidates.sortedByDescending { it.power }
@@ -112,6 +113,7 @@ class GreedyTargetChooser : TargetChooser {
                 val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
                 enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
             }
+            is EachFriendlyUndamagedCreature, is EachEnemyUndamagedCreature -> candidates
         }
         val scope = when (selector) {
             is FriendlyCreature -> selector.scope
@@ -132,6 +134,7 @@ class GreedyTargetChooser : TargetChooser {
             is LastHealedTarget -> Scope.ONE
             is NeighborOfSelf -> Scope.ONE
             is CreatureNotOnFlank -> Scope.ONE
+            is EachFriendlyUndamagedCreature, is EachEnemyUndamagedCreature -> Scope.ALL
         }
         return if (scope == Scope.ONE) sorted.take(1) else sorted
     }
