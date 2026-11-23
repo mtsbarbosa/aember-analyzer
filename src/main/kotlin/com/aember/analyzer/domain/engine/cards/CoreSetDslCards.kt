@@ -29,11 +29,11 @@ val coreSetCards = listOf(
             play(Conditional(OpponentAmberAtLeast(7), LoseAmber(4, OpponentPlayer)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
-    card("champions-challenge") {
+    card("champion-s-challenge") {
             play(Sequence(listOf(Destroy(AnyCreature(Scope.ALL)), Destroy(AnyCreature(Scope.ALL)))))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
-    card("cowards-end") {
+    card("coward-s-end") {
             play(Sequence(listOf(Destroy(AnyCreature(Scope.ALL)), GainChains(3, SelfPlayer))))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
@@ -296,7 +296,7 @@ val coreSetCards = listOf(
             play(DestroyMostPowerful(3))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
-    card("annihilation-ritual-") {
+    card("annihilation-ritual") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
@@ -942,7 +942,7 @@ val coreSetCards = listOf(
             play(Purge(AnyCreature()))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
-    card("the-spirits-way") {
+    card("the-spirit-s-way") {
             play(Destroy(AnyCreature(Scope.ALL)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
@@ -1347,7 +1347,7 @@ val coreSetCards = listOf(
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
-    card("natures-call") {
+    card("nature-s-call") {
             play(ReturnToHand(AnyCreature(Scope.ALL)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },

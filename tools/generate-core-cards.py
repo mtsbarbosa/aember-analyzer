@@ -359,7 +359,9 @@ def determine_fidelity(body: str, parsed_effects: int) -> tuple[str, str]:
 
 def build_card_definition(card: dict) -> str | None:
     text = card.get('text', '')
-    slug = slugify(card['name'])
+    # Must equal the catalog id (JsonCardCatalogLoader.sanitizeId of the pack id);
+    # slugify(name) drops typographic apostrophes and mismatches (Coward’s End, ...).
+    slug = re.sub(r'[^a-z0-9-]', '', card['id'].lower())
 
     play = None
     reap = None
