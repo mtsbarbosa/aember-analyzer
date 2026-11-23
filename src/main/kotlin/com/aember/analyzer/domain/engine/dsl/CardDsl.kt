@@ -1,7 +1,10 @@
 package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.events.GameEvent
+import com.aember.analyzer.domain.engine.effects.SelfRestriction
 import com.aember.analyzer.domain.engine.effects.StaticEffectsBuilder
+import com.aember.analyzer.domain.engine.effects.UseRestriction
+import com.aember.analyzer.domain.engine.effects.UseRestrictionsBuilder
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.GameState
@@ -22,6 +25,8 @@ class CardDefinition(
     var omniEffect: Effect = NoEffect,
     var actionAbilities: List<Pair<String, Effect>> = emptyList(),
     var staticEffects: List<com.aember.analyzer.domain.engine.effects.StaticEffect> = emptyList(),
+    var useRestrictions: List<UseRestriction> = emptyList(),
+    var selfRestrictions: List<SelfRestriction> = emptyList(),
     var reactions: List<Reaction> = emptyList(),
     var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
@@ -120,6 +125,18 @@ fun CardDefinition.action(name: String, effect: Effect) {
  */
 fun CardDefinition.persistent(block: StaticEffectsBuilder.() -> Unit) {
     staticEffects = StaticEffectsBuilder().apply(block).effects
+}
+
+/**
+ * Declares the use restrictions this card enforces while in play
+ * (Phase 2.3): player-level restrictions (cannot-play, play limits, forced
+ * house, no-steal, may-play-house) and card-self restrictions (cannot reap,
+ * usable as active house, self-destruct conditions).
+ */
+fun CardDefinition.restrictions(block: UseRestrictionsBuilder.() -> Unit) {
+    val builder = UseRestrictionsBuilder().apply(block)
+    useRestrictions = builder.auraRestrictions
+    selfRestrictions = builder.selfRestrictions
 }
 
 fun CardDefinition.fidelity(level: FidelityLevel, notes: String = "") {

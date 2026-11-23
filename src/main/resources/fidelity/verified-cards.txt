@@ -20,3 +20,19 @@ batdrone
 dew-faerie
 headhunter
 bad-penny
+
+# Phase 2.3 use restrictions (UseRestrictionsTest):
+pitlord
+ember-imp
+the-vaultkeeper
+#   grommid: BLOCKED "should not cause ... when the opponent is warded"
+#           (ward mechanic not implemented — Phase 2 engine gap)
+grommid
+#   tireless-crocag: BLOCKED "should be destroyed even if warded" (ward mechanic),
+#           "should be destroyed even with armageddon cloak" (continuous upgrade
+#           effects), and the Harland Mindlock take-control spec (take control
+#           mechanic) — all Phase 2/upgrade engine gaps
+tireless-crocag
+#   witch-of-the-wilds: BLOCKED "should stack with Phase Shift" (Phase Shift's
+#           "may play one non-Logos card" is not implemented yet)
+witch-of-the-wilds

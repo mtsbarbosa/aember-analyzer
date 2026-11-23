@@ -32,6 +32,7 @@ object EffectRegistry {
             .flatMap { source -> library.scriptFor(source.cardId).staticEffects().map { source to it } }
             .filter { (source, effect) -> effect.requireFlank == false || isFlank(game, source) }
 
+        game.players.forEach { it.amberCannotBeStolen = cannotBeStolenFrom(library, game, it) }
         game.players.forEach { player ->
             player.creatures.forEach { creature ->
                 applyTo(library, game, projected, creature)
@@ -66,6 +67,25 @@ object EffectRegistry {
         target.power = power
         target.armor = armor
         target.keywords = keywords
+    }
+
+    /**
+     * All use restrictions currently projected by cards in play, paired with
+     * their source card (for controller checks).
+     */
+    fun collectUseRestrictions(
+        library: CardLibrary,
+        game: GameState
+    ): List<Pair<InPlayCard, UseRestriction>> {
+        return sources(game).flatMap { source ->
+            library.scriptFor(source.cardId).useRestrictions().map { source to it }
+        }
+    }
+
+    /** True when `owner` (the prospective victim) has a no-steal restriction in play. */
+    fun cannotBeStolenFrom(library: CardLibrary, game: GameState, owner: PlayerState): Boolean {
+        val cards = owner.cardsInPlay() + owner.creatures.flatMap { it.upgrades }
+        return cards.any { library.scriptFor(it.cardId).useRestrictions().contains(UseRestriction.NoSteal) }
     }
 
     /**

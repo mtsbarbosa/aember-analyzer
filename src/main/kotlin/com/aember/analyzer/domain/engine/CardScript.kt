@@ -84,6 +84,18 @@ interface CardScript {
     fun subscriptionReactions(card: InPlayCard): List<com.aember.analyzer.domain.engine.dsl.Reaction> = emptyList()
 
     /**
+     * Use restrictions this card projects onto players while in play
+     * (Phase 2.3: cannot-play, play limits, forced house, no-steal, may-play-house).
+     */
+    fun useRestrictions(): List<com.aember.analyzer.domain.engine.effects.UseRestriction> = emptyList()
+
+    /**
+     * Restrictions that apply to this card itself (cannot reap, usable as
+     * active house, self-destruct conditions).
+     */
+    fun selfRestrictions(): List<com.aember.analyzer.domain.engine.effects.SelfRestriction> = emptyList()
+
+    /**
      * Static replacement: when true, creatures destroyed while this card is in
      * play are purged instead of discarded (e.g., Annihilation Ritual).
      */

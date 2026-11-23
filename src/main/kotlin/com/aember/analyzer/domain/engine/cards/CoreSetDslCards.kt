@@ -234,9 +234,14 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("tireless-crocag") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+        play(NoEffect)
+        restrictions {
+            selfCannotReap()
+            selfUsableAsActiveHouse()
+            selfDestructIf { game, player, _ -> game.opponent(player).creatures.isEmpty() }
+        }
+        fidelity(FidelityLevel.FULL, "Cannot reap; usable as if it belonged to the active house; destroyed while the opponent has no creatures in play")
+    },
     card("troll") {
             reap(Heal(3, FriendlyCreature()))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -393,9 +398,12 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("ember-imp") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+        play(NoEffect)
+        restrictions {
+            opponentPlayLimit(2)
+        }
+        fidelity(FidelityLevel.FULL, "Opponent cannot play more than 2 cards each turn (enforced on the opponent's own play count)")
+    },
     card("gabos-longarms") {
             beforeFight(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
@@ -427,9 +435,12 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("pitlord") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+        play(NoEffect)
+        restrictions {
+            forcedHouse(House.DIS)
+        }
+        fidelity(FidelityLevel.FULL, "While Pitlord is in play, its controller must choose Dis as active house")
+    },
     card("restringuntus") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
@@ -849,15 +860,22 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("grommid") {
-            reaction(
-                "after an enemy creature is destroyed fighting Grommid, your opponent loses 1 amber",
-                effect = LoseAmberOpponent(1)
-            ) { _, player, card, event ->
-                event is FightResolved && event.defenderDestroyed &&
-                    event.attackerCardId == card.cardId && event.attackerController == player.index
-            }
-            fidelity(FidelityLevel.PARTIAL, "Reaction implemented (enemy destroyed fighting Grommid -> opponent loses 1 amber); 'you cannot play creatures' restriction not yet enforced")
-        },
+        restrictions {
+            cannotPlay(CardType.CREATURE)
+        }
+        reaction(
+            "after an enemy creature is destroyed fighting Grommid, your opponent loses 1 amber",
+            effect = LoseAmberOpponent(1)
+        ) { _, player, card, event ->
+            event is FightResolved && (
+                (event.attackerCardId == card.cardId && event.attackerController == player.index &&
+                    event.defenderDestroyed && !event.attackerDestroyed) ||
+                    (event.defenderCardId == card.cardId && event.defenderController == player.index &&
+                        event.attackerDestroyed && !event.defenderDestroyed)
+                )
+        }
+        fidelity(FidelityLevel.FULL, "Controller cannot play creatures; after an enemy creature is destroyed fighting Grommid, your opponent loses 1 amber")
+    },
     card("john-smyth") {
             reap(NoEffect)
             fight(NoEffect)
@@ -1152,9 +1170,12 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("the-vaultkeeper") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+        play(NoEffect)
+        restrictions {
+            noSteal()
+        }
+        fidelity(FidelityLevel.FULL, "Controller's amber cannot be stolen")
+    },
     card("veemos-lightbringer") {
             play(Destroy(AnyCreature(Scope.ALL)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -1520,9 +1541,12 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("witch-of-the-wilds") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+        play(NoEffect)
+        restrictions {
+            mayPlayHouse(House.UNTAMED, perTurn = 1)
+        }
+        fidelity(FidelityLevel.FULL, "During each turn in which Untamed is not the active house, the controller may play one Untamed card")
+    },
     card("briar-grubbling") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")

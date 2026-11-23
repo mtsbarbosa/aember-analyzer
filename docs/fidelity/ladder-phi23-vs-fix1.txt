@@ -1,0 +1,50 @@
+ladder comparison: 928c859e-987d-495b-9487-3e9f95deecb2 -> c4f549b3-54a1-449c-b79c-2e412c7a1f7e
+rank correlation between ladders: 0.988 | pairwise agreement: 96.2%
+
+rank deck                                          old  new  drk    old    new     dA   win%
+   1 Galilee el Obtuso, Canciller de la Estación     1    1    0   74.0   73.8   -0.1   85.0
+   2 Chang, Tower Baroness                           3    2    1   68.8   68.5   -0.3   78.9
+   3 Violet, a Grosseira, Inventora do Cemitério     4    3    1   66.4   65.7   -0.7   75.2
+   4 The Public Butcher Brewer of Quakehell          5    4    1   65.4   64.5   -0.8   73.5
+   5 Giulia, Xamã do Monumento Vítreo                2    5   -3   73.1   63.3   -9.8   71.7
+   6 Mehitabel, a Raivosa, Protetora do Retiro      10    6    4   58.7   62.1   +3.4   69.8
+   7 Ingrid, Quanland Borrower                       6    7   -1   62.6   62.0   -0.6   69.8
+   8 Accomplished Porthos of the Bar                 8    8    0   59.8   59.0   -0.8   64.9
+   9 U. Smitheson, the Square Bard                   7    9   -2   60.0   58.9   -1.0   64.7
+  10 Martínez, Marshcot's Painter                    9   10   -1   59.0   58.5   -0.5   64.1
+  11 Galilee, o Engenhoso, Traidor da Loja          14   11    3   53.0   58.0   +5.0   63.2
+  12 “Procione”, Scriba di Missilespezzato          11   12   -1   58.6   57.7   -0.9   62.7
+  13 Mustabos, Spawn of Bestispike                  13   13    0   53.2   54.7   +1.5   57.3
+  14 Time-stopper Kadence Lockenpsen                12   14   -2   55.2   54.5   -0.7   57.0
+  15 Gold la Magnifique                             16   15    1   52.5   52.6   +0.1   53.7
+  16 Patricia, Hacker da Vila Primordial            15   16   -1   52.5   52.0   -0.5   52.5
+  17 Everlasting “Linguini” Lewry                   17   17    0   52.4   51.4   -0.9   51.5
+  18 P. Crowe, Vicedirettrice di Cigliafugace       18   18    0   51.8   51.3   -0.5   51.3
+  19 Fignor, the Crook of Carnivals                 19   19    0   51.7   51.2   -0.5   51.1
+  20 The Quick Sycophant of Claybourne              20   20    0   51.3   51.0   -0.3   50.7
+  21 Rutherford a Dourada                           21   21    0   50.4   50.3   -0.1   49.5
+  22 Vitositus, the Enchantress Traveller           22   22    0   49.6   49.7   +0.1   48.3
+  23 Fast Benedora of the Acropolis                 23   23    0   49.4   48.5   -0.9   46.3
+  24 The Boy who Basically Headbutts Heaven         24   24    0   48.4   48.3   -0.1   45.8
+  25 Blindingly Shamed Olga                         26   25    1   47.5   47.6   +0.1   44.6
+  26 Benedict, Oldhell's Eunuch                     25   26   -1   47.6   47.4   -0.2   44.2
+  27 D. Ewing, the Canyon Rogue                     29   27    2   45.3   47.1   +1.8   43.6
+  28 Seraphina, a Opulenta, Filósofa do Museu       32   28    4   44.1   46.9   +2.8   43.3
+  29 Curtius, the Sycophant of Constellations       28   29   -1   46.7   46.6   -0.1   42.8
+  30 "Greeneyes" Ulysses, Circuit Tickler           31   30    1   44.1   46.4   +2.3   42.4
+  31 Jules Y. Laserson, Junior                      27   31   -4   46.9   46.0   -0.9   41.6
+  32 Boxmon, the Raving Tower Butcher               33   32    1   42.7   45.3   +2.6   40.5
+  33 Parthenia “Garra”, a Precavida                 30   33   -3   44.6   44.4   -0.3   38.8
+  34 Zeb, Bandit of the Quirky Cell                 34   34    0   42.7   41.9   -0.7   34.6
+  35 Lazzaro “Ascia” lo Scaltro                     41   35    6   33.2   41.0   +7.8   33.1
+  36 Eraz-Toth, the Solid City Doctor               35   36   -1   41.1   40.9   -0.3   32.8
+  37 Zoe Molren, Khan di Timonebecero               36   37   -1   39.7   39.8   +0.0   31.1
+  38 González the Swiftly Secret                    37   38   -1   36.5   38.4   +1.9   28.9
+  39 Chaos, Baltiholt's Deuce                       38   39   -1   36.3   36.2   -0.1   25.6
+  40 Gideon "Dreaded Hellfire" de La Mare           42   40    2   30.6   35.6   +5.0   24.8
+  41 Xipty J. Buwaaoki, The Fifteenth               40   41   -1   35.3   35.4   +0.1   24.5
+  42 Torsen, Duca Tossico                           39   42   -3   35.4   35.3   -0.1   24.4
+
+tier validation (old, 42 labelled decks): Spearman 0.45, pairwise agreement 67.9%
+
+tier validation (new, 42 labelled decks): Spearman 0.46, pairwise agreement 68.1%

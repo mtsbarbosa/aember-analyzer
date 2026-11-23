@@ -9,6 +9,7 @@ Last updated: 2026-11-22
 - **Planner review fixes applied:** registry entries require every portable spec ported (blocked specs documented in `fidelity/verified-cards.txt`, e.g. dodger's Neffru spec needs the AoA card + event bus); porter skeletons compile via `Scenario.player1`/`player2` views and end unfinished tests with `error("TODO")` so they fail loudly; `CardFidelity.verified` removed (registry is the single source of truth); batch aggregation reads level counts directly (no per-play objects); `UNVERIFIED` scores 60 (distinct from PARTIAL 70); `Scenario.play` is strict (fails when the card is not in hand); splash lands on neighbors before the primary target so `lastDamagedTargetId` stays correct.
 - **Phase 2.1 — done (persistent / static effects).** `EffectRegistry` (`domain/engine/effects/`) recomputes derived stats from scratch after every action (inside the engine's state-check fixpoint, so aura loss that drops power below damage destroys the creature). `InPlayCard` now keeps `basePower`/`baseArmor`/`baseKeywords` (printed values) next to the effective `power`/`armor`/`keywords`, plus `hostId` for upgrades; power counters raise `basePower` permanently. DSL: `persistent { modifyPower/modifyArmor/addKeyword/modifyKeyCost(...) }` with `CreatureScope` selectors (self, neighbors-of-self, friendly/enemy, flank, house/trait, host-for-upgrades) and dynamic amounts (Yxili Marauder, Mushroom Man). Key-cost modifiers are registry-driven (`ForgeRules` consults `EffectRegistry`; "your opponent" on an upgrade resolves through the host's controller). 16 Core cards implemented (Banner of Battle, King of the Crag, Round Table, Niffle Queen, Grey Monk, Bulwark, Halacor, Staunch Knight, Titan Mechanic, Shoulder Armor, Protect the Weak, Ring of Invisibility, Blood of Titans, Flame-Wreathed, Mushroom Man, Yxili Marauder's aura) + Jammer Pack migrated to the registry (old `opponentKeyCostModifier` hook removed). 20 unit tests in `PersistentEffectsTest`. Use-restriction auras (Tireless Crocag "cannot reap", Grommid "cannot play creatures", Pitlord "must choose Dis", Ember Imp 2-card limit, The Vaultkeeper no-steal) still need Phase 2.2/2.3 work.
 - **Phase 2.2 — done first increment (event bus + reactions).** Typed events (`domain/engine/events/`): `CardPlayed`, `CreatureEnteredPlay`, `CreatureReaped`, `FightResolved` (with moribund destroyed flags), `CreatureDestroyed`, `CardLeftPlay`, `KeyForged`; emitted by `ActionExecutor` (play/reap/fight/destroy), `EffectResolver` (return-to-hand, sacrifice), and `TurnPhases` (key forge). Stateless `EventBus` walks cards in play (+ upgrades) and invokes a new `CardScript.onEvent(...)` hook; DSL `reaction(notes, effect, subscription, matches) { game, player, card, event -> ... }`. Destroyed cards cannot react to their own destruction, but their own "Leaves Play:" reactions still fire (Magda the Rat). Turn-scoped subscriptions ("for the remainder of the turn", Looter Goblin / Loot the Bodies) register game-level `TurnScopedReaction`s via `ActivateTurnReaction` so they keep firing after action cards leave play; cleared at end of turn. New effects: `LoseAmberOpponent`, `EventSideGainsAmber`/`EventSideLosesAmber` (owner/controller sides, `EventSubject` for fight participants), `StealFrom`, `ActivateTurnReaction`, `ReadyHost` (host readies + temporary house via `InPlayCard.baseHouse`, restored at turn start). 10 Core cards implemented: Soul Snatcher, Tolas, Pile of Skulls, Krump, Grommid (reaction; "cannot play creatures" restriction still pending), Carlo Phantom, Looter Goblin, Magda the Rat, Brain Stem Antenna, Loot the Bodies — plus Annihilation Ritual (manual script, `purgesDestroyedCreatures()` replacement effect; the old dishonest `reap(GainAmber(1))` Looter and `play(GainAmber(1))` Loot the Bodies were corrected). 13 unit tests in `ReactionsTest`. More reaction cards (Anger-triggered "after you reap" effects, AoA event cards) can now ride the bus.
+- **Phase 2.3 — done (use restrictions).** `UseRestriction`/`SelfRestriction` sealed hierarchies (`domain/engine/effects/UseRestriction.kt`) + DSL `restrictions { ... }` builder. Player-level auras are collected by `EffectRegistry.collectUseRestrictions` and enforced in `ActionGenerator` (`CannotPlay` per card type, `PlayLimit` on the opponent's own per-turn play count, `ForcedHouse` filters house choices, `MayPlayHouse` allows a per-turn off-house play counted via `cardsPlayedThisTurnByHouse`) and in `EffectResolver` (`NoSteal` checked against the victim in both `stealAmber` and `stealFrom`, logs "cannot be stolen" and sets `lastStealAmount = 0`). Card-self restrictions surface through `CardScript.selfRestrictions()` (`CannotReap` removes `ReapUse`, `UsableAsActiveHouse` bypasses the house match, `SelfDestruct` runs in the engine's `stateCheck` fixpoint). 6 Core cards implemented: Grommid ("cannot play creatures" + reaction extended to both fight directions and only when Grommid survives, per keyteki), Tireless Crocag (cannot reap + usable as if active house + destroyed while the opponent has no creatures), Pitlord (must choose Dis), Ember Imp (opponent limited to 2 plays/turn), The Vaultkeeper (controller's amber cannot be stolen), Witch of the Wilds (one off-house Untamed play per turn). 23 tests in `UseRestrictionsTest` (12 unit + 11 ported keyteki specs); all 6 ids in `verified-cards.txt` with BLOCKED notes (ward for Grommid/Crocag, Phase Shift for Witch, upgrade/take-control for Crocag). Known keyteki quirk: EmberImp.spec's global play counter is implemented as the opponent's own count (sane reading of the text).
 - **Phase 5 — ladder measured after each phase.** Each run: 42 decks, 30 matches/pairing, seed 12345, tactical AI.
 
   | Ladder run | Batch | Rank corr. vs prev. | Pairwise agr. | Tier Spearman | Tier agreement |
@@ -18,8 +19,10 @@ Last updated: 2026-11-22
   | After Phase 2.1 (`e72fcf30`) | EffectRegistry auras (16 cards) | 0.99 | 96.7% | 0.51 | 69.6% |
   | After Phase 2.2 (`21137849`) | event bus + 10 reaction cards | 0.97 | 94.7% | 0.45 | 67.9% |
   | After Phase 2.2 fixes (`928c859e`) | Biomatrix archive path, event delivery, ForgeKey emit, BSA house reset | 1.00 | 100% | 0.45 | 67.9% |
+  | After Phase 2.3 (`c4f549b3`) | use-restriction auras (6 cards) | 0.988 | 96.2% | 0.46 | 68.1% |
+  | After Phase 2.3 CR fixes (`0be038e2`) | Vaultkeeper blocks hand-moved amber (Too Much to Protect), Pitlord never leaves a player houseless | 1.00 | 100% | 0.46 | 68.1% |
 
-  Batch health every run: 0 failures, 0 draws, avg rounds ~11.6. Declared fidelity 85.1% → 86.0% → 86.4%.
+  Batch health every run: 0 failures, 0 draws, avg rounds ~11.6. Declared fidelity 85.1% → 86.0% → 86.4% → 86.8%.
 
   **Phase 2.2 investigation (why tier validation dipped).** The dip is **tier-label staleness, not an
   engine bug**. Evidence:
@@ -34,8 +37,11 @@ Last updated: 2026-11-22
     play (no friendly/enemy filter) — matches ours. Krump/pile-of-skulls/magda fire exactly once per
     correct trigger; an 8-match automated audit found zero double-fires and zero wrong-direction steals.
 
-  Conclusion: the affected hand tiers need re-labelling (Ingrid up; Lazzaro/González/Zoe down or
-  neutral), not a revert. Biggest mover: Lazzaro −5.9 points.
+  Conclusion: the hand tiers are **SAS-rating-based, external and fixed** (no re-labelling) — so the
+  dip is genuine divergence from that external ordering, localized to decks whose key cards were
+  dead before Phase 2.2 (Ingrid up, Lazzaro/González/Zoe down). Expect partial convergence as more
+  of those cards reach verified parity; until then treat 0.45/67.9% as the standing reference, not
+  a regression. Biggest mover: Lazzaro −5.9 points.
 
   Highest-priority unverified cards: dust-pixie, vigor, giant-sloth, then the unverified FULL crowd
   led by urchin / shadow-self / charette / silvertooth / tocsin / shooler.
@@ -366,6 +372,7 @@ src/main/kotlin/com/aember/analyzer/
 - `CoreParityPilotTest` — 16 keyteki parity tests for 10 Core cards (Phase 1; see *Parity Harness* above).
 - `PersistentEffectsTest` — Phase 2.1 registry tests: auras (Banner of Battle, King of the Crag, Round Table, Niffle Queen, Grey Monk, Bulwark, Halacor), conditional modifiers (Staunch Knight, Shoulder Armor, Titan Mechanic), upgrade grants (Ring of Invisibility, Protect the Weak, Blood of Titans), dynamic amounts (Yxili Marauder, Mushroom Man), key-cost modifiers (Jammer Pack), aura-loss kills, and effective power driving fight damage.
 - `ReactionsTest` — Phase 2.2 event-bus tests: Soul Snatcher / Tolas (destroyed-creature amber), Pile of Skulls (own-turn capture), Krump / Grommid (fight-destroyed reactions), Carlo Phantom (artifact played), Looter Goblin / Loot the Bodies (turn-scoped subscriptions), Magda the Rat (leaves-play steal), Brain Stem Antenna (host ready + temporary Mars house until turn start), Annihilation Ritual (purge replacement).
+- `UseRestrictionsTest` — Phase 2.3 restriction tests (12 unit + 11 ported keyteki specs): Grommid (no creature plays / both fight directions / Bad Penny / both-die), Tireless Crocag (no reap, any-house use, self-destruct variants, not contagious), Pitlord (forced house), Ember Imp (2-play limit, lifts when the imp dies), The Vaultkeeper (no steal; capture/lose unaffected), Witch of the Wilds (one off-house Untamed play).
 - `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
 - `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (only the first creature played each turn enters play ready).
 - `MarsEngineCardsTest` — unit tests for Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth, Jammer Pack key-cost aura, Biomatrix Backup archive-on-destroy, and enter-ready creatures.
@@ -399,7 +406,7 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 | Engine entry point | `domain/engine/GameEngine.kt`, `domain/engine/TurnPhases.kt` |
 | Action execution | `domain/engine/action/ActionExecutor.kt`, `ActionGenerator.kt` |
 | DSL effects | `domain/engine/dsl/Effect.kt`, `EffectResolver.kt`, `CardDsl.kt`, `DslCardScript.kt` |
-| Static effects | `domain/engine/effects/EffectRegistry.kt`, `StaticEffect.kt` |
+| Static effects | `domain/engine/effects/EffectRegistry.kt`, `StaticEffect.kt`, `UseRestriction.kt` |
 | Event bus | `domain/engine/events/GameEvent.kt`, `EventBus.kt`, `dsl/CardDsl.kt` (reactions) |
 | Card definitions | `domain/engine/cards/CoreSetDslCards.kt`, `CoreCards.kt` |
 | Generator | `tools/generate-core-cards.py` |
@@ -584,17 +591,18 @@ Open an issue or fix directly if you see:
 
 ## Known Gaps / Likely Next Steps
 
-1. **Static / ongoing effects**: power/armor/keyword auras and key-cost modifiers are now registry-driven (Phase 2.1), but **use-restriction auras** are not (Tireless Crocag "cannot reap", Grommid "cannot play creatures", Pitlord "must choose Dis", Ember Imp 2-card limit, The Vaultkeeper no-steal, Witch of the Wilds) — they need Phase 2.2/2.3 infrastructure. Non-stat statics like damage redirection (Shadow Self) and Ether Spider's amber capture remain `CardScript` hooks until the event bus.
+1. **Static / ongoing effects**: power/armor/keyword auras, key-cost modifiers and **use-restriction auras** are registry-driven (Phase 2.1/2.3: `EffectRegistry`). Non-stat statics like damage redirection (Shadow Self) and Ether Spider's amber capture remain `CardScript` hooks until the event bus.
 2. **Conditional card texts**: `if`, `for each`, `until`, `may`, `while`, `after`/`before` outside of fight/reap triggers.
-3. **Precise targeting**: choose by house, trait, flank, neighbor, or specific creature. Currently many cards use broad selectors (Booby Trap's "not on a flank" restriction is downgraded to PARTIAL for this reason).
-4. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
-5. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
-6. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
-7. **Reference ladder**: ratings are pool-relative; no curated cross-set ladder exists yet.
-8. **More sets** beyond Core (`CotA`) are not seeded.
-9. **Effect-driven fights bypass keyword handling**: `ReadyAndFight` (Anger, Relentless Assault) and the `Fight` effect swap raw power damage without elusive/skirmish/assault/hazardous; Phase 2's event-bus work should funnel them through the shared fight resolution in `ActionExecutor`.
-10. **Armor is applied per damage event** (`amount - armor`), while keyteki tracks per-turn armor usage; multi-hit interactions may diverge.
-11. **Generator drift**: `CoreSetDslCards.kt` contains hand-patches (e.g. `burn-the-stockpile`, `smith`, `neutron-shark`, `bait-and-switch`) that a naive `generate-core-cards.py` regeneration reverts — extend the generator first, then regenerate and diff carefully (as of Phase 1 the regen was rolled back; only the `splash` parsing rule landed in the generator).
+3. **Effect-played cards skip use restrictions**: cards played by effects (Wild Wormhole / `PlayTopCard`, Mimicry-style) do not go through `ActionGenerator`, so Grommid's creature ban and Ember Imp's play limit do not apply to them (keyteki blocks them). The current `playTopCard` path is itself an approximation (generic power-3 creature, no card script or events), so the two need fixing together when PlayTopCard cards get verified.
+4. **Precise targeting**: choose by house, trait, flank, neighbor, or specific creature. Currently many cards use broad selectors (Booby Trap's "not on a flank" restriction is downgraded to PARTIAL for this reason).
+5. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
+6. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
+7. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
+8. **Reference ladder**: ratings are pool-relative; no curated cross-set ladder exists yet.
+9. **More sets** beyond Core (`CotA`) are not seeded.
+10. **Effect-driven fights bypass keyword handling**: `ReadyAndFight` (Anger, Relentless Assault) and the `Fight` effect swap raw power damage without elusive/skirmish/assault/hazardous; Phase 2's event-bus work should funnel them through the shared fight resolution in `ActionExecutor`.
+11. **Armor is applied per damage event** (`amount - armor`), while keyteki tracks per-turn armor usage; multi-hit interactions may diverge.
+12. **Generator drift**: `CoreSetDslCards.kt` contains hand-patches (e.g. `burn-the-stockpile`, `smith`, `neutron-shark`, `bait-and-switch`) that a naive `generate-core-cards.py` regeneration reverts — extend the generator first, then regenerate and diff carefully (as of Phase 1 the regen was rolled back; only the `splash` parsing rule landed in the generator).
 
 ## Importing Cards from a New Set (keyteki → engine)
 

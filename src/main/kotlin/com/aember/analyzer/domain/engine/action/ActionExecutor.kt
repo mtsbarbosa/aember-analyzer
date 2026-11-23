@@ -3,6 +3,7 @@ package com.aember.analyzer.domain.engine.action
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.dsl.TurnTrigger
 import com.aember.analyzer.domain.engine.effects.EffectRegistry
+import com.aember.analyzer.domain.engine.effects.SelfRestriction
 import com.aember.analyzer.domain.engine.events.CardLeftPlay
 import com.aember.analyzer.domain.engine.events.CardPlayed
 import com.aember.analyzer.domain.engine.events.CreatureDestroyed
@@ -353,6 +354,19 @@ class ActionExecutor(
             EffectRegistry.recalculate(library, game)
             val dead = game.players.flatMap { player ->
                 player.creatures.filter { it.damage >= it.power || it.power <= 0 }.map { player to it }
+            }.toMutableList()
+            // Self-destruct conditions (Phase 2.3, e.g. Tireless Crocag with no enemy creatures).
+            game.players.forEach { player ->
+                player.creatures.forEach { creature ->
+                    library.scriptFor(creature.cardId).selfRestrictions().forEach { restriction ->
+                        if (restriction is SelfRestriction.SelfDestruct &&
+                            restriction.condition(game, player, creature) &&
+                            dead.none { it.second.instanceId == creature.instanceId }
+                        ) {
+                            dead += player to creature
+                        }
+                    }
+                }
             }
             if (dead.isEmpty()) return
             dead.forEach { (player, creature) -> destroyCreature(game, player, creature) }

@@ -251,6 +251,10 @@ object TooMuchToProtect : CardScript {
 
     override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
         val opponent = game.opponent()
+        if (opponent.amberCannotBeStolen) {
+            game.log("${opponent.name}'s amber cannot be stolen (${opponent.name}: ${opponent.amber} -> ${opponent.amber})")
+            return
+        }
         val stolen = (opponent.amber - 6).coerceAtLeast(0)
         if (stolen <= 0) return
         opponent.amber -= stolen

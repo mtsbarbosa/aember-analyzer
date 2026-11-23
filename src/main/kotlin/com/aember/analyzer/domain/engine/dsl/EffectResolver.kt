@@ -2,6 +2,7 @@ package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.ForgeRules
+import com.aember.analyzer.domain.engine.effects.EffectRegistry
 import com.aember.analyzer.domain.engine.events.CardLeftPlay
 import com.aember.analyzer.domain.engine.events.CreatureDestroyed
 import com.aember.analyzer.domain.engine.events.EventBus
@@ -216,6 +217,11 @@ class EffectResolver(
 
     private fun stealAmber(game: GameState, player: PlayerState, amount: Int) {
         val opponent = game.opponent()
+        if (library != null && EffectRegistry.cannotBeStolenFrom(library, game, opponent)) {
+            game.lastStealAmount = 0
+            game.log("${opponent.name}'s amber cannot be stolen (${opponent.name}: ${opponent.amber} -> ${opponent.amber})")
+            return
+        }
         val playerBefore = player.amber
         val opponentBefore = opponent.amber
         val stolen = min(amount, opponent.amber)
@@ -286,6 +292,11 @@ class EffectResolver(
     private fun stealFrom(game: GameState, player: PlayerState, effect: StealFrom) {
         val victim = targetPlayer(game, player, effect.from)
         val thief = game.opponent(victim)
+        if (library != null && EffectRegistry.cannotBeStolenFrom(library, game, victim)) {
+            game.lastStealAmount = 0
+            game.log("${victim.name}'s amber cannot be stolen (${victim.name}: ${victim.amber} -> ${victim.amber})")
+            return
+        }
         val stolen = min(effect.amount, victim.amber)
         val before = victim.amber
         victim.amber -= stolen

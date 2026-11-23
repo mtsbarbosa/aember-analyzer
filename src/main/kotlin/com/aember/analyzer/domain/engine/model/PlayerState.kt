@@ -35,12 +35,17 @@ data class PlayerState(
     var skipsForgeNextTurn: Boolean = false,
     var keyCostNextTurnBonus: Int = 0,
     var cannotFightNextTurn: Boolean = false,
+    /** Derived by EffectRegistry.recalculate (e.g. The Vaultkeeper): amber cannot be stolen. */
+    var amberCannotBeStolen: Boolean = false,
     val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()
 ) {
 
     fun cardsInPlay(): List<InPlayCard> = creatures + artifacts
 
     fun battleline(): List<InPlayCard> = creatures
+
+    /** Total cards played this turn (all houses). */
+    val cardsPlayedThisTurn: Int get() = cardsPlayedThisTurnByHouse.values.sum()
 
     fun hasWon(): Boolean = keys >= 3
 }

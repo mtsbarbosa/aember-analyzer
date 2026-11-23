@@ -1,7 +1,9 @@
 package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardScript
+import com.aember.analyzer.domain.engine.effects.SelfRestriction
 import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.effects.UseRestriction
 import com.aember.analyzer.domain.engine.events.GameEvent
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
@@ -17,6 +19,10 @@ class DslCardScript(
     override fun fidelity(): CardFidelity = definition.fidelity
 
     override fun staticEffects(): List<StaticEffect> = definition.staticEffects
+
+    override fun useRestrictions(): List<UseRestriction> = definition.useRestrictions
+
+    override fun selfRestrictions(): List<SelfRestriction> = definition.selfRestrictions
 
     override fun onEvent(game: GameState, player: PlayerState, card: InPlayCard, event: GameEvent) {
         definition.reactions
