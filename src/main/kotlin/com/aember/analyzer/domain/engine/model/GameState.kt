@@ -25,6 +25,15 @@ data class GameState(
     var lastDamageDestroyed: Boolean = false,
     var lastDamagedTargetId: String? = null,
 
+    /** The event currently being dispatched by the EventBus, for event-aware effects. */
+    var currentEvent: com.aember.analyzer.domain.engine.events.GameEvent? = null,
+
+    /**
+     * Turn-scoped event subscriptions (Phase 2.2, e.g. Looter Goblin / Loot the
+     * Bodies); fired by the EventBus until the end of the activating turn.
+     */
+    val turnScopedReactions: MutableList<com.aember.analyzer.domain.engine.dsl.TurnScopedReaction> = mutableListOf(),
+
     // Tracks creatures temporarily controlled by an effect (instanceId -> original controller index).
     val temporaryControllers: MutableMap<String, Int> = mutableMapOf(),
 

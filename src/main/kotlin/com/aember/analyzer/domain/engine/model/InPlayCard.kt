@@ -38,6 +38,8 @@ data class InPlayCard(
     var basePower: Int = power
     var baseArmor: Int = armor
     var baseKeywords: Map<String, Int> = keywords
+    /** Printed house; temporary house changes (Brain Stem Antenna) restore this at turn start. */
+    var baseHouse: House = house
 }
 
 fun InPlayCard.hasKeyword(keyword: Keyword): Boolean = keywordValue(keyword) > 0

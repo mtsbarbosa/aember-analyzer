@@ -2,6 +2,7 @@ package com.aember.analyzer.infrastructure.config
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.cards.Anger
+import com.aember.analyzer.domain.engine.cards.AnnihilationRitual
 import com.aember.analyzer.domain.engine.cards.Arise
 import com.aember.analyzer.domain.engine.cards.BadPenny
 import com.aember.analyzer.domain.engine.cards.BiomatrixBackup
@@ -77,6 +78,7 @@ fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: Targe
     library.register("yxilx-dominator", YxilxDominator)
     library.register("jammer-pack", JammerPack)
     library.register("biomatrix-backup", BiomatrixBackup)
+    library.register("annihilation-ritual", AnnihilationRitual)
     library.register("lash-of-broken-dreams", LashOfBrokenDreams)
     library.register("too-much-to-protect", TooMuchToProtect)
     library.register("fogbank", Fogbank)

@@ -2,6 +2,7 @@ package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardScript
 import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.events.GameEvent
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -16,6 +17,18 @@ class DslCardScript(
     override fun fidelity(): CardFidelity = definition.fidelity
 
     override fun staticEffects(): List<StaticEffect> = definition.staticEffects
+
+    override fun onEvent(game: GameState, player: PlayerState, card: InPlayCard, event: GameEvent) {
+        definition.reactions
+            .filter { !it.subscription && it.matches(game, player, card, event) }
+            .forEach { reaction ->
+                game.log("${card.cardId} reacts: ${reaction.notes.ifEmpty { event::class.simpleName }}")
+                resolver.resolve(game, player, card, reaction.effect)
+            }
+    }
+
+    override fun subscriptionReactions(card: InPlayCard): List<Reaction> =
+        definition.reactions.filter { it.subscription }
 
     override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
         if (definition.playEffect != NoEffect) {

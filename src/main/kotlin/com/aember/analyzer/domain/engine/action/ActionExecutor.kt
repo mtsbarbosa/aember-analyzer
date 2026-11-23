@@ -3,6 +3,13 @@ package com.aember.analyzer.domain.engine.action
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.dsl.TurnTrigger
 import com.aember.analyzer.domain.engine.effects.EffectRegistry
+import com.aember.analyzer.domain.engine.events.CardLeftPlay
+import com.aember.analyzer.domain.engine.events.CardPlayed
+import com.aember.analyzer.domain.engine.events.CreatureDestroyed
+import com.aember.analyzer.domain.engine.events.CreatureEnteredPlay
+import com.aember.analyzer.domain.engine.events.CreatureReaped
+import com.aember.analyzer.domain.engine.events.EventBus
+import com.aember.analyzer.domain.engine.events.FightResolved
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.engine.model.Keyword
 import com.aember.analyzer.domain.model.CardType
@@ -138,6 +145,10 @@ class ActionExecutor(
             game.endPhaseRightNow = true
             game.log("Omega ends the main phase")
         }
+
+        // Reactions ("After you play ...", "Each time a creature enters play ...").
+        EventBus.emit(library, game, CreatureEnteredPlay(player.index, instanceId, cardId, catalog.house))
+        EventBus.emit(library, game, CardPlayed(player.index, cardId, catalog.type, catalog.house))
     }
 
     private fun useCreature(game: GameState, action: UseCreatureAction) {
@@ -153,6 +164,7 @@ class ActionExecutor(
                 game.gainAmber(player, 1, "${player.name} reaps with ${creature.cardId} for 1 amber")
                 library.scriptFor(creature.cardId).onReap(game, player, creature)
                 library.scriptFor(creature.cardId).onAfterReap(game, player, creature)
+                EventBus.emit(library, game, CreatureReaped(player.index, creature.instanceId, creature.cardId))
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
                 player.statistics.reaps++
                 game.actionsThisPhase++
@@ -287,6 +299,20 @@ class ActionExecutor(
             library.scriptFor(attacker.cardId).onAfterFight(game, player, attacker, defender)
         }
 
+        EventBus.emit(
+            library, game,
+            FightResolved(
+                attackerInstanceId = attacker.instanceId,
+                attackerCardId = attacker.cardId,
+                attackerController = attacker.controllerIndex,
+                defenderInstanceId = defender.instanceId,
+                defenderCardId = defender.cardId,
+                defenderController = defender.controllerIndex,
+                defenderDestroyed = defender.damage >= defender.power,
+                attackerDestroyed = attackerDestroyed
+            )
+        )
+
         val amberPerFight = player.turnTriggerAmber[TurnTrigger.FRIENDLY_CREATURE_FIGHTS] ?: 0
         if (amberPerFight > 0) {
             game.gainAmber(player, amberPerFight, "${player.name} gains $amberPerFight amber from friendly creature fighting")
@@ -345,6 +371,8 @@ class ActionExecutor(
             player.creatures.remove(creature)
             player.archives.add(creature.cardId)
             game.log("${creature.cardId} goes to ${player.name}'s archives instead of being destroyed")
+            // Destruction was replaced: it left play but was not destroyed.
+            emitLeavePlay(game, creature, destroyed = false)
             return
         }
         library.scriptFor(creature.cardId).onDestroyed(game, player, creature)
@@ -356,9 +384,47 @@ class ActionExecutor(
                 || player.archives.contains(creature.cardId)
                 || player.purged.contains(creature.cardId)
         if (!alreadyMoved) {
-            player.discard.add(creature.cardId)
+            // Annihilation Ritual: creatures leaving play are purged instead of discarded.
+            val purgedInstead = game.players.any { p ->
+                p.cardsInPlay().any { library.scriptFor(it.cardId).purgesDestroyedCreatures() }
+            }
+            if (purgedInstead) {
+                player.purged.add(creature.cardId)
+                game.log("${creature.cardId} is purged instead of discarded")
+            } else {
+                player.discard.add(creature.cardId)
+            }
         }
         game.log("${creature.cardId} is destroyed")
+        emitLeavePlay(game, creature)
+    }
+
+    /** Destroyed/removal reactions fire after the card left play, so it cannot react to itself. */
+    private fun emitLeavePlay(game: GameState, creature: InPlayCard, destroyed: Boolean = true) {
+        // "Leaves Play:" reactions owned by the leaving card itself (e.g. Magda the Rat)
+        // fire even though the card is already gone from play.
+        EventBus.deliver(
+            library, game, game.player(creature.controllerIndex), creature,
+            CardLeftPlay(creature.instanceId, creature.cardId, creature.ownerIndex, creature.controllerIndex)
+        )
+        if (destroyed) EventBus.emit(
+            library, game,
+            CreatureDestroyed(
+                instanceId = creature.instanceId,
+                cardId = creature.cardId,
+                controllerIndex = creature.controllerIndex,
+                ownerIndex = creature.ownerIndex
+            )
+        )
+        EventBus.emit(
+            library, game,
+            CardLeftPlay(
+                instanceId = creature.instanceId,
+                cardId = creature.cardId,
+                ownerIndex = creature.ownerIndex,
+                controllerIndex = creature.controllerIndex
+            )
+        )
     }
 
     private fun findCreature(game: GameState, instanceId: String): InPlayCard? {

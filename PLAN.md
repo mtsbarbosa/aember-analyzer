@@ -11,11 +11,11 @@ Chang (A) 3/42, Patricia (Z) 17/42. Since sampling noise is small, the remaining
 
 Measured state of card coverage (`CoreSetDslCards.kt`, 367 generated cards):
 
-| Level | Cards |
-|-------|-------|
-| FULL | 110 |
-| PARTIAL | 244 (of which **179 are `play(NoEffect)` — they do nothing**) |
-| APPROXIMATED | 13 |
+| Level        | Cards                                                         |
+|--------------|---------------------------------------------------------------|
+| FULL         | 110                                                           |
+| PARTIAL      | 244 (of which **179 are `play(NoEffect)` — they do nothing**) |
+| APPROXIMATED | 13                                                            |
 
 Blocking text patterns among the 257 non-FULL cards (a card can have several): "Play:" text 109,
 "if" 51, "may" 34, fight/reap triggers 34, "for each" 31, discard 23, after/before 22, static
@@ -110,7 +110,7 @@ cluster size × pool impact.
 Work by mechanic cluster, highest priority score first. Per batch:
 1. Port the keyteki specs for the batch (Phase 1 porter) → red tests.
 2. Implement: extend `tools/generate-core-cards.py` when the pattern is mechanical (regenerate
-   `CoreSetDslCards.kt`); otherwise hand-written `CardScript` in `cards/CoreCards.kt` registered in
+   `CoreSetDslCards.kt`); otherwise handwritten `CardScript` in `cards/CoreCards.kt` registered in
    `infrastructure/config/CardLibraryConfig.kt`. Prefer generator rules — they scale to later sets.
 3. Green tests ⇒ flip `verified = true`; coverage report updated.
 4. Re-run the reference ladder (Phase 5) and record ratings movement.

@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine
 
+import com.aember.analyzer.domain.engine.events.EventBus
+import com.aember.analyzer.domain.engine.events.KeyForged
 import com.aember.analyzer.domain.engine.model.EndCause
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -15,7 +17,11 @@ internal object TurnPhases {
     /** Per-turn flag reset plus the key (forge) phase; run at the start of every turn. */
     fun startTurn(game: GameState, library: CardLibrary) {
         game.players.forEach { p ->
-            p.creatures.forEach { it.elusiveUsed = false }
+            p.creatures.forEach {
+                it.elusiveUsed = false
+                // Restore temporary house changes (e.g. Brain Stem Antenna).
+                if (it.house != it.baseHouse) it.house = it.baseHouse
+            }
             p.turnTriggerAmber.clear()
             p.creaturesPlayedThisTurn = 0
             p.drawOnCardPlayActive = false
@@ -44,6 +50,7 @@ internal object TurnPhases {
             player.forgedKeyThisTurn = true
             player.statistics.keysForged++
             game.log("${player.name} forges a key! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
+            EventBus.emit(library, game, KeyForged(player.index, cost))
             if (!player.canForgeSecondKey) break
             player.canForgeSecondKey = false
         }
@@ -76,6 +83,9 @@ internal object TurnPhases {
     fun endPhase(game: GameState, isGameOver: (GameState) -> Boolean = { false }) {
         val player = game.activePlayer()
         player.activeHouse = null
+        game.turnScopedReactions.clear()
+        // Temporary house changes (Brain Stem Antenna) last "for the remainder of the turn".
+        game.players.forEach { p -> p.creatures.forEach { if (it.house != it.baseHouse) it.house = it.baseHouse } }
         if (isGameOver(game)) return
 
         // Remember whether this player forged a key this turn for "previous turn" checks.

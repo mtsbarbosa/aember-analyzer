@@ -2,6 +2,10 @@ package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.ForgeRules
+import com.aember.analyzer.domain.engine.events.CardLeftPlay
+import com.aember.analyzer.domain.engine.events.CreatureDestroyed
+import com.aember.analyzer.domain.engine.events.EventBus
+import com.aember.analyzer.domain.engine.events.FightResolved
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -100,6 +104,28 @@ class EffectResolver(
         register<ArchiveCreatureFromHand> { game, player, _, effect -> archiveCreatureFromHand(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<LoseAllAmber> { game, player, _, effect -> loseAllAmber(game, targetPlayer(game, player, effect.player)) }
         register<GainAmberOpponent> { game, _, _, effect -> gainAmberOpponent(game, effect.amount) }
+        register<LoseAmberOpponent> { game, player, _, effect ->
+            loseAmber(game, game.opponent(player), effect.amount)
+        }
+        register<EventSideGainsAmber> { game, _, _, effect -> eventSideGainsAmber(game, effect) }
+        register<EventSideLosesAmber> { game, _, _, effect -> eventSideLosesAmber(game, effect) }
+        register<StealFrom> { game, player, _, effect -> stealFrom(game, player, effect) }
+        register<ActivateTurnReaction> { game, player, card, effect ->
+            // Register the played card's subscription reactions at game level so they
+            // keep firing until end of turn even when the card left play (actions).
+            library?.scriptFor(card.cardId)?.subscriptionReactions(card)?.forEach { reaction ->
+                game.turnScopedReactions += TurnScopedReaction(
+                    ownerIndex = player.index,
+                    activeThroughTurn = game.turn,
+                    check = { event -> reaction.matches(game, player, card, event) },
+                    fire = { g, p ->
+                        g.log("${card.cardId} reacts: ${reaction.notes.ifEmpty { effect.tag }}")
+                        resolve(g, p, card, reaction.effect)
+                    }
+                )
+            }
+        }
+        register<ReadyHost> { game, _, sourceCard, effect -> readyHost(game, sourceCard, effect) }
         register<Exhaust> { game, _, _, effect -> exhaust(game, effect) }
         register<ShuffleHandAndDiscardIntoDeck> { game, player, _, effect -> shuffleHandAndDiscardIntoDeck(game, targetPlayer(game, player, effect.player)) }
         register<ReturnAllCreaturesOfHouseToHand> { game, _, _, effect -> returnAllCreaturesOfHouseToHand(game, effect) }
@@ -120,6 +146,12 @@ class EffectResolver(
             }
             owner.discard.add(sourceCard.cardId)
             game.log("${sourceCard.cardId} is sacrificed")
+            if (library != null) {
+                EventBus.emit(
+                    library, game,
+                    CardLeftPlay(sourceCard.instanceId, sourceCard.cardId, sourceCard.ownerIndex, sourceCard.controllerIndex)
+                )
+            }
         }
         register<RepeatForEach> { _, _, _, _ ->
             // Not used for simple cards yet.
@@ -217,6 +249,70 @@ class EffectResolver(
         game.log("${player.name} loses $amount amber (${player.name}: $before -> ${player.amber})")
     }
 
+    private fun eventSidePlayer(game: GameState, side: EventSide, subject: EventSubject): PlayerState? {
+        return when (val event = game.currentEvent) {
+            is CreatureDestroyed -> when (side) {
+                EventSide.OWNER -> game.player(event.ownerIndex)
+                EventSide.CONTROLLER -> game.player(event.controllerIndex)
+                EventSide.CONTROLLER_OPPONENT -> game.opponent(game.player(event.controllerIndex))
+            }
+            is FightResolved -> when (subject) {
+                EventSubject.DEFENDER -> when (side) {
+                    EventSide.OWNER -> game.player(event.defenderController)
+                    EventSide.CONTROLLER -> game.player(event.defenderController)
+                    EventSide.CONTROLLER_OPPONENT -> game.opponent(game.player(event.defenderController))
+                }
+                EventSubject.ATTACKER -> when (side) {
+                    EventSide.OWNER -> game.player(event.attackerController)
+                    EventSide.CONTROLLER -> game.player(event.attackerController)
+                    EventSide.CONTROLLER_OPPONENT -> game.opponent(game.player(event.attackerController))
+                }
+                EventSubject.EVENT_CREATURE -> null
+            }
+            else -> null
+        }
+    }
+
+    private fun eventSideGainsAmber(game: GameState, effect: EventSideGainsAmber) {
+        val beneficiary = eventSidePlayer(game, effect.side, effect.subject) ?: return
+        game.gainAmber(beneficiary, effect.amount, "${beneficiary.name} gains ${effect.amount} amber from a reaction")
+    }
+
+    private fun eventSideLosesAmber(game: GameState, effect: EventSideLosesAmber) {
+        val payer = eventSidePlayer(game, effect.side, effect.subject) ?: return
+        loseAmber(game, payer, effect.amount)
+    }
+
+    private fun stealFrom(game: GameState, player: PlayerState, effect: StealFrom) {
+        val victim = targetPlayer(game, player, effect.from)
+        val thief = game.opponent(victim)
+        val stolen = min(effect.amount, victim.amber)
+        val before = victim.amber
+        victim.amber -= stolen
+        thief.amber += stolen
+        game.lastStealAmount = stolen
+        game.log(
+            "${thief.name} steals $stolen amber from ${victim.name} " +
+                "(${thief.name}: ${thief.amber - stolen} -> ${thief.amber}, ${victim.name}: $before -> ${victim.amber})"
+        )
+    }
+
+    private fun readyHost(game: GameState, sourceCard: InPlayCard, effect: ReadyHost) {
+        val hostId = sourceCard.hostId ?: return
+        val host = findCreatureInPlay(game, hostId) ?: return
+        host.exhausted = false
+        if (effect.houseUntilEndOfTurn != null && host.house != effect.houseUntilEndOfTurn) {
+            host.house = effect.houseUntilEndOfTurn
+            game.log("${host.cardId} belongs to house ${effect.houseUntilEndOfTurn} until end of turn")
+        }
+        game.log("${host.cardId} readies")
+    }
+
+    private fun findCreatureInPlay(game: GameState, instanceId: String): InPlayCard? =
+        game.players.asSequence()
+            .flatMap { it.creatures.asSequence() }
+            .find { it.instanceId == instanceId }
+
     private fun dealDamage(game: GameState, sourceCard: InPlayCard, effect: DealDamage) {
         val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
@@ -282,6 +378,11 @@ class EffectResolver(
             owner.creatures.remove(target)
             owner.hand.add(target.cardId)
             game.log("${target.cardId} returns to hand")
+            val event = CardLeftPlay(target.instanceId, target.cardId, target.ownerIndex, target.controllerIndex)
+            if (library != null) {
+                EventBus.deliver(library, game, game.player(target.controllerIndex), target, event)
+                EventBus.emit(library, game, event)
+            }
         }
     }
 
@@ -588,6 +689,7 @@ class EffectResolver(
         player.forgedKeyThisTurn = true
         player.statistics.keysForged++
         game.log("${player.name} forges a key at cost $cost! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
+        if (library != null) EventBus.emit(library, game, com.aember.analyzer.domain.engine.events.KeyForged(player.index, cost))
     }
 
     private fun drawPerCardInHand(game: GameState, player: PlayerState, effect: DrawPerCardInHand) {

@@ -110,6 +110,46 @@ data class LoseAllAmber(val player: TargetPlayer) : Effect
 
 data class GainAmberOpponent(val amount: Int) : Effect
 
+/** The opponent of the player resolving this effect loses amber (min 0). */
+data class LoseAmberOpponent(val amount: Int) : Effect
+
+/**
+ * Amber movement tied to the creature referenced by the event currently being
+ * dispatched (Phase 2.2 reactions, e.g. Soul Snatcher / Tolas / Krump).
+ */
+enum class EventSide { OWNER, CONTROLLER, CONTROLLER_OPPONENT }
+
+/** Which fight participant the effect refers to when the event is a FightResolved. */
+enum class EventSubject { EVENT_CREATURE, DEFENDER, ATTACKER }
+
+data class EventSideGainsAmber(
+    val amount: Int,
+    val side: EventSide,
+    val subject: EventSubject = EventSubject.EVENT_CREATURE
+) : Effect
+
+data class EventSideLosesAmber(
+    val amount: Int,
+    val side: EventSide,
+    val subject: EventSubject = EventSubject.EVENT_CREATURE
+) : Effect
+
+/**
+ * Amber moves from [from] (relative to the resolving player) to that player's
+ * opponent (e.g. Magda the Rat's "Leaves Play: your opponent steals 2A").
+ */
+data class StealFrom(val amount: Int, val from: TargetPlayer) : Effect
+
+/**
+ * Activates a turn-scoped event subscription for the source card (e.g. Looter
+ * Goblin "for the remainder of the turn"); consumed by reaction matchers via
+ * `PlayerState.eventReactionsThisTurn`.
+ */
+data class ActivateTurnReaction(val tag: String) : Effect
+
+/** Readies the host creature of an upgrade and optionally changes its house until end of turn. */
+data class ReadyHost(val houseUntilEndOfTurn: House? = null) : Effect
+
 data class Exhaust(val target: CreatureSelector) : Effect
 
 data class ShuffleHandAndDiscardIntoDeck(val player: TargetPlayer) : Effect

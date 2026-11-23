@@ -284,6 +284,15 @@ object BiomatrixBackup : CardScript {
     override fun archivesAttachedCreatureOnDestroyed(): Boolean = true
 }
 
+object AnnihilationRitual : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Creatures destroyed while this is in play are purged instead of discarded"
+    )
+
+    override fun purgesDestroyedCreatures(): Boolean = true
+}
+
 /**
  * Manual DSL overrides for cards that forge keys outside the forge phase.
  */

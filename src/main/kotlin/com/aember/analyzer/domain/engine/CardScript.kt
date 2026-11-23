@@ -3,6 +3,7 @@ package com.aember.analyzer.domain.engine
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.events.GameEvent
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -68,6 +69,25 @@ interface CardScript {
      * state change.
      */
     fun staticEffects(): List<StaticEffect> = emptyList()
+
+    /**
+     * Event reaction (Phase 2.2): invoked by the [com.aember.analyzer.domain.engine.events.EventBus]
+     * for every game event while this card is in play. "Each time ..." /
+     * "After ..." reactions belong here; own triggers keep using onPlay/onReap/...
+     */
+    fun onEvent(game: GameState, player: PlayerState, card: InPlayCard, event: GameEvent) {}
+
+    /**
+     * Turn-scoped subscription reactions granted by this card (used by the
+     * `ActivateTurnReaction` effect, e.g. Looter Goblin, Loot the Bodies).
+     */
+    fun subscriptionReactions(card: InPlayCard): List<com.aember.analyzer.domain.engine.dsl.Reaction> = emptyList()
+
+    /**
+     * Static replacement: when true, creatures destroyed while this card is in
+     * play are purged instead of discarded (e.g., Annihilation Ritual).
+     */
+    fun purgesDestroyedCreatures(): Boolean = false
 
     /**
      * Static upgrade ability: if true, the attached creature goes to its owner's archives

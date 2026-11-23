@@ -1,9 +1,12 @@
 package com.aember.analyzer.domain.engine.dsl
 
-import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.events.GameEvent
 import com.aember.analyzer.domain.engine.effects.StaticEffectsBuilder
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
+import com.aember.analyzer.domain.engine.model.GameState
+import com.aember.analyzer.domain.engine.model.InPlayCard
+import com.aember.analyzer.domain.engine.model.PlayerState
 
 class CardDefinition(
     val cardId: String,
@@ -18,9 +21,48 @@ class CardDefinition(
     var afterReapEffect: Effect = NoEffect,
     var omniEffect: Effect = NoEffect,
     var actionAbilities: List<Pair<String, Effect>> = emptyList(),
-    var staticEffects: List<StaticEffect> = emptyList(),
+    var staticEffects: List<com.aember.analyzer.domain.engine.effects.StaticEffect> = emptyList(),
+    var reactions: List<Reaction> = emptyList(),
     var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
+
+/**
+ * An event reaction ("Each time ...", "After ...") declared on a card. The
+ * matcher receives the game, the reacting card's controller, the card itself
+ * and the event; when it matches, [effect] resolves for that controller.
+ *
+ * `subscription = true` marks turn-scoped reactions ("for the remainder of the
+ * turn ..."): they are activated by the `ActivateTurnReaction` effect and fire
+ * from the game-level subscription list instead of the in-play dispatch, so
+ * they also work for action cards that left play.
+ */
+class Reaction(
+    val notes: String,
+    val matches: (GameState, PlayerState, InPlayCard, GameEvent) -> Boolean,
+    val effect: Effect,
+    val subscription: Boolean = false
+)
+
+/**
+ * A turn-scoped event subscription registered by `ActivateTurnReaction` and
+ * fired by the EventBus until the end of the activating turn. `check` is the
+ * per-event matcher; `fire` resolves the reaction effect.
+ */
+class TurnScopedReaction(
+    val ownerIndex: Int,
+    val activeThroughTurn: Int,
+    val check: (GameEvent) -> Boolean,
+    val fire: (GameState, PlayerState) -> Unit
+)
+
+fun CardDefinition.reaction(
+    notes: String = "",
+    effect: Effect,
+    subscription: Boolean = false,
+    matches: (GameState, PlayerState, InPlayCard, GameEvent) -> Boolean
+) {
+    reactions = reactions + Reaction(notes, matches, effect, subscription)
+}
 
 fun card(cardId: String, block: CardDefinition.() -> Unit): Pair<String, CardDefinition> {
     val def = CardDefinition(cardId)

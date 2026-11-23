@@ -8,7 +8,40 @@ Last updated: 2026-11-22
 - **Phase 1 — done.** Scenario test DSL (`src/test/kotlin/.../engine/support/Scenario.kt`), injectable `ScriptedTargetChooser` (ChoiceProvider port), spec porter (`tools/port-keyteki-specs.mjs`), and a 16-test pilot (`CoreParityPilotTest`) covering all portable specs for its 10 cards. The pilot immediately found real bugs in cards we count as done: **Lava Ball's 2D splash damage was missing** (fixed — `DealDamage` now has `splash`; Booby Trap downgraded honestly to PARTIAL), **poison was unimplemented** (fixed — kills damage-surviving victims; Macis Asp kills Dodger), and **a creature destroyed during a fight resolved its own Fight triggers** (fixed — moribund attackers skip `onFight`/`onAfterFight`, matching keyteki's `updateAbilityEvents`).
 - **Planner review fixes applied:** registry entries require every portable spec ported (blocked specs documented in `fidelity/verified-cards.txt`, e.g. dodger's Neffru spec needs the AoA card + event bus); porter skeletons compile via `Scenario.player1`/`player2` views and end unfinished tests with `error("TODO")` so they fail loudly; `CardFidelity.verified` removed (registry is the single source of truth); batch aggregation reads level counts directly (no per-play objects); `UNVERIFIED` scores 60 (distinct from PARTIAL 70); `Scenario.play` is strict (fails when the card is not in hand); splash lands on neighbors before the primary target so `lastDamagedTargetId` stays correct.
 - **Phase 2.1 — done (persistent / static effects).** `EffectRegistry` (`domain/engine/effects/`) recomputes derived stats from scratch after every action (inside the engine's state-check fixpoint, so aura loss that drops power below damage destroys the creature). `InPlayCard` now keeps `basePower`/`baseArmor`/`baseKeywords` (printed values) next to the effective `power`/`armor`/`keywords`, plus `hostId` for upgrades; power counters raise `basePower` permanently. DSL: `persistent { modifyPower/modifyArmor/addKeyword/modifyKeyCost(...) }` with `CreatureScope` selectors (self, neighbors-of-self, friendly/enemy, flank, house/trait, host-for-upgrades) and dynamic amounts (Yxili Marauder, Mushroom Man). Key-cost modifiers are registry-driven (`ForgeRules` consults `EffectRegistry`; "your opponent" on an upgrade resolves through the host's controller). 16 Core cards implemented (Banner of Battle, King of the Crag, Round Table, Niffle Queen, Grey Monk, Bulwark, Halacor, Staunch Knight, Titan Mechanic, Shoulder Armor, Protect the Weak, Ring of Invisibility, Blood of Titans, Flame-Wreathed, Mushroom Man, Yxili Marauder's aura) + Jammer Pack migrated to the registry (old `opponentKeyCostModifier` hook removed). 20 unit tests in `PersistentEffectsTest`. Use-restriction auras (Tireless Crocag "cannot reap", Grommid "cannot play creatures", Pitlord "must choose Dis", Ember Imp 2-card limit, The Vaultkeeper no-steal) still need Phase 2.2/2.3 work.
-- **Phase 5 — measured twice.** After Phase 1 (`fad7c062-1c9b-40df-8c59-325f460ee1fc`): rank correlation **0.98** / pairwise agreement **95.7%** vs the baseline (`083dc1b0`), tier validation Spearman 0.44 → 0.50 / agreement 67.5% → 69.3%. After Phase 2.1 (`e72fcf30-7c69-47f2-88ae-7a729c7c022b`, current ladder): rank correlation **0.99** / agreement **96.7%** vs the Phase 1 ladder, tier validation Spearman **0.51** / agreement **69.6%**; declared fidelity 86.0%, avg rounds 11.6, 0 failures / 0 draws. The 15 aura cards are now heavily played (titan-mechanic 22k, staunch-knight 17k, protect-the-weak 7.5k plays). Diffs in `docs/fidelity/ladder-phi1-vs-baseline.txt` and `docs/fidelity/ladder-phi21-vs-phi1.txt`; standings in `docs/deck-pool/cota-ladder.md`. Highest-priority unverified cards: dust-pixie, vigor, giant-sloth, then the unverified FULL crowd led by urchin / shadow-self / charette / silvertooth / tocsin / shooler.
+- **Phase 2.2 — done first increment (event bus + reactions).** Typed events (`domain/engine/events/`): `CardPlayed`, `CreatureEnteredPlay`, `CreatureReaped`, `FightResolved` (with moribund destroyed flags), `CreatureDestroyed`, `CardLeftPlay`, `KeyForged`; emitted by `ActionExecutor` (play/reap/fight/destroy), `EffectResolver` (return-to-hand, sacrifice), and `TurnPhases` (key forge). Stateless `EventBus` walks cards in play (+ upgrades) and invokes a new `CardScript.onEvent(...)` hook; DSL `reaction(notes, effect, subscription, matches) { game, player, card, event -> ... }`. Destroyed cards cannot react to their own destruction, but their own "Leaves Play:" reactions still fire (Magda the Rat). Turn-scoped subscriptions ("for the remainder of the turn", Looter Goblin / Loot the Bodies) register game-level `TurnScopedReaction`s via `ActivateTurnReaction` so they keep firing after action cards leave play; cleared at end of turn. New effects: `LoseAmberOpponent`, `EventSideGainsAmber`/`EventSideLosesAmber` (owner/controller sides, `EventSubject` for fight participants), `StealFrom`, `ActivateTurnReaction`, `ReadyHost` (host readies + temporary house via `InPlayCard.baseHouse`, restored at turn start). 10 Core cards implemented: Soul Snatcher, Tolas, Pile of Skulls, Krump, Grommid (reaction; "cannot play creatures" restriction still pending), Carlo Phantom, Looter Goblin, Magda the Rat, Brain Stem Antenna, Loot the Bodies — plus Annihilation Ritual (manual script, `purgesDestroyedCreatures()` replacement effect; the old dishonest `reap(GainAmber(1))` Looter and `play(GainAmber(1))` Loot the Bodies were corrected). 13 unit tests in `ReactionsTest`. More reaction cards (Anger-triggered "after you reap" effects, AoA event cards) can now ride the bus.
+- **Phase 5 — ladder measured after each phase.** Each run: 42 decks, 30 matches/pairing, seed 12345, tactical AI.
+
+  | Ladder run | Batch | Rank corr. vs prev. | Pairwise agr. | Tier Spearman | Tier agreement |
+  |---|---|---:|---:|---:|---:|
+  | Baseline | `083dc1b0` | — | — | 0.44 | 67.5% |
+  | After Phase 1 (`fad7c062`) | splash, poison, moribund triggers | 0.98 | 95.7% | 0.50 | 69.3% |
+  | After Phase 2.1 (`e72fcf30`) | EffectRegistry auras (16 cards) | 0.99 | 96.7% | 0.51 | 69.6% |
+  | After Phase 2.2 (`21137849`) | event bus + 10 reaction cards | 0.97 | 94.7% | 0.45 | 67.9% |
+  | After Phase 2.2 fixes (`928c859e`) | Biomatrix archive path, event delivery, ForgeKey emit, BSA house reset | 1.00 | 100% | 0.45 | 67.9% |
+
+  Batch health every run: 0 failures, 0 draws, avg rounds ~11.6. Declared fidelity 85.1% → 86.0% → 86.4%.
+
+  **Phase 2.2 investigation (why tier validation dipped).** The dip is **tier-label staleness, not an
+  engine bug**. Evidence:
+
+  - Losses concentrate in specific matchups, not general drift: Zoe/González/Torsen all lost to
+    **Ingrid** (−17 to −30pp), and Lazzaro lost to Ulysses/Parthenia/Seraphina (−27 to −30pp).
+  - Ingrid's **krump + pile-of-skulls + the-warchest** destroy-and-tax engine was completely dead
+    before Phase 2.2 and now works — worth ~5–10pp vs fight-based decks.
+  - Lazzaro got genuinely weaker: his **annihilation-ritual** now purges his own destroyed creatures
+    (no discard recycling) and **magda-the-rat** taxes him 2A per death — both were free/broken before.
+  - Implementations verified against keyteki: `AnnihilationRitual.js` purges *any* creature leaving
+    play (no friendly/enemy filter) — matches ours. Krump/pile-of-skulls/magda fire exactly once per
+    correct trigger; an 8-match automated audit found zero double-fires and zero wrong-direction steals.
+
+  Conclusion: the affected hand tiers need re-labelling (Ingrid up; Lazzaro/González/Zoe down or
+  neutral), not a revert. Biggest mover: Lazzaro −5.9 points.
+
+  Highest-priority unverified cards: dust-pixie, vigor, giant-sloth, then the unverified FULL crowd
+  led by urchin / shadow-self / charette / silvertooth / tocsin / shooler.
+
+  Diffs: `docs/fidelity/ladder-phi1-vs-baseline.txt`, `ladder-phi21-vs-phi1.txt`,
+  `ladder-phi22-vs-phi21.txt`; standings: `docs/deck-pool/cota-ladder.md`.
 
 ## Project Goal
 
@@ -250,6 +283,8 @@ src/main/kotlin/com/aember/analyzer/
   - `SkipForgeNextTurn`, `ReturnCreaturesOfHouseFromDiscardToHand`
   - `ReturnAllCreaturesOfHouseToHand`, `ForgeKey`, `DrawPerCardInHand`, `ReadyCreaturesOfHousePerCardInHand`, `AddPowerCounters`, `SacrificeSelf`
   - `Sequence`, `Conditional`
+  - Event-reaction effects (Phase 2.2): `LoseAmberOpponent`, `EventSideGainsAmber`/`EventSideLosesAmber` (+ `EventSubject`), `StealFrom`, `ActivateTurnReaction`, `ReadyHost`
+- Event bus (`domain/engine/events/`): typed `GameEvent`s (`CardPlayed`, `CreatureEnteredPlay`, `CreatureReaped`, `FightResolved`, `CreatureDestroyed`, `CardLeftPlay`, `KeyForged`) dispatched by the stateless `EventBus` to `CardScript.onEvent`; DSL `reaction(...) { ... }` with `subscription = true` for turn-scoped reactions (game-level `TurnScopedReaction` list, cleared at end of turn).
 - Supported conditions in `domain/engine/dsl/Condition.kt`:
   - `OpponentHasMoreAmber`, `SelfHasMoreAmber`, `OpponentHasFewerCreatures`, `SelfHasFewerCreatures`
   - `OpponentAmberAtLeast(amount)`, `OpponentAmberAtMost(amount)`, `OpponentAmberExactly(amount)`, `SelfAmberAtLeast(amount)`
@@ -330,6 +365,7 @@ src/main/kotlin/com/aember/analyzer/
 - `VerifiedCardRegistryTest` — registry entries exist in the catalog and are declared FULL.
 - `CoreParityPilotTest` — 16 keyteki parity tests for 10 Core cards (Phase 1; see *Parity Harness* above).
 - `PersistentEffectsTest` — Phase 2.1 registry tests: auras (Banner of Battle, King of the Crag, Round Table, Niffle Queen, Grey Monk, Bulwark, Halacor), conditional modifiers (Staunch Knight, Shoulder Armor, Titan Mechanic), upgrade grants (Ring of Invisibility, Protect the Weak, Blood of Titans), dynamic amounts (Yxili Marauder, Mushroom Man), key-cost modifiers (Jammer Pack), aura-loss kills, and effective power driving fight damage.
+- `ReactionsTest` — Phase 2.2 event-bus tests: Soul Snatcher / Tolas (destroyed-creature amber), Pile of Skulls (own-turn capture), Krump / Grommid (fight-destroyed reactions), Carlo Phantom (artifact played), Looter Goblin / Loot the Bodies (turn-scoped subscriptions), Magda the Rat (leaves-play steal), Brain Stem Antenna (host ready + temporary Mars house until turn start), Annihilation Ritual (purge replacement).
 - `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
 - `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (only the first creature played each turn enters play ready).
 - `MarsEngineCardsTest` — unit tests for Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth, Jammer Pack key-cost aura, Biomatrix Backup archive-on-destroy, and enter-ready creatures.
@@ -364,6 +400,7 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 | Action execution | `domain/engine/action/ActionExecutor.kt`, `ActionGenerator.kt` |
 | DSL effects | `domain/engine/dsl/Effect.kt`, `EffectResolver.kt`, `CardDsl.kt`, `DslCardScript.kt` |
 | Static effects | `domain/engine/effects/EffectRegistry.kt`, `StaticEffect.kt` |
+| Event bus | `domain/engine/events/GameEvent.kt`, `EventBus.kt`, `dsl/CardDsl.kt` (reactions) |
 | Card definitions | `domain/engine/cards/CoreSetDslCards.kt`, `CoreCards.kt` |
 | Generator | `tools/generate-core-cards.py` |
 | Fidelity | `domain/engine/fidelity/FidelityLevel.kt`, `CardFidelity.kt`, `FidelityReportService.kt`, `VerifiedCardRegistry.kt`, `CardFidelityAggregator.kt` |

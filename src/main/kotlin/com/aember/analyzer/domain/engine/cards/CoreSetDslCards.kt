@@ -1,9 +1,11 @@
 package com.aember.analyzer.domain.engine.cards
 
 import com.aember.analyzer.domain.engine.dsl.*
+import com.aember.analyzer.domain.engine.events.*
 import com.aember.analyzer.domain.engine.effects.*
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.Keyword
+import com.aember.analyzer.domain.model.CardType
 import com.aember.analyzer.domain.model.House
 
 /**
@@ -48,8 +50,16 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("loot-the-bodies") {
-            play(GainAmber(1))
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            play(ActivateTurnReaction("enemy creature destroyed"))
+            reaction(
+                "for the remainder of the turn, gain 1 amber each time an enemy creature is destroyed",
+                effect = GainAmber(1),
+                subscription = true,
+                matches = { _, player, _, event ->
+                event is CreatureDestroyed && event.controllerIndex != player.index
+                }
+            )
+            fidelity(FidelityLevel.FULL, "Play activates a turn-scoped subscription; gain 1 amber per enemy creature destroyed this turn")
         },
     card("take-that-smartypants") {
             play(StealAmber(2))
@@ -110,8 +120,14 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("pile-of-skulls") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            reaction(
+                "each time an enemy creature is destroyed during your turn, a friendly creature captures 1 amber",
+                effect = CaptureAmber(1, FriendlyCreature())
+            ) { game, player, _, event ->
+                event is CreatureDestroyed && event.controllerIndex != player.index &&
+                    game.activePlayerIndex == player.index
+            }
+            fidelity(FidelityLevel.FULL, "Reaction: enemy creature destroyed on your turn -> friendly creature captures 1 amber")
         },
     card("screechbomb") {
             omni(LoseAmber(2, OpponentPlayer))
@@ -170,16 +186,32 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "Aura: each enemy Brobnar creature gets -2 power")
         },
     card("krump") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            reaction(
+                "after an enemy creature is destroyed fighting Krump, its controller loses 1 amber",
+                effect = EventSideLosesAmber(1, EventSide.CONTROLLER, EventSubject.DEFENDER),
+                matches = { _, player, card, event ->
+                    event is FightResolved && event.defenderDestroyed &&
+                        event.attackerCardId == card.cardId && event.attackerController == player.index &&
+                        event.defenderController != player.index
+                }
+            )
+            fidelity(FidelityLevel.FULL, "Reaction: enemy creature destroyed fighting Krump -> its controller loses 1 amber")
         },
     card("lomir-flamefist") {
             play(Conditional(OpponentAmberAtLeast(7), LoseAmber(2, OpponentPlayer)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("looter-goblin") {
-            reap(GainAmber(1))
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            reap(ActivateTurnReaction("enemy creature destroyed"))
+            reaction(
+                "for the remainder of the turn, gain 1 amber each time an enemy creature is destroyed",
+                effect = GainAmber(1),
+                subscription = true,
+                matches = { _, player, _, event ->
+                event is CreatureDestroyed && event.controllerIndex != player.index
+                }
+            )
+            fidelity(FidelityLevel.FULL, "Reap activates a turn-scoped subscription; gain 1 amber per enemy creature destroyed this turn")
         },
     card("mugwump") {
             play(NoEffect)
@@ -337,8 +369,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("soul-snatcher") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            reaction(
+                "each time a creature is destroyed, its owner gains 1 amber",
+                effect = EventSideGainsAmber(1, EventSide.OWNER)
+            ) { _, _, _, event -> event is CreatureDestroyed }
+            fidelity(FidelityLevel.FULL, "Reaction: each destroyed creature's owner gains 1 amber")
         },
     card("charette") {
             play(CaptureAmber(3, FriendlyCreature()))
@@ -433,8 +468,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("tolas") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            reaction(
+                "each time a creature is destroyed, its opponent gains 1 amber",
+                effect = EventSideGainsAmber(1, EventSide.CONTROLLER_OPPONENT)
+            ) { _, _, _, event -> event is CreatureDestroyed }
+            fidelity(FidelityLevel.FULL, "Elusive; reaction: each destroyed creature's opponent gains 1 amber")
         },
     card("truebaru") {
             destroyed(GainAmber(5))
@@ -811,8 +849,14 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("grommid") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            reaction(
+                "after an enemy creature is destroyed fighting Grommid, your opponent loses 1 amber",
+                effect = LoseAmberOpponent(1)
+            ) { _, player, card, event ->
+                event is FightResolved && event.defenderDestroyed &&
+                    event.attackerCardId == card.cardId && event.attackerController == player.index
+            }
+            fidelity(FidelityLevel.PARTIAL, "Reaction implemented (enemy destroyed fighting Grommid -> opponent loses 1 amber); 'you cannot play creatures' restriction not yet enforced")
         },
     card("john-smyth") {
             reap(NoEffect)
@@ -879,8 +923,16 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("brain-stem-antenna") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            reaction(
+                "after you play a Mars creature, ready this creature and it belongs to house Mars until end of turn",
+                effect = ReadyHost(House.MARS)
+            ) { _, player, card, event ->
+                val hostId = card.hostId
+                event is CardPlayed && event.house == House.MARS && event.type == CardType.CREATURE &&
+                    hostId != null && player.creatures.any { it.instanceId == hostId } &&
+                    event.playerIndex == player.index
+            }
+            fidelity(FidelityLevel.PARTIAL, "Upgrade: after you play a Mars creature the host readies and counts as Mars until end of turn; house counting beyond the turn reset not modeled")
         },
     card("jammer-pack") {
             play(NoEffect)
@@ -1255,8 +1307,14 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("carlo-phantom") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            reaction(
+                "each time you play an artifact, steal 1 amber",
+                effect = StealAmber(1),
+                matches = { _, player, _, event ->
+                event is CardPlayed && event.type == CardType.ARTIFACT && event.playerIndex == player.index
+                }
+            )
+            fidelity(FidelityLevel.FULL, "Elusive, skirmish; reaction: each artifact you play steals 1 amber")
         },
     card("deipno-spymaster") {
             omni(NoEffect)
@@ -1276,7 +1334,14 @@ val coreSetCards = listOf(
         },
     card("magda-the-rat") {
             play(StealAmber(2))
-            fidelity(FidelityLevel.PARTIAL, "Some effect sentences not mapped")
+            reaction(
+                "leaves play: your opponent steals 2 amber",
+                effect = StealFrom(2, SelfPlayer),
+                matches = { _, _, card, event ->
+                    event is CardLeftPlay && event.instanceId == card.instanceId
+                }
+            )
+            fidelity(FidelityLevel.FULL, "Play: steal 2 amber; leaves play: your opponent steals 2 amber")
         },
     card("mooncurser") {
             fight(StealAmber(1))
