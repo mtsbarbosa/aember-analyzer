@@ -317,7 +317,7 @@ class Scenario internal constructor(
     fun endTurn() {
         executor.execute(game, EndTurnAction)
         TurnPhases.endMainPhase(game)
-        if (TurnPhases.finishTurn(game)) return
+        if (TurnPhases.finishTurn(game, library)) return
         startTurn()
     }
 

@@ -42,8 +42,8 @@ class EffectResolver(
             target.deniedHouseNextTurn = effect.house
             game.log("${sourcePlayer.name} names ${effect.house} with Control the Weak; ${target.name} cannot choose it next turn")
         }
-        register<TakeControlUntilEndOfTurn> { game, sourcePlayer, _, effect ->
-            takeControlUntilEndOfTurn(game, sourcePlayer, effect)
+        register<TakeControlUntilEndOfTurn> { game, sourcePlayer, sourceCard, effect ->
+            takeControlUntilEndOfTurn(game, sourcePlayer, sourceCard, effect)
         }
         register<PlayTopCardOfHouse> { game, sourcePlayer, _, effect ->
             playTopCardOfHouse(game, targetPlayer(game, sourcePlayer, effect.player), effect.house)
@@ -70,10 +70,10 @@ class EffectResolver(
             returnCreaturesOfHouseFromDiscardToHand(game, targetPlayer(game, sourcePlayer, effect.player))
         }
         register<StealAmber> { game, player, _, effect -> stealAmber(game, player, effect.amount) }
-        register<CaptureAmber> { game, player, _, effect -> captureAmber(game, player, effect) }
+        register<CaptureAmber> { game, player, sourceCard, effect -> captureAmber(game, player, sourceCard, effect) }
         register<LoseAmber> { game, player, _, effect -> loseAmber(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<DealDamage> { game, _, sourceCard, effect -> dealDamage(game, sourceCard, effect) }
-        register<Destroy> { game, player, _, effect -> destroy(game, player, effect) }
+        register<Destroy> { game, player, sourceCard, effect -> destroy(game, player, sourceCard, effect) }
         register<Draw> { game, player, _, effect -> drawCards(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<DiscardRandom> { game, player, _, effect -> discardRandom(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<ReturnToHand> { game, _, sourceCard, effect -> returnToHand(game, sourceCard, effect) }
@@ -82,24 +82,24 @@ class EffectResolver(
         register<DenyCreatureFightsNextTurn> { game, player, _, _ -> game.opponent(player).cannotFightNextTurn = true }
         register<ReduceAmberTo> { game, _, _, effect -> reduceAmberTo(game, effect) }
         register<ShuffleSelfIntoDeck> { game, _, sourceCard, _ -> shuffleSelfIntoDeck(game, sourceCard) }
-        register<Archive> { game, player, _, effect -> archive(game, player, effect) }
-        register<Purge> { game, _, _, effect -> purge(game, effect) }
+        register<Archive> { game, player, sourceCard, effect -> archive(game, player, sourceCard, effect) }
+        register<Purge> { game, player, sourceCard, effect -> purge(game, player, sourceCard, effect) }
         register<Heal> { game, _, sourceCard, effect -> heal(game, sourceCard, effect) }
-        register<Ready> { game, _, _, effect -> ready(game, effect) }
+        register<Ready> { game, player, sourceCard, effect -> ready(game, player, sourceCard, effect) }
         register<Fight> { game, _, _, effect -> fight(game, effect) }
         register<GainChains> { game, player, _, effect -> targetPlayer(game, player, effect.player).chains += effect.amount }
         register<LoseChains> { game, player, _, effect ->
             val target = targetPlayer(game, player, effect.player)
             target.chains = (target.chains - effect.amount).coerceAtLeast(0)
         }
-        register<Stun> { game, _, _, effect -> stun(game, effect) }
-        register<Unstun> { game, _, _, effect -> unstun(game, effect) }
+        register<Stun> { game, player, sourceCard, effect -> stun(game, player, sourceCard, effect) }
+        register<Unstun> { game, player, sourceCard, effect -> unstun(game, player, sourceCard, effect) }
         register<DestroyMostPowerful> { game, player, _, effect -> destroyMostPowerful(game, player, effect.amount) }
         register<DestroyLeastPowerful> { game, player, _, effect -> destroyLeastPowerful(game, player, effect.amount) }
         register<DestroyWeakCreatures> { game, player, _, effect -> destroyWeakCreatures(game, player, effect.powerThreshold) }
-        register<ReadyAndFight> { game, player, _, effect -> readyAndFight(game, player, effect) }
-        register<ReadyAndUse> { game, _, _, effect -> readyAndUse(game, effect) }
-        register<UseCreature> { game, _, _, effect -> useCreature(game, effect) }
+        register<ReadyAndFight> { game, player, sourceCard, effect -> readyAndFight(game, player, sourceCard, effect) }
+        register<ReadyAndUse> { game, player, sourceCard, effect -> readyAndUse(game, player, sourceCard, effect) }
+        register<UseCreature> { game, player, sourceCard, effect -> useCreature(game, player, sourceCard, effect) }
         register<ReturnFromDiscardToHand> { game, player, _, effect -> returnFromDiscardToHand(game, targetPlayer(game, player, effect.player), effect.amount) }
         register<PlayTopCard> { game, player, _, effect -> playTopCard(game, targetPlayer(game, player, effect.player)) }
         register<SwapDeckAndDiscard> { game, player, _, effect -> swapDeckAndDiscard(game, targetPlayer(game, player, effect.player)) }
@@ -132,7 +132,7 @@ class EffectResolver(
             }
         }
         register<ReadyHost> { game, _, sourceCard, effect -> readyHost(game, sourceCard, effect) }
-        register<Exhaust> { game, _, _, effect -> exhaust(game, effect) }
+        register<Exhaust> { game, player, sourceCard, effect -> exhaust(game, player, sourceCard, effect) }
         register<ShuffleHandAndDiscardIntoDeck> { game, player, _, effect -> shuffleHandAndDiscardIntoDeck(game, targetPlayer(game, player, effect.player)) }
         register<ReturnAllCreaturesOfHouseToHand> { game, _, _, effect -> returnAllCreaturesOfHouseToHand(game, effect) }
         register<ForgeKey> { game, player, _, effect -> forgeKey(game, player, effect) }
@@ -146,18 +146,45 @@ class EffectResolver(
             game.log("${sourceCard.cardId} gets ${effect.amount} +1 power counter(s) (power: ${sourceCard.power})")
         }
         register<SacrificeSelf> { game, _, sourceCard, _ ->
-            val owner = game.player(sourceCard.ownerIndex)
-            if (!owner.creatures.remove(sourceCard)) {
-                owner.artifacts.remove(sourceCard)
+            sacrificeCreature(game, sourceCard)
+        }
+        register<Sacrifice> { game, player, sourceCard, effect ->
+            val targets = targetChooser.chooseCreature(game, effect.target.allScope(), sourceCard)
+            // Sacrificing is a cost: when the selector is friendly-only, give up the cheapest creature.
+            val target = (if (effect.target is FriendlyCreature) targets.cheapestFirst() else targets).firstOrNull()
+                ?: return@register
+            game.lastSacrificeSucceeded = true
+            sacrificeCreature(game, target)
+        }
+        register<RepeatWhile> { game, player, sourceCard, effect ->
+            var repeats = 0
+            while (repeats < effect.maxRepeats && evaluateCondition(game, player, effect.condition)) {
+                val before = stateSignature(game)
+                resolveInternal(game, player, sourceCard, effect.effect)
+                repeats++
+                // Progress guard: an iteration that changed nothing (e.g. a steal
+                // blocked by The Vaultkeeper) can never flip the condition, so
+                // stop instead of burning the remaining repeats.
+                if (stateSignature(game) == before) break
             }
-            owner.discard.add(sourceCard.cardId)
-            game.log("${sourceCard.cardId} is sacrificed")
-            if (library != null) {
-                EventBus.emit(
-                    library, game,
-                    CardLeftPlay(sourceCard.instanceId, sourceCard.cardId, sourceCard.ownerIndex, sourceCard.controllerIndex)
-                )
+        }
+        register<LoseHalfAmber> { game, _, _, _ ->
+            game.players.forEach { player ->
+                val lost = player.amber / 2
+                if (lost > 0) loseAmber(game, player, lost)
             }
+        }
+        register<ShuffleCreaturesIntoDeck> { game, player, sourceCard, effect ->
+            shuffleCreaturesIntoDeck(game, player, sourceCard, effect)
+        }
+        register<PutSelfOnTopOfDeck> { game, _, sourceCard, _ -> putSelfOnTopOfDeck(game, sourceCard) }
+        register<GrantDamageImmunity> { game, player, sourceCard, effect ->
+            val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
+            targets.forEach { it.immuneToDamageThisTurn = true }
+            game.log("${targets.size} creature(s) cannot be dealt damage for the remainder of the turn")
+        }
+        register<NextPlaysEnterReady> { game, player, _, effect ->
+            player.nextPlaysEnterReady += effect.count
         }
         register<RepeatForEach> { _, _, _, _ ->
             // Not used for simple cards yet.
@@ -175,6 +202,9 @@ class EffectResolver(
             game.lastStealAmount = 0
             game.lastDamageDestroyed = false
             game.lastDamagedTargetId = null
+            game.lastHealAmount = 0
+            game.lastHealedTargetId = null
+            game.lastSacrificeSucceeded = false
         }
         resolveInternal(game, sourcePlayer, sourceCard, effect)
     }
@@ -239,13 +269,13 @@ class EffectResolver(
         )
     }
 
-    private fun captureAmber(game: GameState, player: PlayerState, effect: CaptureAmber) {
+    private fun captureAmber(game: GameState, player: PlayerState, sourceCard: InPlayCard, effect: CaptureAmber) {
         val opponent = game.opponent()
         val playerBefore = player.amber
         val opponentBefore = opponent.amber
         val captured = min(effect.amount, opponent.amber)
         opponent.amber -= captured
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(player))
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         val target = targets.firstOrNull() ?: return
         target.capturedAmber += captured
         game.log(
@@ -353,8 +383,8 @@ class EffectResolver(
         }
     }
 
-    private fun destroy(game: GameState, sourcePlayer: PlayerState, effect: Destroy) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
+    private fun destroy(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Destroy) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
             target.damage = Int.MAX_VALUE
             game.lastDamagedTargetId = target.instanceId
@@ -407,8 +437,8 @@ class EffectResolver(
         }
     }
 
-    private fun archive(game: GameState, sourcePlayer: PlayerState, effect: Archive) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
+    private fun archive(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Archive) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
             val owner = game.player(target.ownerIndex)
             owner.creatures.remove(target)
@@ -417,8 +447,8 @@ class EffectResolver(
         }
     }
 
-    private fun purge(game: GameState, effect: Purge) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun purge(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Purge) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
             val owner = game.player(target.ownerIndex)
             owner.creatures.remove(target)
@@ -430,8 +460,14 @@ class EffectResolver(
     private fun heal(game: GameState, sourceCard: InPlayCard, effect: Heal) {
         val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
-            target.damage = (target.damage - effect.amount).coerceAtLeast(0)
-            game.log("${target.cardId} heals ${effect.amount}")
+            val healed = if (effect.fully) target.damage else min(effect.amount, target.damage)
+            target.damage = if (effect.fully) 0 else (target.damage - effect.amount).coerceAtLeast(0)
+            game.lastHealAmount += healed
+            game.lastHealedTargetId = target.instanceId
+            game.log(
+                if (effect.fully) "${sourceCard.cardId} fully heals ${target.cardId} ($healed damage)"
+                else "${target.cardId} heals ${effect.amount}"
+            )
         }
     }
 
@@ -463,8 +499,8 @@ class EffectResolver(
         }
     }
 
-    private fun ready(game: GameState, effect: Ready) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun ready(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Ready) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { it.exhausted = false }
     }
 
@@ -481,6 +517,10 @@ class EffectResolver(
     private fun applyDamage(game: GameState, card: InPlayCard, amount: Int) {
         if (amount <= 0) return
         val actualTarget = resolveDamageTarget(game, card)
+        if (actualTarget.immuneToDamageThisTurn) {
+            game.log("${actualTarget.cardId} cannot be dealt damage this turn")
+            return
+        }
         if (actualTarget.ward) {
             actualTarget.ward = false
             return
@@ -504,13 +544,13 @@ class EffectResolver(
         return redirector ?: card
     }
 
-    private fun stun(game: GameState, effect: Stun) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun stun(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Stun) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { it.stun = true; game.log("${it.cardId} is stunned") }
     }
 
-    private fun unstun(game: GameState, effect: Unstun) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun unstun(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Unstun) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { it.stun = false; game.log("${it.cardId} is unstunned") }
     }
 
@@ -533,8 +573,8 @@ class EffectResolver(
             }
     }
 
-    private fun readyAndFight(game: GameState, sourcePlayer: PlayerState, effect: ReadyAndFight) {
-        val attackers = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
+    private fun readyAndFight(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: ReadyAndFight) {
+        val attackers = targetChooser.chooseCreature(game, effect.target, sourceCard)
         val attacker = attackers.firstOrNull() ?: return
         attacker.exhausted = false
         val defender = game.opponent().creatures.randomWith(game.rng) ?: return
@@ -550,13 +590,13 @@ class EffectResolver(
         }
     }
 
-    private fun readyAndUse(game: GameState, effect: ReadyAndUse) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun readyAndUse(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: ReadyAndUse) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { it.exhausted = false; game.log("${it.cardId} readies and is used") }
     }
 
-    private fun useCreature(game: GameState, effect: UseCreature) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
+    private fun useCreature(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: UseCreature) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { game.log("${it.cardId} is used") }
     }
 
@@ -689,9 +729,102 @@ class EffectResolver(
         game.log("${player.name} chooses ${chosenHouse.name.lowercase()} and returns ${returned.size} creature(s) from discard to hand, gaining 1 chain")
     }
 
-    private fun exhaust(game: GameState, effect: Exhaust) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(game.activePlayer()))
-        targets.forEach { it.exhausted = true; game.log("${it.cardId} is exhausted") }
+    /** Where a card that leaves play through an effect ends up. */
+    private enum class LeaveDestination { DISCARD, SHUFFLE_INTO_DECK, TOP_OF_DECK }
+
+    /**
+     * Shared "creature leaves play" removal for effect-driven removals (sacrifice,
+     * shuffle-into-deck, put-self-on-deck). Mirrors the destroy path in
+     * [com.aember.analyzer.domain.engine.action.ActionExecutor.destroyCreature]:
+     * upgrades fall off to their owner's discard and the Annihilation Ritual
+     * purge replacement applies to discards (not to explicit deck destinations).
+     */
+    private fun leavePlay(game: GameState, card: InPlayCard, destination: LeaveDestination, logLine: String) {
+        val controller = game.player(card.controllerIndex)
+        val removed = controller.creatures.remove(card) || controller.artifacts.remove(card)
+        if (!removed) return
+        // Upgrades fall off to their owner's discard (mirrors the destroy path).
+        card.upgrades.forEach { upgrade -> game.player(upgrade.ownerIndex).discard.add(upgrade.cardId) }
+        card.upgrades.clear()
+        val owner = game.player(card.ownerIndex)
+        when (destination) {
+            LeaveDestination.SHUFFLE_INTO_DECK -> {
+                owner.library.add(card.cardId)
+                owner.library.shuffle(game.rng)
+                game.log(logLine)
+            }
+            LeaveDestination.TOP_OF_DECK -> {
+                owner.library.add(0, card.cardId)
+                game.log(logLine)
+            }
+            LeaveDestination.DISCARD -> {
+                // If a script already moved the card (Bad Penny to hand, Dextre to deck,
+                // …), do not also discard it.
+                val alreadyMoved = owner.hand.contains(card.cardId) || owner.archives.contains(card.cardId) ||
+                    owner.purged.contains(card.cardId) || owner.library.contains(card.cardId)
+                when {
+                    alreadyMoved -> game.log(logLine)
+                    purgeReplacementActive(game) -> {
+                        owner.purged.add(card.cardId)
+                        game.log("${card.cardId} is purged instead of discarded")
+                    }
+                    else -> {
+                        owner.discard.add(card.cardId)
+                        game.log(logLine)
+                    }
+                }
+            }
+        }
+        if (library != null) {
+            EventBus.emit(
+                library, game,
+                CardLeftPlay(card.instanceId, card.cardId, card.ownerIndex, card.controllerIndex)
+            )
+        }
+    }
+
+    private fun purgeReplacementActive(game: GameState): Boolean {
+        if (library == null) return false
+        return game.players.any { p ->
+            p.cardsInPlay().any { library!!.scriptFor(it.cardId).purgesDestroyedCreatures() }
+        }
+    }
+
+    /** Removes a creature from play and puts it in its owner's discard (sacrifice). */
+    private fun sacrificeCreature(game: GameState, card: InPlayCard) {
+        leavePlay(game, card, LeaveDestination.DISCARD, "${card.cardId} is sacrificed")
+    }
+
+    /** Shuffles chosen friendly/enemy creatures into their owners' decks (Lost in the Woods). */
+    private fun shuffleCreaturesIntoDeck(
+        game: GameState,
+        player: PlayerState,
+        sourceCard: InPlayCard,
+        effect: ShuffleCreaturesIntoDeck
+    ) {
+        val shuffled = mutableListOf<InPlayCard>()
+        shuffled += targetChooser.chooseCreature(game, FriendlyCreature(Scope.ALL), sourceCard)
+            .cheapestFirst().take(effect.friendlyCount)
+        shuffled += targetChooser.chooseCreature(game, EnemyCreature(Scope.ALL), sourceCard).take(effect.enemyCount)
+        shuffled.forEach { target ->
+            leavePlay(game, target, LeaveDestination.SHUFFLE_INTO_DECK, "${target.cardId} shuffles into its owner's deck")
+        }
+    }
+
+    /** Moves the resolving card from play to the top of its owner's deck (Dextre). */
+    private fun putSelfOnTopOfDeck(game: GameState, sourceCard: InPlayCard) {
+        val owner = game.player(sourceCard.ownerIndex)
+        leavePlay(game, sourceCard, LeaveDestination.TOP_OF_DECK, "${sourceCard.cardId} is put on top of ${owner.name}'s deck")
+    }
+
+    private fun exhaust(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Exhaust) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
+        val selected = effect.count?.let { n ->
+            // Exhausting is only worth anything on ready creatures; enemies first, our own cheapest last.
+            val (mine, theirs) = targets.filter { !it.exhausted }.partition { it.controllerIndex == sourceCard.controllerIndex }
+            (theirs + mine.cheapestFirst()).take(n)
+        } ?: targets
+        selected.forEach { it.exhausted = true; game.log("${it.cardId} is exhausted") }
     }
 
     private fun shuffleHandAndDiscardIntoDeck(game: GameState, player: PlayerState) {
@@ -768,8 +901,8 @@ class EffectResolver(
         game.log("${target.name} readies ${readied.size} ${effect.house.name.lowercase()} creature(s)")
     }
 
-    private fun takeControlUntilEndOfTurn(game: GameState, sourcePlayer: PlayerState, effect: TakeControlUntilEndOfTurn) {
-        val targets = targetChooser.chooseCreature(game, effect.target, dummySource(sourcePlayer))
+    private fun takeControlUntilEndOfTurn(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: TakeControlUntilEndOfTurn) {
+        val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         val target = targets.firstOrNull() ?: return
         val currentOwner = game.players.find { p -> p.creatures.contains(target) } ?: return
         if (currentOwner.index == sourcePlayer.index) return
@@ -893,6 +1026,8 @@ class EffectResolver(
             SelfAmberAtLeast::class to { c, _, _ -> player.amber >= (c as SelfAmberAtLeast).amount },
             StealSucceeded::class to { _, g, _ -> g.lastStealAmount > 0 },
             DamageDestroyedTarget::class to { _, g, _ -> g.lastDamageDestroyed },
+            SacrificedTarget::class to { _, g, _ -> g.lastSacrificeSucceeded },
+            HealedAtLeast::class to { c, g, _ -> g.lastHealAmount >= (c as HealedAtLeast).amount },
             OpponentForgedKeyLastTurn::class to { _, g, _ -> g.opponent().forgedKeyLastTurn },
             CardsOfHousePlayedThisTurn::class to { c, _, p ->
                 val cond = c as CardsOfHousePlayedThisTurn
@@ -911,6 +1046,21 @@ class EffectResolver(
             is OpponentPlayer -> game.opponent()
         }
     }
+
+    /** Cost-style choices (sacrifice, shuffle away): lowest power first, then already exhausted, then damaged. */
+    private fun List<InPlayCard>.cheapestFirst(): List<InPlayCard> =
+        sortedWith(compareBy<InPlayCard> { it.power }.thenBy { !it.exhausted }.thenBy { -it.damage })
+
+    private fun CreatureSelector.allScope(): CreatureSelector =
+        if (this is FriendlyCreature) FriendlyCreature(Scope.ALL) else this
+
+    /**
+     * Lightweight observable-state signature for the [RepeatWhile] progress
+     * guard: amber totals and creature counts. Effects that change neither
+     * cannot make progress toward flipping a condition.
+     */
+    private fun stateSignature(game: GameState): Pair<List<Int>, Int> =
+        game.players.map { it.amber } to game.players.sumOf { it.creatures.size }
 
     private fun dummySource(player: PlayerState): InPlayCard {
         return InPlayCard(

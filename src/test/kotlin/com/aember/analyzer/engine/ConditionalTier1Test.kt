@@ -4,6 +4,7 @@ import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.action.ActionExecutor
 import com.aember.analyzer.domain.engine.action.PlayCardAction
 import com.aember.analyzer.domain.engine.cards.coreSetCards
+import com.aember.analyzer.domain.engine.cards.dslCardOverrides
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
 import com.aember.analyzer.domain.model.CardType
@@ -36,7 +37,7 @@ class ConditionalTier1Test {
         val catalog = tier1Cards.associateWith { makeCard(it) }
         val library = CardLibrary(catalog)
         val resolver = EffectResolver(library = library)
-        coreSetCards.filter { it.first in tier1Cards }
+        (coreSetCards + dslCardOverrides).filter { it.first in tier1Cards }
             .forEach { (id, definition) -> library.register(id, DslCardScript(definition, resolver)) }
         return library
     }

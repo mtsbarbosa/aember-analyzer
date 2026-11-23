@@ -18,7 +18,9 @@ not a pass/fail gate.
 import argparse
 import json
 import os
+import re
 import sys
+from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ratings_io import load_names, load_ratings  # noqa: E402
@@ -73,6 +75,27 @@ def pairwise_agreement(a, b):
     return agree / total if total else float("nan")
 
 
+def batch_timestamps(uuid):
+    """(createdAt, completedAt) from the batch.json of a stored batch, or None."""
+    path = os.path.join(".simulations", uuid, "batch.json")
+    try:
+        meta = json.load(open(path))
+    except Exception:
+        return None
+    return meta.get("createdAt"), meta.get("completedAt")
+
+
+def stamp_line(old_uuid, new_uuid):
+    """Header stamp: generation time plus both batches' timestamps (UTC)."""
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S %Z")
+    parts = [f"generated: {now}"]
+    for tag, uuid in (("old", old_uuid), ("new", new_uuid)):
+        ts = batch_timestamps(uuid)
+        if ts and ts[1]:
+            parts.append(f"{tag} batch completed: {ts[1]}")
+    return " | ".join(parts)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("old_batch")
@@ -106,6 +129,7 @@ def main():
     agreement = pairwise_agreement(old_r, new_r)
     lines = []
     lines.append(f"ladder comparison: {args.old_batch} -> {args.new_batch}")
+    lines.append(stamp_line(args.old_batch, args.new_batch))
     lines.append(f"rank correlation between ladders: {corr:.3f} | pairwise agreement: {agreement * 100:.1f}%")
     lines.append("")
     lines.append(f"{'rank':>4} {'deck':44} {'old':>4} {'new':>4} {'drk':>4} {'old':>6} {'new':>6} {'dA':>6} {'win%':>6}")
@@ -135,9 +159,18 @@ def main():
     report = "\n".join(lines)
     print(report)
     if args.out:
+        # Prefix the filename with the new batch's completion time
+        # (yyyyMMdd__HH_mm_ss, UTC) unless the name already carries a stamp.
+        ts = batch_timestamps(args.new_batch)
+        dirn, base = os.path.split(args.out)
+        if ts and ts[1] and not re.match(r"\d{8}__\d{2}_\d{2}_\d{2}", base):
+            completed = ts[1].split(".")[0].replace("-", "").replace("T", "__").replace(":", "_")
+            base = f"{completed}-{base}"
+        args.out = os.path.join(dirn, base) if dirn else base
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         with open(args.out, "w") as f:
             f.write(report + "\n")
+        print(f"written: {args.out}")
     return 0
 
 

@@ -28,6 +28,8 @@ data class InPlayCard(
     var enrage: Boolean = false,
     var elusiveUsed: Boolean = false,
     var attackedThisTurn: Boolean = false,
+    /** Cannot be dealt damage for the remainder of the turn (Protectrix, Shield of Justice). */
+    var immuneToDamageThisTurn: Boolean = false,
     var keywords: Map<String, Int> = emptyMap(),
     var traits: List<String> = emptyList(),
     var upgrades: MutableList<InPlayCard> = mutableListOf(),

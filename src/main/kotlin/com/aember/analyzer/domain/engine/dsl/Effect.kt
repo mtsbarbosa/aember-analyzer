@@ -60,7 +60,7 @@ data class Archive(val target: CreatureSelector) : Effect
 
 data class Purge(val target: CreatureSelector) : Effect
 
-data class Heal(val amount: Int, val target: CreatureSelector) : Effect
+data class Heal(val amount: Int, val target: CreatureSelector, val fully: Boolean = false) : Effect
 
 data class Ready(val target: CreatureSelector) : Effect
 
@@ -163,7 +163,7 @@ data class ActivateTurnReaction(val tag: String) : Effect
 /** Readies the host creature of an upgrade and optionally changes its house until end of turn. */
 data class ReadyHost(val houseUntilEndOfTurn: House? = null) : Effect
 
-data class Exhaust(val target: CreatureSelector) : Effect
+data class Exhaust(val target: CreatureSelector, val count: Int? = null) : Effect
 
 data class ShuffleHandAndDiscardIntoDeck(val player: TargetPlayer) : Effect
 
@@ -187,6 +187,33 @@ data class ReadyCreaturesOfHousePerCardInHand(val house: House, val player: Targ
 data class AddPowerCounters(val amount: Int) : Effect
 
 data object SacrificeSelf : Effect
+
+/** Sacrifices a chosen friendly creature in play (Pawn Sacrifice); sets SacrificedTarget. */
+data class Sacrifice(val target: CreatureSelector) : Effect
+
+/**
+ * Resolves [effect] repeatedly while [condition] holds, up to [maxRepeats]
+ * (Bait and Switch: steal 1 amber while the opponent has more).
+ */
+data class RepeatWhile(val condition: Condition, val effect: Effect, val maxRepeats: Int = 20) : Effect
+
+/** Each player loses half their amber, rounding down the loss (Effervescent Principle). */
+data object LoseHalfAmber : Effect
+
+/**
+ * Shuffles up to [friendlyCount] friendly and [enemyCount] enemy creatures into
+ * their owners' decks (Lost in the Woods).
+ */
+data class ShuffleCreaturesIntoDeck(val friendlyCount: Int = 2, val enemyCount: Int = 2) : Effect
+
+/** Moves the resolving card from play to the top of its owner's deck (Dextre). */
+data object PutSelfOnTopOfDeck : Effect
+
+/** Chosen creatures cannot be dealt damage for the remainder of the turn. */
+data class GrantDamageImmunity(val target: CreatureSelector) : Effect
+
+/** The next [count] creatures/artifacts the resolving player plays enter play ready (Soft Landing). */
+data class NextPlaysEnterReady(val count: Int) : Effect
 
 data class Sequence(val effects: List<Effect>) : Effect
 

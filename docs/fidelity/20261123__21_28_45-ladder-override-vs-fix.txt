@@ -1,0 +1,51 @@
+ladder comparison: fec052e9-fae7-4053-9367-7242bbe2101f -> 03ea7290-d454-4f0c-88cf-e1c445e71ef8
+generated: 2026-11-23 21:35:03 UTC | old batch completed: 2026-11-23T20:43:16.886869627Z | new batch completed: 2026-11-23T21:28:45.714956706Z
+rank correlation between ladders: 1.000 | pairwise agreement: 100.0%
+
+rank deck                                          old  new  drk    old    new     dA   win%
+   1 Galilee el Obtuso, Canciller de la Estación     1    1    0   79.0   79.0   +0.0   87.7
+   2 Chang, Tower Baroness                           2    2    0   77.4   77.4   +0.0   86.3
+   3 Violet, a Grosseira, Inventora do Cemitério     3    3    0   71.3   71.3   +0.0   79.8
+   4 Giulia, Xamã do Monumento Vítreo                4    4    0   66.3   66.3   +0.0   73.3
+   5 Ingrid, Quanland Borrower                       5    5    0   65.0   65.0   +0.0   71.5
+   6 The Public Butcher Brewer of Quakehell          6    6    0   63.9   63.9   +0.0   69.9
+   7 Accomplished Porthos of the Bar                 7    7    0   63.4   63.4   +0.0   69.1
+   8 Mehitabel, a Raivosa, Protetora do Retiro       8    8    0   62.5   62.5   +0.0   67.8
+   9 U. Smitheson, the Square Bard                   9    9    0   60.9   60.9   +0.0   65.3
+  10 Galilee, o Engenhoso, Traidor da Loja          10   10    0   60.0   60.0   +0.0   63.7
+  11 Mustabos, Spawn of Bestispike                  11   11    0   59.7   59.7   +0.0   63.3
+  12 Martínez, Marshcot's Painter                   12   12    0   59.0   59.0   +0.0   62.2
+  13 Fignor, the Crook of Carnivals                 13   13    0   58.3   58.3   +0.0   60.9
+  14 Patricia, Hacker da Vila Primordial            14   14    0   56.8   56.8   +0.0   58.5
+  15 “Procione”, Scriba di Missilespezzato          15   15    0   55.7   55.7   +0.0   56.6
+  16 Time-stopper Kadence Lockenpsen                16   16    0   54.4   54.4   +0.0   54.3
+  17 Lazzaro “Ascia” lo Scaltro                     17   17    0   53.7   53.7   +0.0   53.0
+  18 Rutherford a Dourada                           18   18    0   52.4   52.4   +0.0   50.7
+  19 The Boy who Basically Headbutts Heaven         19   19    0   52.1   52.1   +0.0   50.2
+  20 P. Crowe, Vicedirettrice di Cigliafugace       20   20    0   51.8   51.8   +0.0   49.7
+  21 Gold la Magnifique                             21   21    0   50.3   50.3   +0.0   47.0
+  22 Zeb, Bandit of the Quirky Cell                 22   22    0   49.7   49.7   +0.0   45.9
+  23 Vitositus, the Enchantress Traveller           23   23    0   49.1   49.1   +0.0   44.8
+  24 Everlasting “Linguini” Lewry                   24   24    0   48.8   48.8   +0.0   44.3
+  25 Seraphina, a Opulenta, Filósofa do Museu       25   25    0   48.7   48.7   +0.0   44.1
+  26 Curtius, the Sycophant of Constellations       26   26    0   48.5   48.5   +0.0   43.9
+  27 "Greeneyes" Ulysses, Circuit Tickler           27   27    0   48.5   48.5   +0.0   43.8
+  28 Blindingly Shamed Olga                         28   28    0   47.3   47.3   +0.0   41.7
+  29 Benedict, Oldhell's Eunuch                     29   29    0   47.0   47.0   +0.0   41.1
+  30 Boxmon, the Raving Tower Butcher               30   30    0   46.8   46.8   +0.0   40.9
+  31 Eraz-Toth, the Solid City Doctor               31   31    0   46.7   46.7   +0.0   40.7
+  32 The Quick Sycophant of Claybourne              32   32    0   45.5   45.5   +0.0   38.6
+  33 Fast Benedora of the Acropolis                 33   33    0   45.4   45.4   +0.0   38.4
+  34 Parthenia “Garra”, a Precavida                 34   34    0   44.2   44.2   +0.0   36.4
+  35 Jules Y. Laserson, Junior                      35   35    0   41.4   41.4   +0.0   31.9
+  36 Zoe Molren, Khan di Timonebecero               36   36    0   41.1   41.1   +0.0   31.4
+  37 D. Ewing, the Canyon Rogue                     37   37    0   40.4   40.4   +0.0   30.3
+  38 González the Swiftly Secret                    38   38    0   39.4   39.4   +0.0   28.7
+  39 Torsen, Duca Tossico                           39   39    0   36.1   36.1   +0.0   24.0
+  40 Gideon "Dreaded Hellfire" de La Mare           40   40    0   35.6   35.6   +0.0   23.3
+  41 Chaos, Baltiholt's Deuce                       41   41    0   35.3   35.3   +0.0   22.8
+  42 Xipty J. Buwaaoki, The Fifteenth               42   42    0   34.7   34.7   +0.0   22.0
+
+tier validation (old, 42 labelled decks): Spearman 0.37, pairwise agreement 64.7%
+
+tier validation (new, 42 labelled decks): Spearman 0.37, pairwise agreement 64.7%

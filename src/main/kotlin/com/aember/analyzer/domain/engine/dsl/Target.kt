@@ -49,6 +49,30 @@ data object AllCreaturesOfChosenHouse : CreatureSelector
  */
 data object LastDamagedTarget : CreatureSelector
 
+/**
+ * Selects a creature other than the one most recently damaged during the current
+ * effect resolution (Twin Bolt Emission, Pawn Sacrifice: two different creatures).
+ */
+data object AnyCreatureExceptLastDamaged : CreatureSelector
+
+/**
+ * Selects the creature most recently healed during the current effect resolution
+ * (Protectrix: "fully heal a creature ... that creature cannot be dealt damage").
+ */
+data object LastHealedTarget : CreatureSelector
+
+/**
+ * Selects the creatures adjacent to the resolving creature in its controller's
+ * battleline (Sergeant Zakiel: "ready and fight with a neighboring creature").
+ */
+data object NeighborOfSelf : CreatureSelector
+
+/**
+ * Selects creatures that are not on a flank of their controller's battleline
+ * (Booby Trap: "a creature that is not on a flank").
+ */
+data object CreatureNotOnFlank : CreatureSelector
+
 sealed interface TargetPlayer
 data object SelfPlayer : TargetPlayer
 data object OpponentPlayer : TargetPlayer

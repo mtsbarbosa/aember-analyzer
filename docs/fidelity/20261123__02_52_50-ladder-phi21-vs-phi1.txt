@@ -1,4 +1,5 @@
 ladder comparison: fad7c062-1c9b-40df-8c59-325f460ee1fc -> e72fcf30-7c69-47f2-88ae-7a729c7c022b
+generated: 2026-11-23 21:35:20 UTC | old batch completed: 2026-11-23T02:11:20.460880331Z | new batch completed: 2026-11-23T02:52:50.008851974Z
 rank correlation between ladders: 0.990 | pairwise agreement: 96.7%
 
 rank deck                                          old  new  drk    old    new     dA   win%

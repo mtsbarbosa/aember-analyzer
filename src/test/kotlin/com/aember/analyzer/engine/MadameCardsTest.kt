@@ -10,6 +10,7 @@ import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
 import com.aember.analyzer.domain.engine.cards.SpeedSigil
 import com.aember.analyzer.domain.engine.cards.coreSetCards
+import com.aember.analyzer.domain.engine.cards.dslCardOverrides
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
 import com.aember.analyzer.domain.engine.dsl.TurnTrigger
@@ -41,7 +42,7 @@ class MadameCardsTest {
         )
         val library = CardLibrary(catalog)
         val resolver = EffectResolver(library = library)
-        coreSetCards.filter { it.first in setOf("warsong", "gauntlet-of-command", "skeleton-key") }
+        (coreSetCards + dslCardOverrides).filter { it.first in setOf("warsong", "gauntlet-of-command", "skeleton-key") }
             .forEach { (id, definition) -> library.register(id, DslCardScript(definition, resolver)) }
         library.register("drumble", Drumble)
         library.register("ether-spider", EtherSpider)

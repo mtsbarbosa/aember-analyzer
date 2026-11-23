@@ -20,6 +20,12 @@ object StealSucceeded : Condition
 object DamageDestroyedTarget : Condition
 object OpponentForgedKeyLastTurn : Condition
 
+/** True when the last Sacrifice effect in this resolution removed a creature. */
+object SacrificedTarget : Condition
+
+/** True when at least [amount] damage was healed by the last Heal effect in this resolution. */
+data class HealedAtLeast(val amount: Int) : Condition
+
 /**
  * True when the source player has at least one creature card in hand.
  */

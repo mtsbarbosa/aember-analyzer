@@ -151,7 +151,96 @@ tiers, which is itself useful information.
 `TacticalAI` is part of the model. Once cards are verified, rerun the ladder with the other
 profiles (`aggressive`, `economic`, `greedy`) and check whether some deck styles (archive/combo,
 control) are systematically misrated. Possible follow-ups: lookahead, deck-archetype profiles.
-Out of scope until Phases 0–5 land.
+Out of scope until Phases 0–5 land, except 6a below (cheap, and it affects how honest the board-wipe
+cards in Phase 3 are).
+
+### Phase 6a — Situational card valuation (hold / play / discard timing)
+
+**Problem.** `TacticalAI` scores a play from its card type only (action ≈ 1.0 + 0.3/amber), discard has a
+flat weight, and `scoreHouse` only counts playable cards. So a board wipe is played the first turn its
+house is chosen (even on an empty enemy board or a board where we are ahead), and it can be discarded as
+fodder even when its house is about to be playable. Same for soft wipes (Lost in the Woods, Gateway to Dis,
+Hypnotic-style resets) and any "situational" card. Because the rating is only as good as the play
+quality, this bias also distorts how wipe-heavy decks rate.
+
+**Design (heuristic, no lookahead).**
+1. **Tag situational cards from data, not names.** A small resource `ai/situational-cards.txt`
+   (`card-id  WIPE_FULL|WIPE_SOFT|…`), seeded from the inventory (text "destroy each/all creatures",
+   "shuffle/return … creatures", "each creature takes damage"). Cards not tagged keep today's scoring.
+2. **Board-delta value for wipes.** Value = enemy board worth destroyed − own board worth lost (worth =
+   power + keywords + captured amber, reusing `evaluateCreatureThreat`). Play now when the delta
+   exceeds a threshold; below it the play gets a *hold penalty* (≈ −their base score), so other plays and
+   the discard slot win. Soft wipes use the same delta with their actual effect (e.g. shuffle-2-and-2).
+3. **Override when forced.** Ignore the hold penalty when (a) the enemy board is oppressive (delta very
+   large, or enemy amber/keys put us within 1–2 turns of losing) or (b) the wipe is the only
+   remaining play for the house. Never hold a wipe forever: after N turns held, relax the threshold.
+4. **Anticipation (the "I'll play that house soon" case).** Estimate `P(house playable within k turns)`
+   from: other cards of that house in hand, unseen cards of that house left in the deck (deck not yet
+   reshuffled ⇒ fewer left), and turns since that house was last chosen. Use it for:
+   - **Discard choice:** keep value = situational value × P(play soon); discard the wipe only when P is
+     low *or* our board is already strong *or* the house cannot realistically come back (the user's
+     "played that house often, deck didn't reshuffle" case). Never discard a wipe while another
+     low-value card is available.
+   - **Archive instead of discard.** For a held situational card whose house is *probably* coming back
+     (or whose condition is likely to be met later), archiving beats discarding: it is safe from
+     discard/hand-wipe effects and is picked up at the next archive-take. Cost: it uses the archive
+     slot and the card is only recoverable by taking the whole archive, so prefer it when the archive is
+     empty or holds low-value cards, and when no key-cheat/hand-size pressure says otherwise.
+   - **House choice:** bonus for the wipe's house when delta is high; small penalty for deploying creatures
+     of other houses into a board we are about to wipe when the wipe is likely next turn.
+5. **Sequencing inside the turn.** When the wipe and creatures share the house, play the wipe *first*, then
+   deploy creatures onto the cleared board (and the reverse for creatures that should not be wiped).
+6. **Other situational cards that fit the same framework** (second pass, only if the first moves ratings):
+   steal/capture cards when the opponent has few amber (already partly penalised), hand-disruption
+   when the opponent's hand is small, archive-instead-of-discard for a held wipe (Archives exist in the
+   engine), forge-race awareness (a wipe does not stop a forge next turn), skip wipes on an empty enemy
+   board.
+
+**Implementation notes.** New `SituationalValuation` helper used by `scorePlayCard`, the discard scoring in
+`scoreAction`, and `scoreHouse`; gated behind an `AISettings.situationalValuation` flag so the default
+profile stays reproducible (A/B in the same ladder harness). The AI logs the rationale string
+(`hold wipe: delta=…`) like the existing tactical rationale.
+
+**Verification.** Unit tests on constructed boards (hold with strong own board, play when behind, forced
+play when opponent is about to win, keep-vs-discard with/without the house in hand, wipe-before-creatures
+sequencing). Then A/B: same pool/seed with the flag off vs on; compare ratings of wipe-heavy decks
+(movers) and tier validation. Expect small, localized movement; a large global shift means the
+thresholds are wrong, not that the AI is better. Do **not** tune against the hand tiers.
+
+### Phase 6b — Key cheats and other condition-gated cards
+
+Same framework as 6a, different gate. Key cheats (Key Charge, Chota Hazri, Key of Darkness, Epic Quest —
+implemented via `ForgeKey`) are only strong when their condition holds, so the AI should *hold* them
+until it can fulfil it, not fire them at the first opportunity (or discard them as fodder).
+
+1. **Gate = "can I cash this in within k turns?"** estimated per card from the engine state:
+   - amber-cost keys: current amber vs. the effective forge cost (`ForgeRules.keyCost`, including
+     modifiers) plus the card's own cost/penalty — play when the resulting forge actually happens, and
+     avoid the line where the cost is paid but the forge fails;
+   - progress conditions (Epic Quest: Sanctum plays so far this game/turn, `cardsPlayedThisTurnByHouse`):
+     hold while achievable, with a rising keep value as progress accumulates;
+   - board conditions (a specific creature/artifact in play, a flank, an empty enemy board): hold while
+     the condition is plausible from hand + board, play when satisfied.
+2. **Tempo comparison.** Compare "forge now with the cheat" against "forge normally next turn": the cheat
+   is worth most when it forges a key the opponent could not prevent or when it is a *turn faster* than
+   the normal forge; worth little when we would forge anyway.
+3. **Same hold/override/decay rules as 6a** — override when it wins the game (3rd key) or when the
+   opponent is about to; decay the hold so a never-satisfiable cheat eventually gets archived/discarded.
+4. **Keep vs. archive vs. discard** reuse the 6a decision: keep when the condition is likely soon,
+   archive when it is plausible later, discard only when it is unreachable (e.g. opponent steals our
+   amber lead, key-cost raisers in play, condition cards already destroyed).
+5. **Other condition-gated cards that can reuse the gate** (second pass): cards with "if you have N
+   keys/amber/creatures" bonuses, `playableIf` cards (the engine already refuses illegal plays), and
+   cards whose payoff depends on opponent state (steal when they have ≥ N amber).
+
+**Verification (6b).** Scenario tests: Key Charge held when amber is short and played when the forge will
+go through; Epic Quest kept at 5–6 Sanctum plays and discarded when impossible; override on the winning
+key; archive choice when the archive is free. A/B ladder like 6a; expect movement mostly in key-cheat
+decks, so report per-deck movers and keep the rest of the pool as a control group.
+
+**Caveats.** Heuristics, not lookahead; thresholds are guesses to be checked against logs. The Phase 3
+wipe cards should be audited against keyteki before the AI is tuned around them, otherwise we tune
+around a mis-implemented card.
 
 ## Phase 7 — Prepare for more sets
 

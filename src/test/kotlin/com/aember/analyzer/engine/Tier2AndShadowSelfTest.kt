@@ -9,6 +9,7 @@ import com.aember.analyzer.domain.engine.action.ReapUse
 import com.aember.analyzer.domain.engine.action.UseCreatureAction
 import com.aember.analyzer.domain.engine.cards.ShadowSelf
 import com.aember.analyzer.domain.engine.cards.coreSetCards
+import com.aember.analyzer.domain.engine.cards.dslCardOverrides
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
 import com.aember.analyzer.domain.model.CardType
@@ -36,7 +37,7 @@ class Tier2AndShadowSelfTest {
         val catalog = (dslCards + setOf("shadow-self")).associateWith { makeCard(it) }
         val library = CardLibrary(catalog)
         val resolver = EffectResolver(library = library)
-        coreSetCards.filter { it.first in dslCards }
+        (coreSetCards + dslCardOverrides).filter { it.first in dslCards }
             .forEach { (id, definition) -> library.register(id, DslCardScript(definition, resolver)) }
         library.register("shadow-self", ShadowSelf)
         return library

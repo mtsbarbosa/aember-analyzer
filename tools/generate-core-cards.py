@@ -3,6 +3,7 @@
 Generates a Kotlin DSL file with Core set card definitions from keyteki's CotA.json.
 Cards whose text does not match a known pattern are left as vanilla (no definition).
 """
+import argparse
 import json
 import re
 import pathlib
@@ -58,7 +59,7 @@ def parse_effect(text: str) -> str | None:
 
     # Splash damage suffix, e.g. "Deal 4<D> to a creature with 2<D> splash."
     splash_m = re.search(rf'with (\d+) *{D} splash', t)
-    splash_arg = f', splash={splash_m.group(1)}' if splash_m else ''
+    splash_arg = f', splash = {splash_m.group(1)}' if splash_m else ''
 
     # Deal X damage to each enemy creature
     m = re.search(rf'deal (\d+) *{D} to each enemy creature', t)
@@ -367,6 +368,16 @@ def build_card_definition(card: dict) -> str | None:
     # slugify(name) drops typographic apostrophes and mismatches (Coward’s End, ...).
     slug = re.sub(r'[^a-z0-9-]', '', card['id'].lower())
 
+    if slug in OVERRIDDEN_ELSEWHERE:
+        # Inert placeholder; the real implementation lives in an override list in
+        # CoreCards.kt and wins at registration. No trailing comma: main() joins
+        # definitions with ',\n'.
+        return (f'card("{slug}") {{\n'
+                '            // Implemented by an override list in CoreCards.kt; not generated.\n'
+                '            play(NoEffect)\n'
+                '            fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")\n'
+                '        }')
+
     play = None
     reap = None
     fight = None
@@ -444,7 +455,43 @@ def build_card_definition(card: dict) -> str | None:
     return 'card("%s") {\n        %s\n    }' % (slug, body)
 
 
+# Cards implemented by hand in CoreCards.kt (`dslCardOverrides`) and manual
+# CardScript objects. The generator emits an inert placeholder for them; the
+# override list wins at registration, so regenerating CoreSetDslCards.kt never
+# reverts them.
+OVERRIDDEN_ELSEWHERE = {
+    'champion-anaphiel', 'snufflegator', 'macis-asp', 'ancient-bear', 'briar-grubbling',
+    'lupo-the-scarred', 'mighty-tiger', 'murmook', 'iron-obelisk', 'foggify', 'skippy-timehog',
+    'scrambler-storm', 'doorstep-to-heaven', 'timetraveller', 'lady-maxena', 'yo-mama-mastery',
+    'way-of-the-bear', 'way-of-the-wolf', 'chuff-ape',
+    'bait-and-switch', 'effervescent-principle', 'lost-in-the-woods', 'mother', 'succubus',
+    'niffle-ape', 'soft-landing', 'shield-of-justice', 'protectrix', 'vigor', 'twin-bolt-emission',
+    'pawn-sacrifice', 'seeker-needle', 'sergeant-zakiel', 'dextre', 'booby-trap',
+    'nocturnal-maneuver', 'terms-of-redress', 'duskrunner', 'tunk', 'nepenthe-seed',
+    'ritual-of-balance', 'fear',
+    'banner-of-battle', 'battle-fleet', 'blinding-light', 'blood-of-titans', 'bouncing-deathquark',
+    'brain-stem-antenna', 'bulwark', 'burn-the-stockpile', 'carlo-phantom', 'chota-hazri', 'commpod',
+    'control-the-weak', 'dr-escotera', 'ember-imp', 'epic-quest', 'flame-wreathed', 'flaxia',
+    'ghostly-hand', 'grey-monk', 'grommid', 'halacor', 'hebe-the-huge', 'hypnotic-command',
+    'invasion-portal', 'john-smyth', 'kelifi-dragon', 'key-abduction', 'key-charge',
+    'key-of-darkness', 'king-of-the-crag', 'krump', 'library-access', 'lomir-flamefist',
+    'loot-the-bodies', 'looter-goblin', 'magda-the-rat', 'mushroom-man', 'nerve-blast',
+    'neuro-syphon', 'neutron-shark', 'niffle-queen', 'phosphorus-stars', 'pile-of-skulls',
+    'pitlord', 'protect-the-weak', 'relentless-whispers', 'ring-of-invisibility', 'round-table',
+    'shadow-self', 'shooler', 'shoulder-armor', 'skeleton-key', 'smaaash', 'smiling-ruth', 'smith',
+    'soul-snatcher', 'staunch-knight', 'the-terror', 'the-vaultkeeper', 'tireless-crocag',
+    'titan-mechanic', 'tolas', 'tremor', 'warsong', 'witch-of-the-wilds', 'yxili-marauder',
+    'yxilo-bolter', 'zyzzix-the-many',
+}
+
+
 def main():
+    global OUT
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--out', default=None, help='write to this path instead of the live DSL file')
+    args = parser.parse_args()
+    if args.out:
+        OUT = pathlib.Path(args.out)
     with open(BASE / 'packs' / 'CotA.json') as f:
         data = json.load(f)
 

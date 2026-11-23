@@ -15,6 +15,7 @@ import com.aember.analyzer.domain.engine.cards.keyCheatDslCardOverrides
 import com.aember.analyzer.domain.engine.cards.LashOfBrokenDreams
 import com.aember.analyzer.domain.engine.cards.marsEngineDslCardOverrides
 import com.aember.analyzer.domain.engine.cards.Miasma
+import com.aember.analyzer.domain.engine.cards.dslCardOverrides
 import com.aember.analyzer.domain.engine.cards.ShadowSelf
 import com.aember.analyzer.domain.engine.cards.Silvertooth
 import com.aember.analyzer.domain.engine.cards.SpeedSigil
@@ -60,6 +61,9 @@ fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: Targe
         library.register(id, DslCardScript(definition, resolver))
     }
     keyCheatDslCardOverrides.forEach { (id, definition) ->
+        library.register(id, DslCardScript(definition, resolver))
+    }
+    dslCardOverrides.forEach { (id, definition) ->
         library.register(id, DslCardScript(definition, resolver))
     }
 

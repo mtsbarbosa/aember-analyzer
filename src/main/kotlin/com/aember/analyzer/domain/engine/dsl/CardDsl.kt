@@ -28,6 +28,9 @@ class CardDefinition(
     var useRestrictions: List<UseRestriction> = emptyList(),
     var selfRestrictions: List<SelfRestriction> = emptyList(),
     var entersPlayStunned: Boolean = false,
+    var ignoresTauntElusive: Boolean = false,
+    var drawRefillBonusAmount: Int = 0,
+    var opponentRefillPenaltyAmount: Int = 0,
     var reactions: List<Reaction> = emptyList(),
     var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
@@ -143,6 +146,21 @@ fun CardDefinition.restrictions(block: UseRestrictionsBuilder.() -> Unit) {
 /** This creature enters play stunned (e.g. Chuff Ape). */
 fun CardDefinition.entersPlayStunned() {
     entersPlayStunned = true
+}
+
+/** While this creature is attacking it ignores taunt and elusive (Niffle Ape). */
+fun CardDefinition.ignoresTauntAndElusive() {
+    ignoresTauntElusive = true
+}
+
+/** The controller's draw step refills their hand to [amount] additional cards (Mother). */
+fun CardDefinition.drawRefillBonus(amount: Int) {
+    drawRefillBonusAmount = amount
+}
+
+/** The opponent's draw step refills their hand to [amount] fewer cards (Succubus). */
+fun CardDefinition.opponentRefillPenalty(amount: Int) {
+    opponentRefillPenaltyAmount = amount
 }
 
 fun CardDefinition.fidelity(level: FidelityLevel, notes: String = "") {

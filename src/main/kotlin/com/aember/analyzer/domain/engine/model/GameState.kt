@@ -24,6 +24,9 @@ data class GameState(
     var lastStealAmount: Int = 0,
     var lastDamageDestroyed: Boolean = false,
     var lastDamagedTargetId: String? = null,
+    var lastHealAmount: Int = 0,
+    var lastHealedTargetId: String? = null,
+    var lastSacrificeSucceeded: Boolean = false,
 
     /** The event currently being dispatched by the EventBus, for event-aware effects. */
     var currentEvent: com.aember.analyzer.domain.engine.events.GameEvent? = null,

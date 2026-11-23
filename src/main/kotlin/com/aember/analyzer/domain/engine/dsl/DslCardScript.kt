@@ -22,6 +22,12 @@ class DslCardScript(
 
     override fun cardEntersStunned(): Boolean = definition.entersPlayStunned
 
+    override fun ignoresTauntAndElusiveWhenAttacking(): Boolean = definition.ignoresTauntElusive
+
+    override fun drawRefillBonus(): Int = definition.drawRefillBonusAmount
+
+    override fun drawRefillOpponentPenalty(): Int = definition.opponentRefillPenaltyAmount
+
     override fun useRestrictions(): List<UseRestriction> = definition.useRestrictions
 
     override fun selfRestrictions(): List<SelfRestriction> = definition.selfRestrictions

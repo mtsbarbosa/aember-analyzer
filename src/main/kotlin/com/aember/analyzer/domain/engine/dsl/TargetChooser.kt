@@ -64,6 +64,32 @@ class GreedyTargetChooser : TargetChooser {
                 val id = game.lastDamagedTargetId
                 game.players.flatMap { it.creatures }.filter { it.instanceId == id }
             }
+            is AnyCreatureExceptLastDamaged -> {
+                val id = game.lastDamagedTargetId
+                (sourcePlayer.creatures + opponent.creatures).filter { it.instanceId != id }
+            }
+            is LastHealedTarget -> {
+                val id = game.lastHealedTargetId
+                game.players.flatMap { it.creatures }.filter { it.instanceId == id }
+            }
+            is NeighborOfSelf -> {
+                val controller = game.player(source.controllerIndex)
+                val idx = controller.creatures.indexOf(source)
+                if (idx >= 0) {
+                    listOfNotNull(controller.creatures.getOrNull(idx - 1), controller.creatures.getOrNull(idx + 1))
+                        .distinctBy { it.instanceId }
+                } else {
+                    emptyList()
+                }
+            }
+            is CreatureNotOnFlank -> {
+                (sourcePlayer.creatures + opponent.creatures).filter { creature ->
+                    val battleline = game.player(creature.controllerIndex).creatures
+                    val isFlank = battleline.size == 1 || battleline.first().instanceId == creature.instanceId ||
+                        battleline.last().instanceId == creature.instanceId
+                    !isFlank
+                }
+            }
         }
         val sorted = when (selector) {
             is FriendlyCreature, is FriendlyCreatureWithTrait, is FriendlyCreatureWithHouse, is OtherFriendlyCreatureWithHouse -> candidates.sortedByDescending { it.power }
@@ -76,6 +102,16 @@ class GreedyTargetChooser : TargetChooser {
             is EachOtherUndamagedCreature -> candidates
             is SelfCreature -> candidates
             is LastDamagedTarget -> candidates
+            is AnyCreatureExceptLastDamaged -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
+            is LastHealedTarget -> candidates
+            is NeighborOfSelf -> candidates.sortedByDescending { it.power }
+            is CreatureNotOnFlank -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
         }
         val scope = when (selector) {
             is FriendlyCreature -> selector.scope
@@ -92,6 +128,10 @@ class GreedyTargetChooser : TargetChooser {
             is SelfCreature -> Scope.ONE
             is AllCreaturesOfChosenHouse -> Scope.ALL
             is LastDamagedTarget -> Scope.ONE
+            is AnyCreatureExceptLastDamaged -> Scope.ONE
+            is LastHealedTarget -> Scope.ONE
+            is NeighborOfSelf -> Scope.ONE
+            is CreatureNotOnFlank -> Scope.ONE
         }
         return if (scope == Scope.ONE) sorted.take(1) else sorted
     }

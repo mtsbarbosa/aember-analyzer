@@ -48,7 +48,7 @@ class GameEngine(
             mainPhase(game, actionGenerator, executor)
             if (checkGameOver(game)) break
 
-            if (TurnPhases.finishTurn(game)) break
+            if (TurnPhases.finishTurn(game, library)) break
         }
 
         if (!game.done) {

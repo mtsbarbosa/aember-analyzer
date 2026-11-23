@@ -52,6 +52,24 @@ interface CardScript {
     fun redirectsNeighborDamage(): Boolean = false
 
     /**
+     * Static ability: if true, this creature ignores taunt targeting restrictions
+     * and elusive when it is the attacker (Niffle Ape).
+     */
+    fun ignoresTauntAndElusiveWhenAttacking(): Boolean = false
+
+    /**
+     * Draw-phase modifier: while this card is in play controlled by a player, that
+     * player's draw step refills their hand to [amount] additional cards (Mother: 1).
+     */
+    fun drawRefillBonus(): Int = 0
+
+    /**
+     * Draw-phase modifier: while this card is in play controlled by a player, the
+     * opponent's draw step refills their hand to [amount] fewer cards (Succubus: 1).
+     */
+    fun drawRefillOpponentPenalty(): Int = 0
+
+    /**
      * Static ability: if true, amber gained by an opponent is captured by this card instead.
      */
     fun capturesOpponentAmberGains(): Boolean = false

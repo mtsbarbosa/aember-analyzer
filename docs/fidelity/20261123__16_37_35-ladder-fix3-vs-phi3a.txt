@@ -1,4 +1,5 @@
 ladder comparison: c8bcab7f-8fae-426d-b7e6-52fcbd1a5e06 -> c094c703-4697-4449-a453-0a19d685fd48
+generated: 2026-11-23 21:35:20 UTC | old batch completed: 2026-11-23T16:27:08.698922515Z | new batch completed: 2026-11-23T16:37:35.363349887Z
 rank correlation between ladders: 1.000 | pairwise agreement: 99.9%
 
 rank deck                                          old  new  drk    old    new     dA   win%

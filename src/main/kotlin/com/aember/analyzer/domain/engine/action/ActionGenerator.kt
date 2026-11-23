@@ -193,7 +193,8 @@ class ActionGenerator(
         val opponentCreatures = game.opponent().creatures
         if (opponentCreatures.isNotEmpty()) {
             val tauntCreatures = opponentCreatures.filter { it.hasKeyword(Keyword.TAUNT) }
-            val legalTargets = if (tauntCreatures.isNotEmpty() && !creature.hasKeyword(Keyword.TAUNT)) {
+            val ignoresTaunt = script.ignoresTauntAndElusiveWhenAttacking()
+            val legalTargets = if (tauntCreatures.isNotEmpty() && !creature.hasKeyword(Keyword.TAUNT) && !ignoresTaunt) {
                 tauntCreatures
             } else {
                 opponentCreatures

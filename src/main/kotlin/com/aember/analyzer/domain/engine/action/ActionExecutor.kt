@@ -69,7 +69,14 @@ class ActionExecutor(
                 p.cardsInPlay().any { library.scriptFor(it.cardId).readiesFirstCreatureEachTurn() }
             }
         val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
-        val entersReady = selfEntersReady || globalEntersReady
+        var entersReady = selfEntersReady || globalEntersReady
+        // Soft Landing: the next creature/artifact this player plays enters ready.
+        if (!entersReady && player.nextPlaysEnterReady > 0 &&
+            (catalog.type == CardType.CREATURE || catalog.type == CardType.ARTIFACT)
+        ) {
+            entersReady = true
+            player.nextPlaysEnterReady--
+        }
         val entersStunned = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersStunned()
         val inPlay = InPlayCard(
             instanceId = instanceId,
@@ -263,7 +270,9 @@ class ActionExecutor(
         }
 
         // Elusive: first time this creature is attacked each turn, it is dealt no damage.
-        val elusive = defender.hasKeyword(Keyword.ELUSIVE) && !defender.elusiveUsed
+        // Niffle Ape-style attackers ignore elusive.
+        val elusive = defender.hasKeyword(Keyword.ELUSIVE) && !defender.elusiveUsed &&
+            !library.scriptFor(attacker.cardId).ignoresTauntAndElusiveWhenAttacking()
         if (elusive) {
             defender.elusiveUsed = true
             game.log("${defender.cardId} uses elusive")
@@ -323,6 +332,10 @@ class ActionExecutor(
     private fun dealDamage(game: GameState, card: InPlayCard, amount: Int) {
         if (amount <= 0) return
         val actualTarget = resolveDamageTarget(game, card)
+        if (actualTarget.immuneToDamageThisTurn) {
+            game.log("${actualTarget.cardId} cannot be dealt damage this turn")
+            return
+        }
         if (actualTarget.ward) {
             actualTarget.ward = false
             game.log("${actualTarget.cardId}'s ward prevents $amount damage")
@@ -393,10 +406,11 @@ class ActionExecutor(
         // Move upgrades to discard
         creature.upgrades.forEach { player.discard.add(it.cardId) }
         player.creatures.remove(creature)
-        // If a script moved the card (e.g. Bad Penny to hand), do not also discard it.
+        // If a script moved the card (e.g. Bad Penny to hand, Dextre to deck), do not also discard it.
         val alreadyMoved = player.hand.contains(creature.cardId)
                 || player.archives.contains(creature.cardId)
                 || player.purged.contains(creature.cardId)
+                || player.library.contains(creature.cardId)
         if (!alreadyMoved) {
             // Annihilation Ritual: creatures leaving play are purged instead of discarded.
             val purgedInstead = game.players.any { p ->

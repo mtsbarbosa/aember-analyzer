@@ -19,6 +19,7 @@ internal object TurnPhases {
         game.players.forEach { p ->
             p.creatures.forEach {
                 it.elusiveUsed = false
+                it.immuneToDamageThisTurn = false
                 // Restore temporary house changes (e.g. Brain Stem Antenna).
                 if (it.house != it.baseHouse) it.house = it.baseHouse
             }
@@ -28,6 +29,7 @@ internal object TurnPhases {
             p.drawOnCardPlayHouse = null
             p.forgedKeyThisTurn = false
             p.cardsPlayedThisTurnByHouse.clear()
+            p.nextPlaysEnterReady = 0
         }
         keyPhase(game, library)
     }
@@ -68,9 +70,15 @@ internal object TurnPhases {
         game.log("${player.name} readies their cards")
     }
 
-    fun drawPhase(game: GameState) {
+    fun drawPhase(game: GameState, library: CardLibrary) {
         val player = game.activePlayer()
-        val handSize = 6 - ceil(player.chains / 6.0).toInt()
+        // Draw-phase modifiers (Mother refills its controller to 1 more card,
+        // Succubus refills the opponent to 1 less card).
+        val modifier = game.players.flatMap { it.cardsInPlay() }.sumOf { card ->
+            val script = library.scriptFor(card.cardId)
+            if (card.controllerIndex == player.index) script.drawRefillBonus() else -script.drawRefillOpponentPenalty()
+        }
+        val handSize = (6 + modifier - ceil(player.chains / 6.0).toInt()).coerceAtLeast(0)
         val toDraw = (handSize - player.hand.size).coerceAtLeast(0)
         if (toDraw > 0) {
             draw(game, player, toDraw)
@@ -119,9 +127,9 @@ internal object TurnPhases {
      * The shared end-of-turn sequence (ready, draw refill, turn switch). Returns true when
      * the game has ended, so callers can stop without starting the next turn.
      */
-    fun finishTurn(game: GameState): Boolean {
+    fun finishTurn(game: GameState, library: CardLibrary): Boolean {
         readyPhase(game)
-        drawPhase(game)
+        drawPhase(game, library)
         if (checkGameOver(game)) return true
         endPhase(game) { checkGameOver(it) }
         return checkGameOver(game)
