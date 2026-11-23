@@ -3,7 +3,6 @@ package com.aember.analyzer.domain.engine
 import com.aember.analyzer.domain.engine.action.*
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.model.Deck
-import kotlin.math.ceil
 
 /**
  * Runs a single KeyForge match between two decks.
@@ -40,18 +39,7 @@ class GameEngine(
             game.log("--- Turn ${game.turn} / Round ${game.round} - ${player.name} ---")
             logHand(game, player)
 
-            // Reset per-turn flags at the start of each turn.
-            game.players.forEach { p ->
-                p.creatures.forEach { it.elusiveUsed = false }
-                p.turnTriggerAmber.clear()
-                p.creaturesPlayedThisTurn = 0
-                p.drawOnCardPlayActive = false
-                p.drawOnCardPlayHouse = null
-                p.forgedKeyThisTurn = false
-                p.cardsPlayedThisTurnByHouse.clear()
-            }
-
-            keyPhase(game)
+            TurnPhases.startTurn(game, library)
             if (checkGameOver(game)) break
 
             housePhase(game, actionGenerator, executor)
@@ -60,9 +48,7 @@ class GameEngine(
             mainPhase(game, actionGenerator, executor)
             if (checkGameOver(game)) break
 
-            readyPhase(game)
-            drawPhase(game)
-            endPhase(game)
+            if (TurnPhases.finishTurn(game)) break
         }
 
         if (!game.done) {
@@ -95,38 +81,10 @@ class GameEngine(
         game.players.forEach { player ->
             player.library.shuffle(random)
             val handSize = if (player.index == game.firstPlayerIndex) 7 else 6
-            draw(game, player, handSize)
+            TurnPhases.draw(game, player, handSize)
         }
         game.log("Setup complete. First player: ${game.activePlayer().name}")
     }
-
-    private fun keyPhase(game: GameState) {
-        val player = game.activePlayer()
-        // The one-turn bonus applies during this turn only; consume it even when
-        // the forge step is skipped (e.g. Miasma), so it cannot leak to later turns.
-        val cost = ForgeRules.keyCost(library, game, player) + player.keyCostNextTurnBonus
-        player.keyCostNextTurnBonus = 0
-        if (player.skipsForgeNextTurn) {
-            player.skipsForgeNextTurn = false
-            game.log("${player.name} cannot forge a key this turn")
-            return
-        }
-        while (canForgeKey(player, cost)) {
-            val before = player.amber
-            player.amber -= cost
-            player.keys += 1
-            player.forgedKeyThisTurn = true
-            player.statistics.keysForged++
-            game.log("${player.name} forges a key! Keys: ${player.keys} (${player.name}: $before -> ${player.amber})")
-            if (!player.canForgeSecondKey) break
-            player.canForgeSecondKey = false
-        }
-        if (player.amber < cost) {
-            game.log("${player.name} does not forge a key (amber: ${player.amber})")
-        }
-    }
-
-    private fun canForgeKey(player: PlayerState, cost: Int): Boolean = player.amber >= cost && player.keys < 3
 
     private fun logHand(game: GameState, player: PlayerState) {
         val handNames = player.hand.map { cardId ->
@@ -180,88 +138,7 @@ class GameEngine(
         game.activePlayer().cannotFightNextTurn = false
     }
 
-    private fun readyPhase(game: GameState) {
-        val player = game.activePlayer()
-        player.cardsInPlay().forEach { it.exhausted = false }
-        game.log("${player.name} readies their cards")
-    }
-
-    private fun drawPhase(game: GameState) {
-        val player = game.activePlayer()
-        val handSize = 6 - ceil(player.chains / 6.0).toInt()
-        val toDraw = (handSize - player.hand.size).coerceAtLeast(0)
-        if (toDraw > 0) {
-            draw(game, player, toDraw)
-            if (player.chains > 0) {
-                player.chains = (player.chains - 1).coerceAtLeast(0)
-            }
-        }
-    }
-
-    private fun draw(game: GameState, player: PlayerState, amount: Int) {
-        repeat(amount) {
-            if (player.library.isEmpty()) {
-                if (player.discard.isEmpty()) return
-                player.library.addAll(player.discard)
-                player.discard.clear()
-                player.library.shuffle(game.rng)
-            }
-            if (player.library.isNotEmpty()) {
-                player.hand.add(player.library.removeFirst())
-            }
-        }
-    }
-
-    private fun endPhase(game: GameState) {
-        val player = game.activePlayer()
-        player.activeHouse = null
-        if (checkGameOver(game)) return
-
-        // Remember whether this player forged a key this turn for "previous turn" checks.
-        player.forgedKeyLastTurn = player.forgedKeyThisTurn
-
-        // Revert any temporary creature control from effects like Hypnotic Command.
-        revertTemporaryControl(game)
-
-        // Switch active player
-        game.activePlayerIndex = 1 - game.activePlayerIndex
-        game.turn += 1
-        if (game.activePlayerIndex == game.firstPlayerIndex) {
-            game.round += 1
-            game.players.forEach { it.cardNamesPlayedOrUsedThisRound.clear() }
-        }
-    }
-
-    private fun revertTemporaryControl(game: GameState) {
-        val iterator = game.temporaryControllers.iterator()
-        while (iterator.hasNext()) {
-            val (instanceId, originalControllerIndex) = iterator.next()
-            val currentOwner = game.players.find { p -> p.creatures.any { it.instanceId == instanceId } }
-            val creature = currentOwner?.creatures?.find { it.instanceId == instanceId }
-            if (creature != null) {
-                if (currentOwner.index != originalControllerIndex) {
-                    currentOwner.creatures.remove(creature)
-                    creature.controllerIndex = originalControllerIndex
-                    game.player(originalControllerIndex).creatures.add(creature)
-                    game.log("${creature.cardId} returns to ${game.player(originalControllerIndex).name}'s control")
-                }
-            }
-            iterator.remove()
-        }
-    }
-
-    private fun checkGameOver(game: GameState): Boolean {
-        game.players.forEach { player ->
-            if (player.hasWon()) {
-                game.winnerIndex = player.index
-                game.endCause = EndCause.KEYS
-                game.done = true
-                game.log("${player.name} wins by forging 3 keys!")
-                return true
-            }
-        }
-        return false
-    }
+    private fun checkGameOver(game: GameState): Boolean = TurnPhases.checkGameOver(game)
 
     private fun resolveTimeoutWinner(game: GameState) {
         val p0 = game.players[0]

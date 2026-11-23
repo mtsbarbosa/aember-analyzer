@@ -1,5 +1,9 @@
 package com.aember.analyzer.application
 
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityAggregator
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityStats
+import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
+import com.aember.analyzer.domain.engine.model.FidelityEntry
 import com.aember.analyzer.domain.model.Deck
 import com.aember.analyzer.domain.model.DeckRef
 import com.aember.analyzer.domain.model.MassSimulationBatch
@@ -159,6 +163,13 @@ class MassSimulationService(
     fun validateTiers(batchUuid: String, tiers: Map<String, Double>): TierValidation =
         TierValidator.validate(getRatings(batchUuid), tiers)
 
+    /** Per-card fidelity aggregate (weighted by plays) for a batch; empty for batches that predate the aggregate. */
+    fun getCardFidelity(batchUuid: String): List<CardFidelityStats> {
+        repository.findByUuid(batchUuid)
+            ?: throw IllegalArgumentException("Batch not found: $batchUuid")
+        return repository.findCardFidelity(batchUuid) ?: emptyList()
+    }
+
     private fun executeBatch(batchUuid: String, request: MassSimulationRequest) {
         logger.info("Starting mass simulation batch {}: {} matches", batchUuid, request.matchCount)
         try {
@@ -170,6 +181,7 @@ class MassSimulationService(
 
             repository.save(batch.copy(status = MassSimulationStatus.RUNNING))
             val results = mutableListOf<MassSimulationMatchResult>()
+            val fidelityCounts = CardFidelityAccumulator()
 
             for (i in 1..request.matchCount) {
                 val seed = request.baseSeed + (i - 1)
@@ -182,6 +194,7 @@ class MassSimulationService(
                     request.aiA,
                     request.aiB
                 )
+                fidelityCounts.add(result.gameState.fidelityLog)
 
                 val matchResult = MassSimulationMatchResult(
                     id = i,
@@ -224,6 +237,7 @@ class MassSimulationService(
                 completedAt = Instant.now()
             )
             repository.save(completedBatch)
+            repository.saveCardFidelity(batchUuid, fidelityCounts.toStats())
             logger.info("Completed mass simulation batch {}", batchUuid)
         } catch (e: Exception) {
             logger.error("Mass simulation batch {} failed", batchUuid, e)
@@ -269,11 +283,13 @@ class MassSimulationService(
                 concurrency,
                 Thread.ofVirtual().name("multi-sim-", 0).factory()
             )
+            val fidelityCounts = CardFidelityAccumulator()
             try {
                 val futures = tasks.map { task ->
                     executor.submit(Callable {
                         try {
-                            simulateMultiDeckMatch(batchUuid, task, decksByUuid, request.ai, recordLogs)
+                            val outcome = simulateMultiDeckMatch(batchUuid, task, decksByUuid, request.ai, recordLogs)
+                            fidelityCounts.add(outcome.gameState.fidelityLog)
                         } catch (e: Exception) {
                             logger.error("Multi-deck batch {} match {} failed", batchUuid, task.taskId, e)
                             return@Callable
@@ -314,6 +330,7 @@ class MassSimulationService(
                 )
             )
             repository.saveRatings(batchUuid, RatingAggregator.ratings(completedBatch.deckPool, results, bootstrapIterations = BOOTSTRAP_ITERATIONS))
+            repository.saveCardFidelity(batchUuid, fidelityCounts.toStats())
             logger.info("Completed multi-deck simulation batch {}", batchUuid)
         } catch (e: Exception) {
             logger.error("Multi-deck mass simulation batch {} failed", batchUuid, e)
@@ -327,7 +344,7 @@ class MassSimulationService(
         decksByUuid: Map<String, Deck>,
         ai: String,
         recordLogs: Boolean
-    ) {
+    ): SimulationOutcome {
         val deckA = decksByUuid.getValue(task.deckUuidA)
         val deckB = decksByUuid.getValue(task.deckUuidB)
         val result = simulationService.simulate(deckA, deckB, task.seed, ai, ai)
@@ -359,6 +376,7 @@ class MassSimulationService(
                 )
             )
         }
+        return result
     }
 
     private fun markBatchFailed(batchUuid: String, e: Exception) {
@@ -378,4 +396,26 @@ class MassSimulationService(
         if (values.isEmpty()) return null
         return values.sum() / values.size
     }
+}
+
+/**
+ * Thread-safe per-card fidelity counter fed from every match of a batch and converted
+ * into play-weighted [CardFidelityStats] once the batch completes.
+ */
+internal class CardFidelityAccumulator {
+
+    private val counts = java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.ConcurrentMap<FidelityLevel, Int>>()
+
+    fun add(entries: List<FidelityEntry>) {
+        entries.groupBy { it.cardId }.forEach { (cardId, cardEntries) ->
+            counts.compute(cardId) { _, existing ->
+                val map = existing ?: java.util.concurrent.ConcurrentHashMap()
+                cardEntries.forEach { map.merge(it.level, 1, Int::plus) }
+                map
+            }
+        }
+    }
+
+    fun toStats(): List<CardFidelityStats> =
+        counts.map { (cardId, levelCounts) -> CardFidelityAggregator.fromCounts(cardId, levelCounts) }
 }

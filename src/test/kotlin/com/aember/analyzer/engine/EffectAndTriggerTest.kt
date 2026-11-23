@@ -190,13 +190,13 @@ class EffectAndTriggerTest {
 
     @Test
     fun `before fight and after fight triggers resolve around combat`() {
-        val attacker = creature("attacker", 1, power = 1)
-        val defender = creature("defender", 2, power = 5)
+        val attacker = creature("attacker", 1, power = 5)
+        val defender = creature("defender", 2, power = 2)
         val game = makeGame(player0Creatures = listOf(attacker), player1Creatures = listOf(defender))
         game.activePlayer().activeHouse = House.BROBNAR
         val library = makeLibrary(
             "attacker" to dslCard {
-                beforeFight(DealDamage(2, AnyCreature()))
+                beforeFight(DealDamage(1, EnemyCreature()))
                 afterFight(GainAmber(1))
             }
         )
@@ -204,9 +204,32 @@ class EffectAndTriggerTest {
 
         executor.execute(game, UseCreatureAction(attacker.instanceId, FightUse(defender.instanceId)))
 
-        // Before fight 2 damage + normal 1 power = 3 damage to the defender; after fight gives 1 amber.
-        assertThat(defender.damage).isEqualTo(3)
+        // Before fight 1 damage to the defender + normal 5 power = 6 damage; the attacker
+        // survives (2 < 5) and the after-fight trigger gives 1 amber.
+        assertThat(defender.damage).isEqualTo(6)
         assertThat(game.activePlayer().amber).isEqualTo(1)
+    }
+
+    @Test
+    fun `a creature destroyed during the fight does not resolve its own fight triggers`() {
+        // keyteki: reactions are unregistered when a card leaves play (updateAbilityEvents),
+        // so a destroyed attacker's Fight/After Fight abilities never resolve (Dodger spec:
+        // "should not steal lose 1A if destroyed").
+        val attacker = creature("attacker", 1, power = 1)
+        val defender = creature("defender", 2, power = 5)
+        val game = makeGame(player0Creatures = listOf(attacker), player1Creatures = listOf(defender))
+        game.activePlayer().activeHouse = House.BROBNAR
+        val library = makeLibrary(
+            "attacker" to dslCard {
+                afterFight(GainAmber(1))
+            }
+        )
+        val executor = ActionExecutor(library, idGenerator)
+
+        executor.execute(game, UseCreatureAction(attacker.instanceId, FightUse(defender.instanceId)))
+
+        assertThat(attacker.damage).isGreaterThanOrEqualTo(attacker.power)
+        assertThat(game.activePlayer().amber).isEqualTo(0)
     }
 
     @Test

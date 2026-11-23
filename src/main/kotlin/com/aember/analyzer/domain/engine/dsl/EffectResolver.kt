@@ -217,8 +217,24 @@ class EffectResolver(
     private fun dealDamage(game: GameState, sourceCard: InPlayCard, effect: DealDamage) {
         val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
         targets.forEach { target ->
+            // Splash lands on the neighbors before the primary target so that
+            // lastDamagedTargetId / lastDamageDestroyed refer to the primary target
+            // (cards evaluating DamageDestroyedTarget right after the effect).
+            if (effect.splash > 0) {
+                splashToNeighbors(game, target, effect.splash)
+            }
             applyDamage(game, target, effect.amount)
             game.log("${sourceCard.cardId} deals ${effect.amount} damage to ${target.cardId}")
+        }
+    }
+
+    private fun splashToNeighbors(game: GameState, target: InPlayCard, amount: Int) {
+        val controller = game.player(target.controllerIndex)
+        val idx = controller.creatures.indexOf(target)
+        if (idx == -1) return
+        listOfNotNull(controller.creatures.getOrNull(idx - 1), controller.creatures.getOrNull(idx + 1)).forEach { neighbor ->
+            applyDamage(game, neighbor, amount)
+            game.log("${amount} splash damage dealt to ${neighbor.cardId}")
         }
     }
 

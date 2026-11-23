@@ -42,7 +42,7 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("lava-ball") {
-            play(DealDamage(4, AnyCreature()))
+            play(DealDamage(4, AnyCreature(), splash = 2))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("loot-the-bodies") {
@@ -1102,8 +1102,8 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Repeat-until loop not implemented; steals once when ahead")
         },
     card("booby-trap") {
-            play(DealDamage(4, AnyCreature()))
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            play(DealDamage(4, AnyCreature(), splash = 2))
+            fidelity(FidelityLevel.PARTIAL, "Splash implemented; 'not on a flank' target restriction needs targeting support")
         },
     card("finishing-blow") {
             play(StealAmber(1))

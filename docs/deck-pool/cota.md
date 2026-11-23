@@ -98,6 +98,8 @@ Note: "Galilee el Obtuso" (S+) and "Galilee, o Engenhoso" (S) are different deck
 | 2026-11-21 | `0de5f424-0f5b-45b3-ab96-ced1f4c6409c` | 2,530 (23 decks × 10 per pairing) | tactical | After Mars-engine + control-card pass & enter-ready fix; avg fidelity 85.8%, avg rounds 8.1 |
 | 2026-11-21 | `2e34c9c4-8ea0-4976-b8a5-24906e737a39` | 2,530 (23 decks × 10 per pairing) | tactical | After key-cheat pass (Key Charge, Chota Hazri, Key of Darkness, Epic Quest); avg fidelity 85.9% |
 | 2026-11-21 | `33272b10-6b66-45c4-9f4b-92f0ee6d2687` | 2,530 (23 decks × 10 per pairing) | tactical | After rules-review fixes (Speed Sigil global/creature-only, seeded in-game RNG, fully deterministic replays); avg fidelity 85.8%, avg rounds 12.3. `cota-ratings.json` reflects this run |
+| 2026-11-22 | `083dc1b0-1e96-49ce-8433-1c630b3e2ea8` | 25,830 (42 decks × 30 per pairing, seed 12345) | tactical | Phase-5 reference baseline; avg fidelity ~85%, 0 failures / 0 draws |
+| 2026-11-22 | `fad7c062-1c9b-40df-8c59-325f460ee1fc` | 25,830 (42 decks × 30 per pairing, seed 12345) | tactical | After Phase 0+1 (splash, poison, moribund fight triggers); avg fidelity 85.1%, verified 66.2%, avg rounds 11.6, 0 failures / 0 draws. Compare with `tools/ladder-compare.py` (`docs/fidelity/ladder-phi1-vs-baseline.txt`) |
 
 Run 4 top (by Aember Score): Giulia (57.0), Chang (56.7), Galilee el Obtuso (55.6), Violet (55.3),
 The Public Butcher Brewer (54.5). Bottom: Xipty (42.4), Torsen (42.7), Chaos (44.2). All runs

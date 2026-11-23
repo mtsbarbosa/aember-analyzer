@@ -42,7 +42,11 @@ data class CaptureAmber(val amount: Int, val target: CreatureSelector) : Effect
 
 data class LoseAmber(val amount: Int, val player: TargetPlayer) : Effect
 
-data class DealDamage(val amount: Int, val target: CreatureSelector) : Effect
+/**
+ * Deals [amount] damage to each selected creature and [splash] damage to its neighbors
+ * (e.g. Lava Ball deals 4 with 2 splash).
+ */
+data class DealDamage(val amount: Int, val target: CreatureSelector, val splash: Int = 0) : Effect
 
 data class Destroy(val target: CreatureSelector) : Effect
 

@@ -1,5 +1,6 @@
 package com.aember.analyzer.domain.ports
 
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityStats
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
@@ -27,4 +28,9 @@ interface MassSimulationRepository {
     fun saveRatings(batchUuid: String, ratings: List<DeckRating>)
 
     fun findRatings(batchUuid: String): List<DeckRating>?
+
+    /** Batch-level per-card fidelity aggregate, weighted by plays. */
+    fun saveCardFidelity(batchUuid: String, stats: List<CardFidelityStats>)
+
+    fun findCardFidelity(batchUuid: String): List<CardFidelityStats>?
 }

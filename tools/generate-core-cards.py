@@ -56,20 +56,24 @@ def parse_effect(text: str) -> str | None:
     if m:
         return f'LoseAmber({to_int(m.group(1))}, OpponentPlayer)'
 
+    # Splash damage suffix, e.g. "Deal 4<D> to a creature with 2<D> splash."
+    splash_m = re.search(rf'with (\d+) *{D} splash', t)
+    splash_arg = f', splash={splash_m.group(1)}' if splash_m else ''
+
     # Deal X damage to each enemy creature
     m = re.search(rf'deal (\d+) *{D} to each enemy creature', t)
     if m:
-        return f'DealDamage({m.group(1)}, EnemyCreature(Scope.ALL))'
+        return f'DealDamage({m.group(1)}, EnemyCreature(Scope.ALL){splash_arg})'
 
     # Deal X damage to each creature
     m = re.search(rf'deal (\d+) *{D} to each creature', t)
     if m:
-        return f'DealDamage({m.group(1)}, AnyCreature(Scope.ALL))'
+        return f'DealDamage({m.group(1)}, AnyCreature(Scope.ALL){splash_arg})'
 
     # Deal X damage to a creature
     m = re.search(rf'deal (\d+) *{D} to a creature', t)
     if m:
-        return f'DealDamage({m.group(1)}, AnyCreature())'
+        return f'DealDamage({m.group(1)}, AnyCreature(){splash_arg})'
 
     # Destroy a creature
     if re.search(r'destroy a creature', t):

@@ -1,0 +1,22 @@
+# Card ids with a passing parity test against keyteki behaviour (one per line, # comments).
+# Add an id here only when a test in src/test/kotlin/**/engine/cards/ exercises the card's
+# real text and passes. The verified fidelity report treats declared-FULL cards that are
+# not listed here as UNVERIFIED.
+#
+# Rule: a card is listed once every portable keyteki spec for it is ported and passing.
+# Specs that cannot be ported yet MUST be documented as blocked here until Phase 2's
+# event bus / targeting support unlocks them — e.g.:
+#   dodger: BLOCKED "should trigger after Neffru" (depends on the AoA card Neffru and
+#           reaction-to-amber-loss ordering; needs the Phase 2 event bus)
+#
+# Phase 1 pilot (CoreParityPilotTest):
+punch
+lava-ball
+dust-imp
+dodger
+doc-bookton
+bumpsy
+batdrone
+dew-faerie
+headhunter
+bad-penny

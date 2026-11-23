@@ -3,6 +3,7 @@ package com.aember.analyzer.simulation
 import com.aember.analyzer.application.MassSimulationService
 import com.aember.analyzer.application.SimulationOutcome
 import com.aember.analyzer.application.SimulationService
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityStats
 import com.aember.analyzer.domain.engine.fidelity.FidelityReport
 import com.aember.analyzer.domain.engine.model.EndCause
 import com.aember.analyzer.domain.engine.model.GameState
@@ -107,7 +108,7 @@ class MassSimulationServiceProgressTest {
         val state = GameState(players = players, winnerIndex = winnerIndex, endCause = EndCause.KEYS)
         state.round = 10
         state.turn = 20
-        return SimulationOutcome(state, FidelityReport(score = 90.0, levelCounts = emptyMap(), lowestCards = emptyList()), false)    }
+        return SimulationOutcome(state, FidelityReport(score = 90.0, verifiedScore = 90.0, levelCounts = emptyMap(), verifiedLevelCounts = emptyMap(), lowestCards = emptyList(), lowestVerifiedCards = emptyList()), false)    }
 
     private fun fakeDeck(name: String) = Deck(
         uuid = name.lowercase().replace(" ", "-"),
@@ -168,5 +169,9 @@ class MassSimulationServiceProgressTest {
         override fun saveRatings(batchUuid: String, ratings: List<DeckRating>) = Unit
 
         override fun findRatings(batchUuid: String): List<DeckRating>? = null
+
+        override fun saveCardFidelity(batchUuid: String, stats: List<CardFidelityStats>) = Unit
+
+        override fun findCardFidelity(batchUuid: String): List<CardFidelityStats>? = null
     }
 }

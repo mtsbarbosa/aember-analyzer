@@ -23,6 +23,9 @@ import com.aember.analyzer.domain.engine.cards.YxilxDominator
 import com.aember.analyzer.domain.engine.cards.coreSetCards
 import com.aember.analyzer.domain.engine.dsl.DslCardScript
 import com.aember.analyzer.domain.engine.dsl.EffectResolver
+import com.aember.analyzer.domain.engine.dsl.GreedyTargetChooser
+import com.aember.analyzer.domain.engine.dsl.TargetChooser
+import com.aember.analyzer.domain.model.CatalogCard
 import com.aember.analyzer.domain.ports.CardCatalogPort
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -33,41 +36,50 @@ class CardLibraryConfig {
     @Bean
     fun cardLibrary(catalog: CardCatalogPort): CardLibrary {
         val allCards = catalog.loadAll().associateBy { it.id }
-        val library = CardLibrary(allCards)
-        val resolver = EffectResolver(library = library)
-
-        // Register auto-generated Core set DSL definitions.
-        coreSetCards.forEach { (id, definition) ->
-            library.register(id, DslCardScript(definition, resolver))
-        }
-
-        // Manual DSL overrides for cards the generator cannot express cleanly.
-        marsEngineDslCardOverrides.forEach { (id, definition) ->
-            library.register(id, DslCardScript(definition, resolver))
-        }
-        keyCheatDslCardOverrides.forEach { (id, definition) ->
-            library.register(id, DslCardScript(definition, resolver))
-        }
-
-        // Manual overrides for cards the DSL generator cannot express cleanly.
-        library.register("bad-penny", BadPenny)
-        library.register("anger", Anger)
-        library.register("drumble", Drumble)
-        library.register("ether-spider", EtherSpider)
-        library.register("shadow-self", ShadowSelf)
-        library.register("speed-sigil", SpeedSigil)
-        library.register("control-the-weak", ControlTheWeak)
-        library.register("miasma", Miasma)
-        library.register("tendrils-of-pain", TendrilsOfPain)
-        library.register("arise", Arise)
-        library.register("silvertooth", Silvertooth)
-        library.register("yxilx-dominator", YxilxDominator)
-        library.register("jammer-pack", JammerPack)
-        library.register("biomatrix-backup", BiomatrixBackup)
-        library.register("lash-of-broken-dreams", LashOfBrokenDreams)
-        library.register("too-much-to-protect", TooMuchToProtect)
-        library.register("fogbank", Fogbank)
-
-        return library
+        return buildCoreCardLibrary(allCards)
     }
+}
+
+/**
+ * Registers every Core-set script (generated DSL, DSL overrides and manual scripts) on a
+ * library backed by the given catalog. Shared by the Spring bean and the scenario test
+ * harness so tests exercise the exact production card set.
+ */
+fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: TargetChooser = GreedyTargetChooser()): CardLibrary {
+    val library = CardLibrary(catalog)
+    val resolver = EffectResolver(library = library, targetChooser = targetChooser)
+
+    // Register auto-generated Core set DSL definitions.
+    coreSetCards.forEach { (id, definition) ->
+        library.register(id, DslCardScript(definition, resolver))
+    }
+
+    // Manual DSL overrides for cards the generator cannot express cleanly.
+    marsEngineDslCardOverrides.forEach { (id, definition) ->
+        library.register(id, DslCardScript(definition, resolver))
+    }
+    keyCheatDslCardOverrides.forEach { (id, definition) ->
+        library.register(id, DslCardScript(definition, resolver))
+    }
+
+    // Manual overrides for cards the DSL generator cannot express cleanly.
+    library.register("bad-penny", BadPenny)
+    library.register("anger", Anger)
+    library.register("drumble", Drumble)
+    library.register("ether-spider", EtherSpider)
+    library.register("shadow-self", ShadowSelf)
+    library.register("speed-sigil", SpeedSigil)
+    library.register("control-the-weak", ControlTheWeak)
+    library.register("miasma", Miasma)
+    library.register("tendrils-of-pain", TendrilsOfPain)
+    library.register("arise", Arise)
+    library.register("silvertooth", Silvertooth)
+    library.register("yxilx-dominator", YxilxDominator)
+    library.register("jammer-pack", JammerPack)
+    library.register("biomatrix-backup", BiomatrixBackup)
+    library.register("lash-of-broken-dreams", LashOfBrokenDreams)
+    library.register("too-much-to-protect", TooMuchToProtect)
+    library.register("fogbank", Fogbank)
+
+    return library
 }

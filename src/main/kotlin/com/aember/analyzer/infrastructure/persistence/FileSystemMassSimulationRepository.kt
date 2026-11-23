@@ -1,5 +1,6 @@
 package com.aember.analyzer.infrastructure.persistence
 
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityStats
 import com.aember.analyzer.domain.model.MassSimulationBatch
 import com.aember.analyzer.domain.model.MassSimulationMatchLog
 import com.aember.analyzer.domain.model.MassSimulationMatchResult
@@ -102,6 +103,18 @@ class FileSystemMassSimulationRepository(
         return objectMapper.readValue(file.readText())
     }
 
+    override fun saveCardFidelity(batchUuid: String, stats: List<CardFidelityStats>) {
+        val dir = batchPath(batchUuid)
+        Files.createDirectories(dir)
+        writeJson(dir.resolve(CARD_FIDELITY_FILE), stats)
+    }
+
+    override fun findCardFidelity(batchUuid: String): List<CardFidelityStats>? {
+        val file = batchPath(batchUuid).resolve(CARD_FIDELITY_FILE)
+        if (!file.exists()) return null
+        return objectMapper.readValue(file.readText())
+    }
+
     private fun findMatchDir(batchUuid: String, matchResultId: Int): Path? {
         val matchesDir = batchPath(batchUuid).resolve(MATCHES_DIR)
         if (!matchesDir.exists()) return null
@@ -142,6 +155,7 @@ class FileSystemMassSimulationRepository(
         private const val RESULT_FILE = "result.json"
         private const val LOG_FILE = "log.json"
         private const val RATINGS_FILE = "ratings.json"
+        private const val CARD_FIDELITY_FILE = "fidelity-cards.json"
         private const val MATCHES_DIR = "matches"
     }
 }

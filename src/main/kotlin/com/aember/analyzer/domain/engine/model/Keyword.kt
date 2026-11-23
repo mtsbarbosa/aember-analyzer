@@ -8,5 +8,6 @@ enum class Keyword {
     ALPHA,
     OMEGA,
     HAZARDOUS,
-    ASSAULT
+    ASSAULT,
+    POISON
 }

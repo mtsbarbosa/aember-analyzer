@@ -58,6 +58,8 @@ data class DeckRefDto(
 
 data class FidelitySummaryDto(
     val score: Double,
+    val verifiedScore: Double,
+    val unverifiedCount: Int,
     val levelCounts: Map<FidelityLevel, Int>,
     val lowestCards: List<Pair<String, FidelityLevel>>
 )
@@ -91,6 +93,8 @@ fun SimulationOutcome.toSummary(): SimulationSummaryDto {
         players = playerSummaries,
         fidelity = FidelitySummaryDto(
             score = fidelity.score,
+            verifiedScore = fidelity.verifiedScore,
+            unverifiedCount = fidelity.unverifiedCount,
             levelCounts = fidelity.levelCounts,
             lowestCards = fidelity.lowestCards
         ),

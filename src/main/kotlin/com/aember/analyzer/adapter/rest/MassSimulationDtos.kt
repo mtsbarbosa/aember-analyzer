@@ -1,5 +1,7 @@
 package com.aember.analyzer.adapter.rest
 
+import com.aember.analyzer.domain.engine.fidelity.CardFidelityStats
+import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.EndCause
 import com.aember.analyzer.domain.engine.model.LogEntry
 import com.aember.analyzer.domain.model.DeckRef
@@ -36,6 +38,7 @@ data class MassSimulationBatchDto(
     val avgFidelity: Double? = null,
     val deckAggregates: List<DeckAggregateDto> = emptyList(),
     val pairAggregates: List<PairAggregateDto> = emptyList(),
+    val fidelity: BatchFidelityDto? = null,
     val errorMessage: String? = null,
     val createdAt: Instant,
     val completedAt: Instant? = null
@@ -72,6 +75,25 @@ data class PairAggregateDto(
     val winsB: Int,
     val draws: Int,
     val avgFidelity: Double?
+)
+
+/**
+ * Batch-level per-card fidelity, weighted by the number of times each card was played.
+ * `cards` is sorted by `verifiedAvgScore` ascending (the worst-proven cards first).
+ */
+data class BatchFidelityDto(
+    val avgScore: Double,
+    val verifiedAvgScore: Double,
+    val cards: List<CardFidelityStatsDto>
+)
+
+data class CardFidelityStatsDto(
+    val cardId: String,
+    val plays: Int,
+    val levelCounts: Map<FidelityLevel, Int>,
+    val avgScore: Double,
+    val verifiedAvgScore: Double,
+    val declaredLevel: FidelityLevel
 )
 
 data class DeckRatingDto(
@@ -114,7 +136,7 @@ data class MassSimulationMatchLogDto(
 fun DeckRef.toDto(): DeckRefDto = DeckRefDto(uuid, name)
 
 
-fun MassSimulationBatch.toDto(): MassSimulationBatchDto = MassSimulationBatchDto(
+fun MassSimulationBatch.toDto(fidelityCards: List<CardFidelityStats> = emptyList()): MassSimulationBatchDto = MassSimulationBatchDto(
     uuid = uuid,
     status = status,
     batchType = batchType,
@@ -137,9 +159,30 @@ fun MassSimulationBatch.toDto(): MassSimulationBatchDto = MassSimulationBatchDto
     avgFidelity = avgFidelity,
     deckAggregates = deckAggregates.map { it.toDto() },
     pairAggregates = pairAggregates.map { it.toDto() },
+    fidelity = fidelityCards.takeIf { it.isNotEmpty() }?.toBatchFidelityDto(avgFidelity),
     errorMessage = errorMessage,
     createdAt = createdAt,
     completedAt = completedAt
+)
+
+fun List<CardFidelityStats>.toBatchFidelityDto(batchAvgFidelity: Double?): BatchFidelityDto {
+    val totalPlays = sumOf { it.plays }
+    val declaredAvg = if (totalPlays == 0) 0.0 else sumOf { it.avgScore * it.plays } / totalPlays
+    val verifiedAvg = if (totalPlays == 0) 0.0 else sumOf { it.verifiedAvgScore * it.plays } / totalPlays
+    return BatchFidelityDto(
+        avgScore = batchAvgFidelity ?: declaredAvg,
+        verifiedAvgScore = verifiedAvg,
+        cards = sortedWith(compareBy({ it.verifiedAvgScore }, { -it.plays })).map { it.toDto() }
+    )
+}
+
+fun CardFidelityStats.toDto(): CardFidelityStatsDto = CardFidelityStatsDto(
+    cardId = cardId,
+    plays = plays,
+    levelCounts = levelCounts,
+    avgScore = avgScore,
+    verifiedAvgScore = verifiedAvgScore,
+    declaredLevel = declaredLevel
 )
 
 fun MassSimulationBatch.toSummaryDto(): MassSimulationBatchSummaryDto = MassSimulationBatchSummaryDto(

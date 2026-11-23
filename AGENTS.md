@@ -1,6 +1,14 @@
 # Agent Handoff — aember-analyzer
 
-Last updated: 2026-11-21
+Last updated: 2026-11-22
+
+## Fidelity Plan Progress (PLAN.md)
+
+- **Phase 0 — done.** `tools/fidelity-inventory.py` (inventory + priority scoring, `docs/fidelity/core-inventory.csv`), verified-fidelity labels (`VerifiedCardRegistry` + `fidelity/verified-cards.txt`, declared vs verified scores in `FidelityReportService`), and batch-level per-card fidelity (`fidelity-cards.json`, `fidelity.cards` section in `GET /api/mass-simulations/{uuid}`).
+- **Phase 1 — done.** Scenario test DSL (`src/test/kotlin/.../engine/support/Scenario.kt`), injectable `ScriptedTargetChooser` (ChoiceProvider port), spec porter (`tools/port-keyteki-specs.mjs`), and a 16-test pilot (`CoreParityPilotTest`) covering all portable specs for its 10 cards. The pilot immediately found real bugs in cards we count as done: **Lava Ball's 2D splash damage was missing** (fixed — `DealDamage` now has `splash`; Booby Trap downgraded honestly to PARTIAL), **poison was unimplemented** (fixed — kills damage-surviving victims; Macis Asp kills Dodger), and **a creature destroyed during a fight resolved its own Fight triggers** (fixed — moribund attackers skip `onFight`/`onAfterFight`, matching keyteki's `updateAbilityEvents`).
+- **Planner review fixes applied:** registry entries require every portable spec ported (blocked specs documented in `fidelity/verified-cards.txt`, e.g. dodger's Neffru spec needs the AoA card + event bus); porter skeletons compile via `Scenario.player1`/`player2` views and end unfinished tests with `error("TODO")` so they fail loudly; `CardFidelity.verified` removed (registry is the single source of truth); batch aggregation reads level counts directly (no per-play objects); `UNVERIFIED` scores 60 (distinct from PARTIAL 70); `Scenario.play` is strict (fails when the card is not in hand); splash lands on neighbors before the primary target so `lastDamagedTargetId` stays correct.
+- **Phase 2 — not started** (engine capabilities: persistent effects, event bus, expressions, targeting completeness, remaining mechanics).
+- **Phase 5 — measured once (Phase 1).** The 42-deck reference ladder was re-run (`fad7c062-1c9b-40df-8c59-325f460ee1fc`, same 42 decks, 30/pairing, seed 12345): rank correlation with the baseline ladder is **0.98** / pairwise agreement **95.7%** (the Phase 1 fixes barely move ratings — splash/poison/moribund are low-frequency events). Tier validation with the 23 doc-labelled decks: Spearman **0.26 → 0.37**, pairwise agreement **61.7% → 65.2%** (`tools/ladder-compare.py`, report in `docs/fidelity/ladder-phi1-vs-baseline.txt`, full standings in `docs/deck-pool/cota-ladder.md`; tier labels extracted to `docs/deck-pool/cota-tiers.json`). Note: PLAN.md's recorded baseline (0.44 / 67.5%) does not reproduce from the current doc labels — use the reproducible numbers above when judging future runs. Batch health: 0 failures, 0 draws, avg rounds 11.6. The ladder's `fidelity.cards` section lists the highest-priority unverified cards (dust-pixie, vigor, giant-sloth, then the unverified FULL crowd led by urchin / shadow-self / charette / silvertooth / tocsin / shooler).
 
 ## Project Goal
 
@@ -62,7 +70,8 @@ The app runs on `http://localhost:8080`.
   - Request body: `{ "deckUuidA": "...", "deckUuidB": "...", "matchCount": 100, "aiA": "tactical", "aiB": "tactical", "recordLogs": true, "baseSeed": 12345 }`
   - Returns `202 Accepted` with the batch metadata (status starts as `PENDING`).
 - `GET /api/mass-simulations` — list all batches.
-- `GET /api/mass-simulations/{uuid}` — get batch details plus aggregate results.
+- `GET /api/mass-simulations/{uuid}` — get batch details plus aggregate results
+  (includes a `fidelity.cards` section with play-weighted per-card fidelity, worst-proven first).
 - `GET /api/mass-simulations/{uuid}/matches` — list per-match results.
 - `GET /api/mass-simulations/{uuid}/matches/{id}/logs` — get the debug log + fidelity log for one match.
 
@@ -264,15 +273,62 @@ src/main/kotlin/com/aember/analyzer/
   - `APPROXIMATED` — complex interaction ignored
   - `VANILLA` — truly vanilla card
 - `FidelityReportService` computes a match score, level distribution, and lowest-fidelity cards.
-- Default threshold is **70%** (`aember.simulation.fidelity-threshold`). Simulations below it log a warning.
+- **Verified fidelity (Phase 0):** `VerifiedCardRegistry` reads `src/main/resources/fidelity/verified-cards.txt`
+  (card ids with a passing parity test). The report carries both a **declared** score and a
+  **verified** score: declared-`FULL` cards without a parity test count as the new
+  `FidelityLevel.UNVERIFIED` (score 60, deliberately below PARTIAL's 70) in the verified view. `FidelitySummaryDto` exposes
+  `score`, `verifiedScore`, and `unverifiedCount`.
+- **Batch per-card fidelity (Phase 0):** every batch accumulates play-weighted per-card stats
+  (`CardFidelityAccumulator` → `CardFidelityAggregator`), persisted as `fidelity-cards.json`
+  and surfaced in `GET /api/mass-simulations/{uuid}` as a `fidelity.cards` section sorted by
+  `verifiedAvgScore` ascending (worst-proven cards first). Batches predating the feature
+  return an empty list.
+- Default threshold is **70%** (`aember.simulation.fidelity-threshold`) on the declared score.
+  Simulations below it log a warning.
 - Recent sample matches report ~75–76% fidelity; after the card-improvement pass the Mehitabel vs Galilee matchup averages ~91.3%.
+
+### Parity Harness (Phase 1)
+
+- **Scenario DSL** (`src/test/kotlin/com/aember/analyzer/engine/support/Scenario.kt`): mirrors
+  keyteki's `setupTest`. `scenario { player1 { house; inPlay; hand; deck; discard; archives;
+  purged; amber; keys; chains }; player2 {…} }` builds a real `GameState` on the production
+  Core card library; helpers `play(cardId, target?, flank?, house?, addIfMissing=false)`
+  (strict: fails when the card is not in hand), `reap`, `fight(attacker, target)`,
+  `useAbility(cardId, abilityId)` (Action/Omni), `discard`, `unstun`, `chooseHouse`,
+  `endTurn()` (ready + draw refill + switch + next turn's forge phase), and `startTurn()`.
+  Per-player access: `scenario.p1` / `scenario.p2` (PlayerState) and keyteki-style
+  `scenario.player1` / `scenario.player2` views for ported skeletons (fail if not active).
+- The turn phase logic shared with the engine lives in `domain/engine/TurnPhases.kt`
+  (start-turn flag reset, key phase, ready, draw, end, checkGameOver) so the harness cannot
+  drift from engine rules.
+- **ChoiceProvider port:** `ScriptedTargetChooser` (implements `TargetChooser`) answers effect
+  target prompts from pre-scripted rules, falling back to `GreedyTargetChooser`; wire it via
+  `scenario { chooseTargets { rule(AnyCreature::class.java) { game, _ -> listOf(...) } } }`.
+  The library is built by `CoreCardLibrary.create(targetChooser)` → `buildCoreCardLibrary`
+  (shared with `CardLibraryConfig`, so tests use the exact production card set).
+- **Verified registry:** a card id goes into `src/main/resources/fidelity/verified-cards.txt`
+  only once **every portable keyteki spec for it is ported and passing**; specs that cannot be
+  ported yet are documented as `BLOCKED` comments there (e.g. dodger's Neffru spec needs the
+  AoA card + the Phase 2 event bus). `VerifiedCardRegistryTest` guards that listed ids exist
+  in the catalog and are declared FULL; Phase 4 adds the full spec-coverage ratchet.
+- **Spec porter** `tools/port-keyteki-specs.mjs`: parses keyteki `.spec.js` files and emits
+  **compilable** Kotlin skeletons (`engine/cards/core/*ParityTest.kt`) — mechanical actions
+  (setupTest/play/reap/fightWith/endTurn) are generated against the `Scenario.player1`/`player2`
+  views, and every unfinished test ends with `error("TODO")` so it fails loudly instead of
+  passing vacuously.
+- The 16-test pilot (`engine/cards/CoreParityPilotTest.kt`) covers all portable specs for
+  punch, lava-ball, dust-imp, dodger, doc-bookton, bumpsy, batdrone, dew-faerie, headhunter,
+  bad-penny — all listed in `verified-cards.txt`.
 
 ### Tests
 
 - `GameEngineTest` — smoke tests for full matches.
 - `KeywordTest` — unit tests for `elusive`, `skirmish`, `hazardous`, `assault`, `taunt`, `alpha`, `omega`.
 - `EffectAndTriggerTest` — unit tests for all recently added effects and triggers.
-- `FidelityReportServiceTest` — fidelity score/threshold tests.
+- `FidelityReportServiceTest` — declared vs verified fidelity scores, UNVERIFIED reporting, thresholds.
+- `CardFidelityAggregatorTest` — per-card play weighting, verified average, declared-level mode, batch `fidelity.cards` DTO ordering.
+- `VerifiedCardRegistryTest` — registry entries exist in the catalog and are declared FULL.
+- `CoreParityPilotTest` — 16 keyteki parity tests for 10 Core cards (Phase 1; see *Parity Harness* above).
 - `PhaseOneCardsTest` — unit tests for `Control the Weak`, `Library Access`, `Invasion Portal`, `Hypnotic Command`, `Neutron Shark`, `Bouncing Deathquark`, `Dr. Escotera`, `Smiling Ruth`, `Miasma`, `Tendrils of Pain`, `Arise`, `Silvertooth`, `Yxilx Dominator`, and protection-aware placement.
 - `MadameCardsTest` — unit tests for the Madame-era cards including Speed Sigil behavior (only the first creature played each turn enters play ready).
 - `MarsEngineCardsTest` — unit tests for Key Abduction, Battle Fleet, Commpod, Phosphorus Stars, Zyzzix the Many, John Smyth, Jammer Pack key-cost aura, Biomatrix Backup archive-on-destroy, and enter-ready creatures.
@@ -303,12 +359,13 @@ Test-specific overrides are in `src/test/resources/application-test.yml`.
 
 | Area | Files |
 |------|-------|
-| Engine entry point | `domain/engine/GameEngine.kt` |
+| Engine entry point | `domain/engine/GameEngine.kt`, `domain/engine/TurnPhases.kt` |
 | Action execution | `domain/engine/action/ActionExecutor.kt`, `ActionGenerator.kt` |
 | DSL effects | `domain/engine/dsl/Effect.kt`, `EffectResolver.kt`, `CardDsl.kt`, `DslCardScript.kt` |
 | Card definitions | `domain/engine/cards/CoreSetDslCards.kt`, `CoreCards.kt` |
 | Generator | `tools/generate-core-cards.py` |
-| Fidelity | `domain/engine/fidelity/FidelityLevel.kt`, `CardFidelity.kt`, `FidelityReportService.kt` |
+| Fidelity | `domain/engine/fidelity/FidelityLevel.kt`, `CardFidelity.kt`, `FidelityReportService.kt`, `VerifiedCardRegistry.kt`, `CardFidelityAggregator.kt` |
+| Parity harness | `src/test/kotlin/com/aember/analyzer/engine/support/*`, `engine/cards/CoreParityPilotTest.kt`, `tools/port-keyteki-specs.mjs` |
 | AI | `domain/ai/TacticalAI.kt`, `AISettings.kt`, `GreedyAI.kt`, `RandomAI.kt` |
 | Services | `application/SimulationService.kt`, `MassSimulationService.kt`, `MassSimulationAsyncExecutor.kt`, `DeckImportService.kt` |
 | Ratings | `domain/rating/BradleyTerryCalculator.kt`, `RatingAggregator.kt`, `DeckRating.kt` |
@@ -490,12 +547,15 @@ Open an issue or fix directly if you see:
 
 1. **Static / ongoing effects** are the biggest fidelity gap. Cards like `Bulwark`, `Staunch Knight`, `Tentacus`, `Lash of Broken Dreams`, `Banner of Battle`, etc. only score `PARTIAL` because their continuous auras are not implemented.
 2. **Conditional card texts**: `if`, `for each`, `until`, `may`, `while`, `after`/`before` outside of fight/reap triggers.
-3. **Precise targeting**: choose by house, trait, flank, neighbor, or specific creature. Currently many cards use broad selectors.
+3. **Precise targeting**: choose by house, trait, flank, neighbor, or specific creature. Currently many cards use broad selectors (Booby Trap's "not on a flank" restriction is downgraded to PARTIAL for this reason).
 4. **Omni / Action timing**: Omni is implemented as a once-per-turn action ability, but the “as if active house” rule only works for artifacts/creatures with Omni; cross-house action abilities on non-Omni cards are not supported.
 5. **Deploy**: only flank placement is enforced; no in-battleline placement yet.
 6. **Upgrades**: can be attached, but continuous upgrade effects are not processed.
 7. **Reference ladder**: ratings are pool-relative; no curated cross-set ladder exists yet.
 8. **More sets** beyond Core (`CotA`) are not seeded.
+9. **Effect-driven fights bypass keyword handling**: `ReadyAndFight` (Anger, Relentless Assault) and the `Fight` effect swap raw power damage without elusive/skirmish/assault/hazardous; Phase 2's event-bus work should funnel them through the shared fight resolution in `ActionExecutor`.
+10. **Armor is applied per damage event** (`amount - armor`), while keyteki tracks per-turn armor usage; multi-hit interactions may diverge.
+11. **Generator drift**: `CoreSetDslCards.kt` contains hand-patches (e.g. `burn-the-stockpile`, `smith`, `neutron-shark`, `bait-and-switch`) that a naive `generate-core-cards.py` regeneration reverts — extend the generator first, then regenerate and diff carefully (as of Phase 1 the regen was rolled back; only the `splash` parsing rule landed in the generator).
 
 ## How to Add a New Card Behaviour
 

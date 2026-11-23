@@ -266,8 +266,24 @@ class ActionExecutor(
             dealDamage(game, defender, attackerDamage)
         }
 
-        library.scriptFor(attacker.cardId).onFight(game, player, attacker, defender)
-        library.scriptFor(attacker.cardId).onAfterFight(game, player, attacker, defender)
+        // Poison: any damage dealt by this creature's power during a fight destroys the
+        // damaged creature, even if it survives the damage itself.
+        if (!elusive && attackerDamage > 0 && attacker.hasKeyword(Keyword.POISON)) {
+            game.log("${defender.cardId} is destroyed by ${attacker.cardId}'s poison")
+            defender.damage = Int.MAX_VALUE
+        }
+        if (defenderDamage > 0 && defender.hasKeyword(Keyword.POISON)) {
+            game.log("${attacker.cardId} is destroyed by ${defender.cardId}'s poison")
+            attacker.damage = Int.MAX_VALUE
+        }
+
+        // A creature destroyed during the fight does not resolve its own Fight / After Fight
+        // triggers (keyteki: destroyed fighting creatures are moribund).
+        val attackerDestroyed = attacker.damage >= attacker.power
+        if (!attackerDestroyed) {
+            library.scriptFor(attacker.cardId).onFight(game, player, attacker, defender)
+            library.scriptFor(attacker.cardId).onAfterFight(game, player, attacker, defender)
+        }
 
         val amberPerFight = player.turnTriggerAmber[TurnTrigger.FRIENDLY_CREATURE_FIGHTS] ?: 0
         if (amberPerFight > 0) {

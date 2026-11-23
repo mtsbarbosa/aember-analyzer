@@ -142,6 +142,19 @@ def text_is_vanilla(text):
     return not t or bool(KEYWORD_ONLY.match(t))
 
 
+def verified_ids():
+    """Card ids with a passing parity test (source of truth: main resources)."""
+    path = os.path.join(ROOT, "src/main/resources/fidelity/verified-cards.txt")
+    if not os.path.exists(path):
+        return set()
+    out = set()
+    for line in open(path, encoding="utf8"):
+        line = line.split("#")[0].strip()
+        if line:
+            out.add(line)
+    return out
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--pack", default=os.path.expanduser("~/work/keyteki/master-vault-data/packs/CotA.json"))
@@ -158,6 +171,7 @@ def main():
     overrides = parse_override_ids(core_kt)
     manual = parse_manual(core_kt, CONFIG)
     kt = keyteki_features(args.keyteki_cards)
+    verified = verified_ids()
     impact, n_decks = pool_impact(args.server, args.pool, args.decks_dir)
 
     rows = []
@@ -181,7 +195,7 @@ def main():
         k = kt.get(kid, {})
         rows.append({
             "id": cid, "name": c.get("name", cid), "house": c.get("house", ""), "type": c.get("type", ""),
-            "source": source, "level": level, "no_effect": int(no_effect), "tags": ";".join(tags),
+            "source": source, "level": level, "verified": int(cid in verified), "no_effect": int(no_effect), "tags": ";".join(tags),
             "keyteki_features": ";".join(k.get("features", [])), "keyteki_sha": k.get("sha", ""),
             "pool_decks": impact.get(cid, 0), "text": text.replace("\n", " "),
         })
@@ -194,7 +208,7 @@ def main():
 
     rows.sort(key=lambda r: (-r["priority"], r["id"]))
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
-    fields = ["id", "name", "house", "type", "source", "level", "no_effect", "tags", "cluster_size",
+    fields = ["id", "name", "house", "type", "source", "level", "verified", "no_effect", "tags", "cluster_size",
               "pool_decks", "priority", "keyteki_features", "keyteki_sha", "text"]
     with open(args.out, "w", newline="", encoding="utf8") as f:
         w = csv.DictWriter(f, fieldnames=fields)
@@ -204,6 +218,9 @@ def main():
     levels = collections.Counter(r["level"] for r in rows)
     print(f"{len(rows)} cards -> {args.out}")
     print("by level:", dict(levels))
+    verified_full = sum(1 for r in rows if r["level"] == "FULL" and r["verified"])
+    declared_full = sum(1 for r in rows if r["level"] == "FULL")
+    print(f"verified: {verified_full}/{declared_full} declared-FULL cards have parity tests")
     print("by source:", dict(collections.Counter(r["source"] for r in rows)))
     print("no-effect cards with ability text:", sum(r["no_effect"] for r in rows))
     print("blocking clusters:", cluster.most_common())

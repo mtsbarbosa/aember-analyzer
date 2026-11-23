@@ -42,7 +42,9 @@ class MassSimulationController(
 
     @GetMapping("/{uuid}")
     fun getBatch(@PathVariable uuid: String): ResponseEntity<MassSimulationBatchDto> {
-        return ResponseEntity.ok(massSimulationService.getBatch(uuid).toDto())
+        val batch = massSimulationService.getBatch(uuid)
+        val fidelityCards = massSimulationService.getCardFidelity(uuid)
+        return ResponseEntity.ok(batch.toDto(fidelityCards))
     }
 
     @GetMapping("/{uuid}/ratings")
