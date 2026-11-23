@@ -5,6 +5,10 @@ import com.aember.analyzer.domain.model.House
 
 /**
  * Represents a card that is currently in play or attached to a creature.
+ *
+ * `power`, `armor` and `keywords` hold the *effective* values (base + active
+ * static effects, see [com.aember.analyzer.domain.engine.effects.EffectRegistry]);
+ * the printed values are kept in `basePower` / `baseArmor` / `baseKeywords`.
  */
 data class InPlayCard(
     val instanceId: String,
@@ -27,8 +31,14 @@ data class InPlayCard(
     var keywords: Map<String, Int> = emptyMap(),
     var traits: List<String> = emptyList(),
     var upgrades: MutableList<InPlayCard> = mutableListOf(),
-    var neighbors: MutableList<String> = mutableListOf()
-)
+    var neighbors: MutableList<String> = mutableListOf(),
+    /** Instance id of the creature this upgrade is attached to, when zone == UPGRADE. */
+    var hostId: String? = null
+) {
+    var basePower: Int = power
+    var baseArmor: Int = armor
+    var baseKeywords: Map<String, Int> = keywords
+}
 
 fun InPlayCard.hasKeyword(keyword: Keyword): Boolean = keywordValue(keyword) > 0
 

@@ -1,7 +1,9 @@
 package com.aember.analyzer.domain.engine.cards
 
 import com.aember.analyzer.domain.engine.dsl.*
+import com.aember.analyzer.domain.engine.effects.*
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
+import com.aember.analyzer.domain.engine.model.Keyword
 import com.aember.analyzer.domain.model.House
 
 /**
@@ -86,8 +88,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("banner-of-battle") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(1, FriendlyCreaturesScope)
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each friendly creature gets +1 power")
         },
     card("cannon") {
             action("Deal 2D to a creature", DealDamage(2, AnyCreature()))
@@ -160,8 +164,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("king-of-the-crag") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(-2, EnemyOfHouseScope(House.BROBNAR))
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each enemy Brobnar creature gets -2 power")
         },
     card("krump") {
             play(NoEffect)
@@ -208,8 +214,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("blood-of-titans") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(5, HostCreatureScope)
+            }
+            fidelity(FidelityLevel.FULL, "Upgrade: attached creature gets +5 power")
         },
     card("phoenix-heart") {
             play(NoEffect)
@@ -437,8 +445,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("flame-wreathed") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(2, HostCreatureScope)
+                addKeyword(Keyword.HAZARDOUS, value = 2, scope = HostCreatureScope)
+            }
+            fidelity(FidelityLevel.FULL, "Upgrade: attached creature gets +2 power and gains hazardous 2")
         },
     card("bouncing-deathquark") {
             play(Sequence(listOf(Destroy(EnemyCreature()), Destroy(FriendlyCreature()))))
@@ -636,8 +647,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("titan-mechanic") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyKeyCost(-1, PayerScope.ANY, requireFlank = true)
+            }
+            fidelity(FidelityLevel.FULL, "Aura: while on a flank, each key (either player's) costs -1 amber")
         },
     card("vespilon-theorist") {
             reap(GainAmber(1))
@@ -838,7 +851,10 @@ val coreSetCards = listOf(
         },
     card("yxili-marauder") {
             play(CaptureAmber(1, FriendlyCreature()))
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
+            persistent {
+                modifyPower(SelfScope) { _, source -> source.capturedAmber }
+            }
+            fidelity(FidelityLevel.PARTIAL, "Aura (+1 power per amber on it) implemented; play captures a fixed 1 amber instead of 1 per friendly ready Mars creature")
         },
     card("yxilo-bolter") {
             reap(Sequence(listOf(DealDamage(2, AnyCreature()), Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget)))))
@@ -964,8 +980,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("round-table") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(1, FriendlyWithTraitScope("knight"))
+                addKeyword(Keyword.TAUNT, scope = FriendlyWithTraitScope("knight"))
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each friendly Knight gets +1 power and taunt")
         },
     card("sigil-of-brotherhood") {
             omni(NoEffect)
@@ -976,8 +995,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("bulwark") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyArmor(2, NeighborsOfSelfScope)
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each of Bulwark's neighbors gets +2 armor")
         },
     card("champion-anaphiel") {
             play(NoEffect)
@@ -1000,8 +1021,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("grey-monk") {
+            persistent {
+                modifyArmor(1, FriendlyCreaturesScope)
+            }
             reap(Heal(2, AnyCreature()))
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
+            fidelity(FidelityLevel.FULL, "Aura: each friendly creature gets +1 armor; Reap heals 2 damage")
         },
     card("hayyel-the-merchant") {
             play(NoEffect)
@@ -1066,8 +1090,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("staunch-knight") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(2, SelfScope, requireFlank = true)
+            }
+            fidelity(FidelityLevel.FULL, "Aura: gets +2 power while on a flank")
         },
     card("gatekeeper") {
             play(NoEffect)
@@ -1090,12 +1116,18 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("protect-the-weak") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyArmor(1, HostCreatureScope)
+                addKeyword(Keyword.TAUNT, scope = HostCreatureScope)
+            }
+            fidelity(FidelityLevel.FULL, "Upgrade: attached creature gets +1 armor and taunt")
         },
     card("shoulder-armor") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(2, HostCreatureScope, requireFlank = true)
+                modifyArmor(2, HostCreatureScope, requireFlank = true)
+            }
+            fidelity(FidelityLevel.FULL, "Upgrade: attached creature gets +2 armor and +2 power while on a flank")
         },
     card("bait-and-switch") {
             play(Conditional(OpponentHasMoreAmber, StealAmber(1)))
@@ -1300,8 +1332,11 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("ring-of-invisibility") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                addKeyword(Keyword.ELUSIVE, scope = HostCreatureScope)
+                addKeyword(Keyword.SKIRMISH, scope = HostCreatureScope)
+            }
+            fidelity(FidelityLevel.FULL, "Upgrade: attached creature gains elusive and skirmish")
         },
     card("silent-dagger") {
             play(NoEffect)
@@ -1448,8 +1483,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.APPROXIMATED, "Approximated; complex interaction ignored")
         },
     card("halacor") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                addKeyword(Keyword.SKIRMISH, scope = FriendlyFlankCreaturesScope)
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each friendly flank creature gains skirmish")
         },
     card("inka-the-spider") {
             play(Stun(AnyCreature()))
@@ -1477,16 +1514,23 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("mushroom-man") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(SelfScope) { game, source ->
+                    3 * (3 - game.player(source.controllerIndex).keys)
+                }
+            }
+            fidelity(FidelityLevel.FULL, "Aura: gets +3 power for each unforged key you have")
         },
     card("niffle-ape") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("niffle-queen") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
+            persistent {
+                modifyPower(1, OtherFriendlyCreaturesScope(trait = "beast"))
+                modifyPower(1, OtherFriendlyCreaturesScope(trait = "niffle"))
+            }
+            fidelity(FidelityLevel.FULL, "Aura: each other friendly Beast/Niffle creature gets +1 power")
         },
     card("piranha-monkeys") {
             play(DealDamage(2, AnyCreature(Scope.ALL)))

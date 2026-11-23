@@ -45,3 +45,7 @@ logs/
 
 ### Local simulation results ###
 .simulations/
+
+### Python ###
+__pycache__/
+*.pyc

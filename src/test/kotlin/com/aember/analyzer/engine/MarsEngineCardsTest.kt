@@ -251,7 +251,7 @@ class MarsEngineCardsTest {
         host.upgrades.add(
             InPlayCard(
                 instanceId = "jammer-pack-u", cardId = "jammer-pack", ownerIndex = 0, controllerIndex = 0,
-                zone = Zone.UPGRADE, house = House.MARS, type = CardType.UPGRADE
+                zone = Zone.UPGRADE, house = House.MARS, type = CardType.UPGRADE, hostId = host.instanceId
             )
         )
 
@@ -276,6 +276,7 @@ class MarsEngineCardsTest {
         )
         player.amber = 8
         val source = marsCreature("battle-fleet", 0, 0)
+        host.upgrades[0].hostId = host.instanceId
 
         resolver.resolve(game, player, source, com.aember.analyzer.domain.engine.dsl.ForgeKey(extraCost = 0, discountPerCardInHand = false))
 

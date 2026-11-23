@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
+import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.effects.StaticEffectsBuilder
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 
@@ -16,6 +18,7 @@ class CardDefinition(
     var afterReapEffect: Effect = NoEffect,
     var omniEffect: Effect = NoEffect,
     var actionAbilities: List<Pair<String, Effect>> = emptyList(),
+    var staticEffects: List<StaticEffect> = emptyList(),
     var fidelity: CardFidelity = CardFidelity(level = FidelityLevel.VANILLA, notes = "")
 )
 
@@ -67,6 +70,14 @@ fun CardDefinition.omni(effect: Effect) {
 
 fun CardDefinition.action(name: String, effect: Effect) {
     actionAbilities = actionAbilities + (name to effect)
+}
+
+/**
+ * Declares the persistent static effects this card projects while in play
+ * (auras, keyword grants, key-cost modifiers).
+ */
+fun CardDefinition.persistent(block: StaticEffectsBuilder.() -> Unit) {
+    staticEffects = StaticEffectsBuilder().apply(block).effects
 }
 
 fun CardDefinition.fidelity(level: FidelityLevel, notes: String = "") {

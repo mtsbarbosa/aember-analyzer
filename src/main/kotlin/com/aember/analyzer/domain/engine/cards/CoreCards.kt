@@ -2,6 +2,9 @@ package com.aember.analyzer.domain.engine.cards
 
 import com.aember.analyzer.domain.engine.CardScript
 import com.aember.analyzer.domain.engine.dsl.*
+import com.aember.analyzer.domain.engine.effects.PayerScope
+import com.aember.analyzer.domain.engine.effects.StaticEffect
+import com.aember.analyzer.domain.engine.effects.StaticEffectKind
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 import com.aember.analyzer.domain.engine.model.GameState
@@ -216,7 +219,13 @@ object JammerPack : CardScript {
         notes = "Opponent's keys cost +2 amber while attached"
     )
 
-    override fun opponentKeyCostModifier(): Int = 2
+    override fun staticEffects() = listOf(
+        StaticEffect(
+            StaticEffectKind.KEY_COST_MODIFIER,
+            amount = 2,
+            payer = PayerScope.OPPONENT_OF_CONTROLLER
+        )
+    )
 }
 
 object LashOfBrokenDreams : CardScript {

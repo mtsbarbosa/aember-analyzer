@@ -2,6 +2,7 @@ package com.aember.analyzer.domain.engine.action
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.dsl.TurnTrigger
+import com.aember.analyzer.domain.engine.effects.EffectRegistry
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.engine.model.Keyword
 import com.aember.analyzer.domain.model.CardType
@@ -111,6 +112,7 @@ class ActionExecutor(
                 val target = findCreature(game, targetId)
                     ?: throw IllegalStateException("Target creature not found")
                 inPlay.zone = Zone.UPGRADE
+                inPlay.hostId = target.instanceId
                 target.upgrades.add(inPlay)
                 game.log("${player.name} upgrades ${target.cardId} with ${catalog.name}")
                 library.scriptFor(cardId).onPlay(game, player, inPlay)
@@ -318,10 +320,16 @@ class ActionExecutor(
     }
 
     private fun stateCheck(game: GameState) {
-        // Destroy creatures with lethal damage
-        game.players.forEach { player ->
-            val dead = player.creatures.filter { it.damage >= it.power || it.power <= 0 }
-            dead.forEach { destroyCreature(game, player, it) }
+        // Recompute static-effect auras and destroy lethal-damaged creatures until stable.
+        // Destroying a creature can invalidate auras (e.g. removing a power buff kills
+        // damaged neighbours), so re-evaluate after every removal.
+        while (true) {
+            EffectRegistry.recalculate(library, game)
+            val dead = game.players.flatMap { player ->
+                player.creatures.filter { it.damage >= it.power || it.power <= 0 }.map { player to it }
+            }
+            if (dead.isEmpty()) return
+            dead.forEach { (player, creature) -> destroyCreature(game, player, creature) }
         }
     }
 

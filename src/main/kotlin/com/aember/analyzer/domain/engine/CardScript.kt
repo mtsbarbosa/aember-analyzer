@@ -2,6 +2,7 @@ package com.aember.analyzer.domain.engine
 
 import com.aember.analyzer.domain.engine.fidelity.CardFidelity
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
+import com.aember.analyzer.domain.engine.effects.StaticEffect
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -61,10 +62,12 @@ interface CardScript {
     fun protectsNeighbors(): Boolean = false
 
     /**
-     * Static upgrade ability: the controller of the attached creature's opponent pays this
-     * much extra amber to forge keys (e.g., Jammer Pack).
+     * Persistent static effects projected while this card is in play
+     * (power/armor/keyword auras, key-cost modifiers). Evaluated by
+     * [com.aember.analyzer.domain.engine.effects.EffectRegistry] after every
+     * state change.
      */
-    fun opponentKeyCostModifier(): Int = 0
+    fun staticEffects(): List<StaticEffect> = emptyList()
 
     /**
      * Static upgrade ability: if true, the attached creature goes to its owner's archives

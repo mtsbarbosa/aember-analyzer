@@ -1,6 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
 import com.aember.analyzer.domain.engine.CardScript
+import com.aember.analyzer.domain.engine.effects.StaticEffect
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -13,6 +14,8 @@ class DslCardScript(
 ) : CardScript {
 
     override fun fidelity(): CardFidelity = definition.fidelity
+
+    override fun staticEffects(): List<StaticEffect> = definition.staticEffects
 
     override fun onPlay(game: GameState, player: PlayerState, card: InPlayCard) {
         if (definition.playEffect != NoEffect) {

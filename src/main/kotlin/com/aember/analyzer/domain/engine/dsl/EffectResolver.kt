@@ -107,7 +107,10 @@ class EffectResolver(
         register<DrawPerCardInHand> { game, player, _, effect -> drawPerCardInHand(game, player, effect) }
         register<ReadyCreaturesOfHousePerCardInHand> { game, player, _, effect -> readyCreaturesOfHousePerCardInHand(game, player, effect) }
         register<AddPowerCounters> { game, _, sourceCard, effect ->
+            // Power counters permanently raise the creature's base power; the
+            // EffectRegistry then re-applies static auras on top of it.
             sourceCard.power += effect.amount
+            sourceCard.basePower += effect.amount
             game.log("${sourceCard.cardId} gets ${effect.amount} +1 power counter(s) (power: ${sourceCard.power})")
         }
         register<SacrificeSelf> { game, _, sourceCard, _ ->
