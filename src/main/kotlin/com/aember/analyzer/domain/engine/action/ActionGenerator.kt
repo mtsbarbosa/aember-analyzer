@@ -85,13 +85,29 @@ class ActionGenerator(
 
         val playLimitReached = playLimitReached()
 
+        // Tentacus/Customs Office: the opponent's auras charge amber for playing
+        // or using artifacts; an unpayable cost suppresses the action entirely.
+        fun artifactPlayCost(): Int =
+            restrictions.filter { (source, restriction) ->
+                restriction is UseRestriction.ArtifactPlayCost && source.controllerIndex != player.index
+            }.sumOf { (_, restriction) -> (restriction as UseRestriction.ArtifactPlayCost).amount }
+
+        fun artifactUseCost(): Int =
+            restrictions.filter { (source, restriction) ->
+                restriction is UseRestriction.ArtifactUseCost && source.controllerIndex != player.index
+            }.sumOf { (_, restriction) -> (restriction as UseRestriction.ArtifactUseCost).amount }
+
+        val artifactPlayCharge = artifactPlayCost()
+        val artifactUseCharge = artifactUseCost()
+
         // Play cards from hand
         if (!playLimitReached) {
             player.hand.distinct().forEach { cardId ->
                 val card = library.cardData(cardId) ?: return@forEach
                 val houseOk = isHouseMatch(card.house, activeHouse) || mayPlayHouse(card.house) || mayPlayNonHouse(card.house)
                 val typeDenied = player.deniedCardTypeNextTurn == card.type
-                if (houseOk && !typeDenied && canUseCardName(player, cardId) && !blockedByCannotPlay(card.type)) {
+                val costTooHigh = card.type == CardType.ARTIFACT && player.amber < artifactPlayCharge
+                if (houseOk && !typeDenied && !costTooHigh && canUseCardName(player, cardId) && !blockedByCannotPlay(card.type)) {
                     if (!card.keywords.any { it.startsWith("alpha") } || game.actionsThisPhase == 0) {
                         if (library.scriptFor(cardId).playable(game, player)) {
                             actions.addAll(generatePlayActions(player, cardId, card.type))
@@ -105,7 +121,8 @@ class ActionGenerator(
         player.creatures.filter { !it.exhausted || it.stun }.forEach { creature ->
             val script = library.scriptFor(creature.cardId)
             val usableAsActiveHouse = script.selfRestrictions().any { it is SelfRestriction.UsableAsActiveHouse }
-            if ((isHouseMatch(creature.house, activeHouse) || usableAsActiveHouse) &&
+            val mayUseAllowance = creature.house == player.mayUseHouseThisTurn || creature.instanceId in player.mayUseCardIdsThisTurn
+            if ((isHouseMatch(creature.house, activeHouse) || usableAsActiveHouse || mayUseAllowance) &&
                 canUseCardName(player, creature.cardId)
             ) {
                 actions.addAll(generateCreatureUses(game, creature, script))
@@ -117,7 +134,11 @@ class ActionGenerator(
 
         // Use artifacts (non-Omni abilities require the artifact's house)
         player.artifacts.filter { !it.exhausted }.forEach { artifact ->
-            if (isHouseMatch(artifact.house, activeHouse) && canUseCardName(player, artifact.cardId)) {
+            val mayUseAllowance = artifact.instanceId in player.mayUseCardIdsThisTurn
+            val costTooHigh = player.amber < artifactUseCharge
+            if ((isHouseMatch(artifact.house, activeHouse) || mayUseAllowance) && !costTooHigh &&
+                canUseCardName(player, artifact.cardId)
+            ) {
                 library.scriptFor(artifact.cardId).actionAbilities()
                     .filter { it != "Omni" }
                     .forEach { ability ->
@@ -137,7 +158,7 @@ class ActionGenerator(
             }
         }
         player.artifacts.filter { !it.exhausted }.forEach { artifact ->
-            if (canUseCardName(player, artifact.cardId)) {
+            if (canUseCardName(player, artifact.cardId) && player.amber >= artifactUseCharge) {
                 library.scriptFor(artifact.cardId).actionAbilities()
                     .filter { it == "Omni" }
                     .forEach { ability ->

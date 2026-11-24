@@ -10,7 +10,8 @@ Usage:
       [--server URL --pool KEY] [--out docs/fidelity/core-inventory.csv]
       [--decks-dir DIR]  # alternatively: directory of deck JSON files (cards[].cardId/count)
       [--check-drift]    # Phase 4 spec drift check (CI): exit 1 if keyteki card files
-                         # changed / appeared / disappeared relative to the committed CSV
+                         # (or pack/overrides/spec sources) changed relative to the
+                         # committed CSV / keyteki-sources.sha
 
 Pool impact = number of pool decks that contain the card (needs the running server, or
 --decks-dir). Priority = pool_impact * (1 + cluster_size / 100), where cluster_size is the
@@ -53,8 +54,85 @@ PATTERNS = [
     ("power-counters", r"power counter|\+\d power"),
     ("omni-action", r"omni:|action:"),
 ]
-KEYWORD_ONLY = re.compile(r"^((alpha|omega|elusive|skirmish|taunt|hazardous\s*\d*|assault\s*\d*|deploy|poison|splash-attack\s*\d*|"
-                          r"\(.*?\))[\.\s\x0b,]*)*$", re.I | re.S)
+KEYWORD_ONLY_PATTERN = os.path.join(ROOT, "src/test/resources/fidelity/keyword-only.pattern")
+
+# Sidecar with hashes of keyteki sources the CSV cannot carry per-card:
+# the pack JSON, master-vault overrides.json and the reference .spec.js files.
+SOURCES_SHA = os.path.join(ROOT, "docs/fidelity/keyteki-sources.sha")
+
+
+def keyword_only_regex():
+    """Canonical pattern shared with CoverageRatchetTest (fidelity/keyword-only.pattern)."""
+    lines = [l.strip() for l in open(KEYWORD_ONLY_PATTERN, encoding="utf8")
+             if l.strip() and not l.strip().startswith("#")]
+    return re.compile(lines[0], re.I)
+
+
+def sha256_of(path):
+    return hashlib.sha256(open(path, "rb").read()).hexdigest()[:16]
+
+
+def specs_digest(spec_dir):
+    """Aggregate sha256 over the sorted spec file names + contents."""
+    if not spec_dir or not os.path.isdir(spec_dir):
+        return ""
+    h = hashlib.sha256()
+    for root, _, files in os.walk(spec_dir):
+        for fn in sorted(files):
+            if not fn.endswith(".spec.js"):
+                continue
+            full = os.path.join(root, fn)
+            h.update(os.path.relpath(full, spec_dir).encode())
+            h.update(open(full, "rb").read())
+    return h.hexdigest()[:16]
+
+
+def read_source_hashes():
+    if not os.path.exists(SOURCES_SHA):
+        return {}
+    out = {}
+    for line in open(SOURCES_SHA, encoding="utf8"):
+        key, _, value = line.partition("=")
+        if value:
+            out[key.strip()] = value.strip()
+    return out
+
+
+def write_source_hashes(pack, overrides, spec_dir):
+    lines = [
+        f"pack={sha256_of(pack) if os.path.exists(pack) else ''}",
+        f"overrides={sha256_of(overrides) if overrides and os.path.exists(overrides) else ''}",
+        f"specs={specs_digest(spec_dir)}",
+    ]
+    with open(SOURCES_SHA, "w", encoding="utf8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
+def check_source_drift(pack, overrides, spec_dir):
+    """Compare the keyteki source hashes (pack / overrides / specs) with the sidecar."""
+    stored = read_source_hashes()
+    if not stored:
+        print("SOURCE HASHES: no docs/fidelity/keyteki-sources.sha yet (run the inventory once to generate it)")
+        return False
+    current = {
+        "pack": sha256_of(pack) if os.path.exists(pack) else "",
+        "overrides": sha256_of(overrides) if overrides and os.path.exists(overrides) else "",
+        "specs": specs_digest(spec_dir),
+    }
+    drifted = [k for k, v in current.items() if v and stored.get(k) and v != stored[k]]
+    appeared = [k for k, v in current.items() if v and not stored.get(k)]
+    vanished = [k for k, v in stored.items() if v and not current.get(k)]
+    if drifted:
+        print(f"DRIFT: keyteki source(s) changed since the inventory was generated: {', '.join(drifted)}")
+    if appeared:
+        print(f"DRIFT: new hashable keyteki source(s): {', '.join(appeared)}")
+    if vanished:
+        print(f"DRIFT: stored keyteki source(s) no longer present: {', '.join(vanished)}")
+    if drifted or appeared or vanished:
+        print("Re-run the inventory and re-review the affected cards/specs, then commit the new CSV + sources.sha.")
+        return True
+    print(f"Spec source hashes OK: {', '.join(f'{k}={v}' for k, v in current.items() if v)}.")
+    return False
 
 
 def catalog_id(pack_id):
@@ -141,7 +219,7 @@ def pool_impact(server, pool, decks_dir):
 
 def text_is_vanilla(text):
     t = (text or "").strip().lower()
-    return not t or bool(KEYWORD_ONLY.match(t))
+    return not t or bool(keyword_only_regex().match(t))
 
 
 def verified_ids():
@@ -157,12 +235,17 @@ def verified_ids():
     return out
 
 
-def check_drift(csv_path, cards_dir):
+def check_drift(csv_path, cards_dir, pack_path, overrides_path, spec_dir):
     """Compare keyteki card-file hashes in the committed CSV with the current sources.
 
     Fails (returns non-zero) when a keyteki card file changed, appeared or disappeared
-    since the CSV was generated — those cards must be re-reviewed before the next batch.
+    since the CSV was generated, or when the pack / overrides / spec sources drifted
+    against the stored sidecar hashes — those must be re-reviewed before the next batch.
     """
+    if not cards_dir or not os.path.isdir(cards_dir):
+        print(f"DRIFT CHECK FAILED: keyteki card directory not found: {cards_dir!r}")
+        print("Point --keyteki-cards at a keyteki checkout (server/game/cards/<NN>-<Set>) or skip the check.")
+        return 1
     kt = keyteki_features(cards_dir)
     stored = {}
     with open(csv_path, newline="", encoding="utf8") as f:
@@ -185,7 +268,9 @@ def check_drift(csv_path, cards_dir):
         print(f"DRIFT: {len(disappeared)} inventoried card file(s) missing from keyteki now:")
         for cid in disappeared:
             print(f"  {cid}")
-    if changed or appeared or disappeared:
+    card_drift = bool(changed or appeared or disappeared)
+    source_drift = check_source_drift(pack_path, overrides_path, spec_dir)
+    if card_drift or source_drift:
         print("Re-run the inventory and re-review the affected cards, then commit the new CSV.")
         return 1
     print(f"Spec drift check OK: {len(stored)} keyteki card files unchanged.")
@@ -200,12 +285,16 @@ def main():
     ap.add_argument("--pool", default="cota")
     ap.add_argument("--decks-dir", default=None)
     ap.add_argument("--out", default=os.path.join(ROOT, "docs/fidelity/core-inventory.csv"))
+    ap.add_argument("--keyteki-specs", default=os.path.expanduser("~/work/keyteki/test/server/cards/01-Core"),
+                    help="keyteki .spec.js directory (hashed into keyteki-sources.sha)")
+    ap.add_argument("--overrides", default=os.path.expanduser("~/work/keyteki/master-vault-data/overrides.json"),
+                    help="master-vault overrides.json (hashed into keyteki-sources.sha)")
     ap.add_argument("--check-drift", action="store_true",
                     help="compare keyteki card-file hashes against the committed CSV; exit 1 on drift")
     args = ap.parse_args()
 
     if args.check_drift:
-        return check_drift(args.out, args.keyteki_cards)
+        return check_drift(args.out, args.keyteki_cards, args.pack, args.overrides, args.keyteki_specs)
 
     cards = load_cards(args.pack)
     dsl = parse_dsl_levels(os.path.join(CARDS_DIR, "CoreSetDslCards.kt"))
@@ -256,6 +345,10 @@ def main():
         w = csv.DictWriter(f, fieldnames=fields)
         w.writeheader()
         w.writerows(rows)
+
+    # Store the hashes of the other keyteki sources (pack, overrides, specs) so the
+    # drift check can also detect changes the per-card CSV cannot express.
+    write_source_hashes(args.pack, args.overrides, args.keyteki_specs)
 
     levels = collections.Counter(r["level"] for r in rows)
     print(f"{len(rows)} cards -> {args.out}")

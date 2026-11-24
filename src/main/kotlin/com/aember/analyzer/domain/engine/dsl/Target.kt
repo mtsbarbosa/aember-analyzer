@@ -85,6 +85,36 @@ data object EachFriendlyUndamagedCreature : CreatureSelector
  */
 data object EachEnemyUndamagedCreature : CreatureSelector
 
+/**
+ * Selects a creature on a flank of either battleline (Silent Dagger's granted
+ * Reap, Special Delivery, Bulleteye).
+ */
+data object FlankCreature : CreatureSelector
+
+/**
+ * Selects a creature that has taken damage (Anomaly Exploiter: "destroy a
+ * damaged creature").
+ */
+data object DamagedCreature : CreatureSelector
+
+/**
+ * Selects creatures of a trait across both players (Qyxxlyx Plague Master:
+ * "Deal 3 damage to each Human creature").
+ */
+data class AnyCreatureWithTrait(val trait: String, val scope: Scope = Scope.ALL) : CreatureSelector
+
+/**
+ * Selects a creature other than the one most recently healed during the current
+ * effect resolution (Guardian Demon: heal a creature, damage *another* creature).
+ */
+data object CreatureOtherThanLastHealed : CreatureSelector
+
+/**
+ * Selects an artifact in play, across both players (Gorm of Omm, Whispering
+ * Reliquary, Grasping Vines).
+ */
+data object AnyArtifact : TargetSelector
+
 sealed interface TargetPlayer
 data object SelfPlayer : TargetPlayer
 data object OpponentPlayer : TargetPlayer

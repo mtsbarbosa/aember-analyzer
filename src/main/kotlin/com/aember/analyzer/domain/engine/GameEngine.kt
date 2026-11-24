@@ -17,6 +17,8 @@ class GameEngine(
         val random = java.util.Random(seed)
         val idGenerator = SeededIdGenerator(seed)
         val executor = ActionExecutor(library, idGenerator)
+        // Masterplan/Chaos Portal play cards through the real play path.
+        library.dslResolver?.playBridge = executor
         val actionGenerator = ActionGenerator(library)
 
         val playerA = createPlayer(0, "Player A", deckA)

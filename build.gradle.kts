@@ -53,3 +53,13 @@ tasks.withType<KotlinCompile> {
 tasks.withType<Test> {
     useJUnitPlatform()
 }
+
+// Phase 4 spec drift check: fails when keyteki card files / pack / overrides / spec
+// sources changed since the inventory was generated. Kept out of `check` because CI
+// environments may not carry the keyteki checkout; run it explicitly (or in CI jobs
+// that mount the repo).
+tasks.register<Exec>("specDriftCheck") {
+    group = "verification"
+    description = "Fails if keyteki sources drifted since docs/fidelity/core-inventory.csv was generated."
+    commandLine("python3", "tools/fidelity-inventory.py", "--check-drift")
+}

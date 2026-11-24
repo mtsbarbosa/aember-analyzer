@@ -13,6 +13,9 @@ class CardLibrary(
 
     private val scripts: MutableMap<String, CardScript> = mutableMapOf()
 
+    /** The DSL resolver created by [com.aember.analyzer.infrastructure.config.buildCoreCardLibrary], if any. */
+    var dslResolver: com.aember.analyzer.domain.engine.dsl.EffectResolver? = null
+
     fun register(cardId: String, script: CardScript) {
         scripts[cardId] = script
     }

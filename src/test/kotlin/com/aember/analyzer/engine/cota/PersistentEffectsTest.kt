@@ -1,4 +1,4 @@
-package com.aember.analyzer.engine
+package com.aember.analyzer.engine.cota
 
 import com.aember.analyzer.domain.engine.ForgeRules
 import com.aember.analyzer.domain.engine.action.ActionExecutor

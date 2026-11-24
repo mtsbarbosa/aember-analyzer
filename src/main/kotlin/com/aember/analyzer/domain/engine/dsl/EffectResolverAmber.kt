@@ -42,6 +42,26 @@ internal fun EffectResolver.registerAmberEffects() {
             if (lost > 0) loseAmber(game, player, lost)
         }
     }
+    register<PlaceAmberOnEnemyCreature> { game, player, _, effect ->
+        val opponent = game.opponent(player)
+        val target = opponent.creatures.maxByOrNull { it.power } ?: return@register
+        target.capturedAmber += effect.amount
+        game.log("${player.name} places ${effect.amount} amber on ${target.cardId}")
+    }
+    register<MoveAmberFromOwnCardToPool> { game, player, _, _ ->
+        val source = (player.creatures + player.artifacts).filter { it.capturedAmber > 0 }.maxByOrNull { it.capturedAmber }
+        if (source == null) {
+            game.log("${player.name} has no amber on their cards to move")
+            return@register
+        }
+        source.capturedAmber -= 1
+        gainAmber(game, player, 1)
+    }
+    register<LoseAllAmberAndOpponentLosesTriple> { game, player, _, _ ->
+        val lost = player.amber
+        if (lost > 0) loseAmber(game, player, lost)
+        loseAmber(game, game.opponent(player), lost * 3)
+    }
 }
 
 internal fun gainAmber(game: GameState, player: PlayerState, amount: Int) {

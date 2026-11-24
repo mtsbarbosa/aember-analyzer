@@ -24,6 +24,9 @@ class EffectResolver(
 
     internal val handlers = mutableMapOf<KClass<out Effect>, (GameState, PlayerState, InPlayCard, Effect) -> Unit>()
 
+    /** Bridge to the real play path (ActionExecutor.playCard), wired by GameEngine / Scenario. */
+    internal var playBridge: CardPlayBridge? = null
+
     /** All known [Condition] types must be mapped here (guarded by EffectResolverRegistrationTest). */
     internal val conditionHandlers: Map<KClass<out Condition>, (Condition, GameState, PlayerState) -> Boolean> = mapOf(
         OpponentHasMoreAmber::class to { _, g, p -> g.opponent(p).amber > p.amber },

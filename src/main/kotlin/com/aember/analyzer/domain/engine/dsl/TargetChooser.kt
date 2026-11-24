@@ -91,6 +91,16 @@ class GreedyTargetChooser : TargetChooser {
             }
             is EachFriendlyUndamagedCreature -> sourcePlayer.creatures.filter { it.damage == 0 }
             is EachEnemyUndamagedCreature -> opponent.creatures.filter { it.damage == 0 }
+            is FlankCreature -> (sourcePlayer.creatures + opponent.creatures).filter { creature ->
+                val battleline = game.player(creature.controllerIndex).creatures
+                battleline.size == 1 || battleline.first().instanceId == creature.instanceId ||
+                    battleline.last().instanceId == creature.instanceId
+            }
+            is DamagedCreature -> (sourcePlayer.creatures + opponent.creatures).filter { it.damage > 0 }
+            is AnyCreatureWithTrait -> (sourcePlayer.creatures + opponent.creatures)
+                .filter { it.traits.contains(selector.trait.lowercase()) }
+            is CreatureOtherThanLastHealed -> (sourcePlayer.creatures + opponent.creatures)
+                .filter { it.instanceId != game.lastHealedTargetId }
         }
         val sorted = when (selector) {
             is FriendlyCreature, is FriendlyCreatureWithTrait, is FriendlyCreatureWithHouse, is OtherFriendlyCreatureWithHouse -> candidates.sortedByDescending { it.power }
@@ -114,6 +124,19 @@ class GreedyTargetChooser : TargetChooser {
                 enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
             }
             is EachFriendlyUndamagedCreature, is EachEnemyUndamagedCreature -> candidates
+            is FlankCreature -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
+            is DamagedCreature -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
+            is AnyCreatureWithTrait -> candidates
+            is CreatureOtherThanLastHealed -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
         }
         val scope = when (selector) {
             is FriendlyCreature -> selector.scope
@@ -135,6 +158,10 @@ class GreedyTargetChooser : TargetChooser {
             is NeighborOfSelf -> Scope.ONE
             is CreatureNotOnFlank -> Scope.ONE
             is EachFriendlyUndamagedCreature, is EachEnemyUndamagedCreature -> Scope.ALL
+            is FlankCreature -> Scope.ONE
+            is DamagedCreature -> Scope.ONE
+            is AnyCreatureWithTrait -> selector.scope
+            is CreatureOtherThanLastHealed -> Scope.ONE
         }
         return if (scope == Scope.ONE) sorted.take(1) else sorted
     }

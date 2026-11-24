@@ -60,6 +60,197 @@ internal fun EffectResolver.registerCardEffects() {
         game,
         targetPlayer(game, player, effect.player)
     ) }
+    register<DestroyArtifact> { game, player, sourceCard, effect ->
+        val artifacts = game.players.flatMap { it.artifacts }
+        val target = when (effect.target) {
+            AnyArtifact -> artifacts.sortedByDescending { it.power }.firstOrNull()
+            else -> null
+        }
+        if (target != null) destroyArtifact(game, target)
+        else game.log("${player.name} finds no artifact to destroy")
+    }
+    register<ReturnArtifactToHand> { game, player, sourceCard, effect ->
+        var returned = 0
+        while (returned < effect.maxCount) {
+            // Greedy: the opponent's strongest artifact first, then our own (never the source itself).
+            val enemy = game.opponent(player).artifacts.maxByOrNull { it.power }
+            val own = player.artifacts.filter { it.instanceId != sourceCard.instanceId }.maxByOrNull { it.power }
+            val target = enemy ?: own ?: break
+            returnArtifactToHand(game, target)
+            returned++
+        }
+    }
+    register<ArchiveFriendlyCreatureOrArtifact> { game, player, sourceCard, _ ->
+        // Greedy: prefer a damaged friendly creature (archiving it removes it from
+        // danger), else an artifact, else a ready creature.
+        val creature = player.creatures
+            .filter { it.damage > 0 }
+            .maxByOrNull { it.power }
+            ?: player.creatures.maxByOrNull { it.damage + it.power }
+        val artifact = player.artifacts.maxByOrNull { it.power }
+        val target = when {
+            creature != null -> creature
+            artifact != null -> artifact
+            else -> targetChooser.chooseCreature(game, FriendlyCreature(), sourceCard).firstOrNull()
+        } ?: run {
+            game.log("${player.name} has nothing to archive from play")
+            return@register
+        }
+        if (target.type == CardType.ARTIFACT) {
+            player.artifacts.remove(target)
+            player.archives.add(target.cardId)
+            game.log("${target.cardId} is archived")
+        } else {
+            player.creatures.remove(target)
+            target.upgrades.forEach { upgrade -> player.discard.add(upgrade.cardId) }
+            target.upgrades.clear()
+            player.archives.add(target.cardId)
+            game.log("${target.cardId} is archived")
+            if (library != null) {
+                EventBus.emit(library, game, CardLeftPlay(target.instanceId, target.cardId, target.ownerIndex, target.controllerIndex))
+            }
+        }
+    }
+    register<DiscardEnemyHandCreaturesOfChosenHouse> { game, player, _, _ ->
+        val opponent = game.opponent(player)
+        val counts = opponent.hand.mapNotNull { library?.cardData(it) }
+            .filter { it.type == CardType.CREATURE }
+            .groupingBy { it.house }
+            .eachCount()
+        val chosen = counts.maxByOrNull { it.value }?.key
+        if (chosen == null) {
+            game.log("${player.name} reveals no creatures in ${opponent.name}'s hand")
+            return@register
+        }
+        game.log("${player.name} chooses $chosen and reveals ${opponent.name}'s hand")
+        val discarded = opponent.hand.filter { cardId ->
+            val data = library?.cardData(cardId)
+            data?.type == CardType.CREATURE && data.house == chosen
+        }
+        discarded.forEach { cardId -> opponent.hand.remove(cardId); opponent.discard.add(cardId) }
+        game.log("${opponent.name} discards ${discarded.size} $chosen creature(s): ${discarded.joinToString(", ") { cardName(it) }}")
+    }
+    register<ScanDeckForHouseCreatureToHand> { game, player, _, effect ->
+        val discarded = mutableListOf<String>()
+        var found: String? = null
+        while (player.library.isNotEmpty()) {
+            val cardId = player.library.removeFirst()
+            val data = library?.cardData(cardId)
+            if (data?.type == CardType.CREATURE && data.house == effect.house) {
+                found = cardId
+                break
+            }
+            discarded.add(cardId)
+        }
+        if (discarded.isNotEmpty()) {
+            player.discard.addAll(discarded)
+            game.log("${player.name} discards ${discarded.size} card(s) from the top of their deck")
+        }
+        if (found != null) {
+            player.hand.add(found)
+            game.log("${player.name} takes ${cardName(found)} into their hand")
+        } else {
+            game.log("${player.name} finds no ${effect.house.name.lowercase()} creature in their deck")
+        }
+    }
+    register<ShuffleHouseCreaturesIntoDeck> { game, _, sourceCard, effect ->
+        game.players.forEach { p ->
+            val creatures = p.creatures.filter { it.house == effect.house && it.ownerIndex == p.index }
+            if (creatures.isEmpty()) return@forEach
+            if (effect.amberPerEach > 0) {
+                gainAmber(game, p, creatures.size * effect.amberPerEach)
+            }
+            creatures.forEach { leavePlay(game, it, LeaveDestination.SHUFFLE_INTO_DECK, "${it.cardId} is shuffled into ${p.name}'s deck") }
+            game.log("${p.name} gains ${creatures.size * effect.amberPerEach} amber for ${creatures.size} creature(s) shuffled into their deck")
+        }
+    }
+    register<StackHandCardBeneath> { game, player, sourceCard, _ ->
+        val hand = player.hand.filter { it != sourceCard.cardId }
+        // Prefer one-shot action cards; upgrades are the last resort (they need a
+        // creature target when played from beneath).
+        val cardId = hand.firstOrNull { library?.cardData(it)?.type == CardType.ACTION }
+            ?: hand.firstOrNull { library?.cardData(it)?.type != CardType.UPGRADE }
+            ?: hand.firstOrNull()
+            ?: return@register
+        player.hand.remove(cardId)
+        sourceCard.beneathCardIds.add(cardId)
+        game.log("${player.name} places ${cardName(cardId)} facedown beneath ${sourceCard.cardId}")
+    }
+    register<PlayBeneathCardAndSacrifice> { game, player, sourceCard, _ ->
+        val cardId = sourceCard.beneathCardIds.removeFirstOrNull()
+        if (cardId == null) {
+            game.log("${sourceCard.cardId} has no card beneath it")
+            sacrificeCreature(game, sourceCard)
+            return@register
+        }
+        val bridge = playBridge
+        val isUpgrade = library?.cardData(cardId)?.type == CardType.UPGRADE
+        val host = player.creatures.maxByOrNull { it.power }
+        when {
+            bridge == null -> {
+                game.log("${player.name} plays ${cardName(cardId)} from beneath ${sourceCard.cardId} (approximated)")
+                sacrificeCreature(game, sourceCard)
+            }
+            isUpgrade && host == null -> {
+                // An upgrade without a creature to attach to stays beneath.
+                sourceCard.beneathCardIds.add(cardId)
+                game.log("${player.name} has no creature to attach ${cardName(cardId)} to")
+                sacrificeCreature(game, sourceCard)
+            }
+            else -> {
+                player.hand.add(cardId)
+                // Upgrades are played attached to the strongest own creature.
+                bridge.playCardFromHand(game, player, cardId, if (isUpgrade) host?.instanceId else null)
+                sacrificeCreature(game, sourceCard)
+            }
+        }
+    }
+    register<ReturnUrchinToHand> { game, player, _, _ ->
+        val urchin = player.creatures.find { it.cardId == "urchin" }
+        if (urchin != null) {
+            leavePlay(game, urchin, LeaveDestination.HAND, "${urchin.cardId} returns to hand")
+            return@register
+        }
+        if (player.discard.remove("urchin")) {
+            player.hand.add("urchin")
+            game.log("${player.name} returns urchin from their discard pile to hand")
+            return@register
+        }
+        game.log("${player.name} has no urchin in play or discard")
+    }
+}
+
+/** The bridge for playing a card through the real play path (ActionExecutor.playCard). */
+internal interface CardPlayBridge {
+    fun playCardFromHand(game: GameState, player: PlayerState, cardId: String, targetCreatureId: String? = null)
+}
+
+internal fun EffectResolver.destroyArtifact(game: GameState, artifact: InPlayCard) {
+    val controller = game.player(artifact.controllerIndex)
+    if (!controller.artifacts.remove(artifact)) return
+    val owner = game.player(artifact.ownerIndex)
+    owner.discard.add(artifact.cardId)
+    game.log("${artifact.cardId} is destroyed")
+    if (library != null) {
+        EventBus.emit(
+            library, game,
+            CardLeftPlay(artifact.instanceId, artifact.cardId, artifact.ownerIndex, artifact.controllerIndex)
+        )
+    }
+}
+
+internal fun EffectResolver.returnArtifactToHand(game: GameState, artifact: InPlayCard) {
+    val controller = game.player(artifact.controllerIndex)
+    if (!controller.artifacts.remove(artifact)) return
+    val owner = game.player(artifact.ownerIndex)
+    owner.hand.add(artifact.cardId)
+    game.log("${artifact.cardId} returns to hand")
+    if (library != null) {
+        EventBus.emit(
+            library, game,
+            CardLeftPlay(artifact.instanceId, artifact.cardId, artifact.ownerIndex, artifact.controllerIndex)
+        )
+    }
 }
 
 internal fun drawCards(game: GameState, player: PlayerState, amount: Int) {
@@ -317,7 +508,7 @@ internal fun swapDeckAndDiscard(game: GameState, player: PlayerState) {
 }
 
 /** Where a card that leaves play through an effect ends up. */
-internal enum class LeaveDestination { DISCARD, SHUFFLE_INTO_DECK, TOP_OF_DECK }
+internal enum class LeaveDestination { DISCARD, SHUFFLE_INTO_DECK, TOP_OF_DECK, HAND }
 
 /**
  * Shared "creature leaves play" removal for effect-driven removals (sacrifice,
@@ -342,6 +533,10 @@ internal fun EffectResolver.leavePlay(game: GameState, card: InPlayCard, destina
         }
         LeaveDestination.TOP_OF_DECK -> {
             owner.library.add(0, card.cardId)
+            game.log(logLine)
+        }
+        LeaveDestination.HAND -> {
+            owner.hand.add(card.cardId)
             game.log(logLine)
         }
         LeaveDestination.DISCARD -> {

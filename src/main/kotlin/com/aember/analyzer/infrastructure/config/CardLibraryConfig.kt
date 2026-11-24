@@ -10,6 +10,7 @@ import com.aember.analyzer.domain.engine.cards.ControlTheWeak
 import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
 import com.aember.analyzer.domain.engine.cards.Fogbank
+import com.aember.analyzer.domain.engine.cards.Valdr
 import com.aember.analyzer.domain.engine.cards.JammerPack
 import com.aember.analyzer.domain.engine.cards.keyCheatDslCardOverrides
 import com.aember.analyzer.domain.engine.cards.LashOfBrokenDreams
@@ -50,6 +51,7 @@ class CardLibraryConfig {
 fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: TargetChooser = GreedyTargetChooser()): CardLibrary {
     val library = CardLibrary(catalog)
     val resolver = EffectResolver(library = library, targetChooser = targetChooser)
+    library.dslResolver = resolver
 
     // Register auto-generated Core set DSL definitions.
     coreSetCards.forEach { (id, definition) ->
@@ -86,6 +88,7 @@ fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: Targe
     library.register("lash-of-broken-dreams", LashOfBrokenDreams)
     library.register("too-much-to-protect", TooMuchToProtect)
     library.register("fogbank", Fogbank)
+    library.register("valdr", Valdr)
 
     return library
 }

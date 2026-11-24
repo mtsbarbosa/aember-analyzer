@@ -9,8 +9,10 @@ import com.aember.analyzer.domain.engine.events.CardPlayed
 import com.aember.analyzer.domain.engine.events.CreatureDestroyed
 import com.aember.analyzer.domain.engine.events.CreatureEnteredPlay
 import com.aember.analyzer.domain.engine.events.CreatureReaped
+import com.aember.analyzer.domain.engine.events.ArtifactUsed
 import com.aember.analyzer.domain.engine.events.EventBus
 import com.aember.analyzer.domain.engine.events.FightResolved
+import com.aember.analyzer.domain.engine.effects.UseRestriction
 import com.aember.analyzer.domain.engine.model.*
 import com.aember.analyzer.domain.engine.model.Keyword
 import com.aember.analyzer.domain.model.CardType
@@ -23,7 +25,13 @@ import com.aember.analyzer.domain.engine.IdGenerator
 class ActionExecutor(
     private val library: CardLibrary,
     private val idGenerator: IdGenerator
-) {
+) : com.aember.analyzer.domain.engine.dsl.CardPlayBridge {
+
+    /** Masterplan/Chaos Portal: play a card that was just moved into the player's hand. */
+    override fun playCardFromHand(game: GameState, player: PlayerState, cardId: String, targetCreatureId: String?) {
+        playCard(game, PlayCardAction(cardId, targetCreatureId = targetCreatureId))
+    }
+
 
     fun execute(game: GameState, action: Action) {
         when (action) {
@@ -53,6 +61,13 @@ class ActionExecutor(
         val catalog = library.cardData(cardId)
             ?: throw IllegalStateException("Unknown card: $cardId")
         logCardFidelity(game, cardId, "play")
+
+        // Customs Office: playing an artifact costs amber paid to the aura's controller.
+        if (catalog.type == CardType.ARTIFACT) {
+            val charge = artifactCostCharge(game, player, play = true)
+            require(player.amber >= charge) { "Cannot pay artifact play cost ($charge amber)" }
+            payArtifactCost(game, player, charge)
+        }
 
         // Alpha: can only be the first thing played/used/discarded this phase.
         if (catalog.keywords.any { it.startsWith("alpha") } && game.actionsThisPhase > 0) {
@@ -155,7 +170,10 @@ class ActionExecutor(
         }
 
         // Reactions ("After you play ...", "Each time a creature enters play ...").
-        EventBus.emit(library, game, CreatureEnteredPlay(player.index, instanceId, cardId, catalog.house))
+        // CreatureEnteredPlay only fires for creatures (keyteki's onCardPlay creature check).
+        if (catalog.type == CardType.CREATURE) {
+            EventBus.emit(library, game, CreatureEnteredPlay(player.index, instanceId, cardId, catalog.house))
+        }
         EventBus.emit(library, game, CardPlayed(player.index, cardId, catalog.type, catalog.house))
     }
 
@@ -211,12 +229,54 @@ class ActionExecutor(
         val artifact = player.artifacts.find { it.instanceId == action.instanceId }
             ?: throw IllegalStateException("Artifact not found")
         logCardFidelity(game, artifact.cardId, "use-artifact")
+        // Tentacus: using an artifact costs amber paid to the aura's controller
+        // (both Action abilities and Omni, per keyteki's triggered-action check).
+        val charge = artifactCostCharge(game, player, play = false)
+        require(player.amber >= charge) { "Cannot pay artifact use cost ($charge amber)" }
+        payArtifactCost(game, player, charge)
         artifact.exhausted = true
         game.log("${player.name} uses ${artifact.cardId}'s ${action.abilityId}")
         library.scriptFor(artifact.cardId).resolveActionAbility(action.abilityId, game, player, artifact)
         player.cardNamesPlayedOrUsedThisRound[artifact.cardId] = (player.cardNamesPlayedOrUsedThisRound[artifact.cardId] ?: 0) + 1
         trackAbilityUse(game, action.abilityId)
         game.actionsThisPhase++
+        EventBus.emit(library, game, ArtifactUsed(player.index, artifact.instanceId, artifact.cardId, action.abilityId))
+    }
+
+    /** Sum of ArtifactPlayCost/ArtifactUseCost auras projected by the opponents of `player`. */
+    private fun artifactCostCharge(game: GameState, player: PlayerState, play: Boolean): Int =
+        EffectRegistry.collectUseRestrictions(library, game)
+            .filter { (source, restriction) ->
+                (if (play) restriction is UseRestriction.ArtifactPlayCost else restriction is UseRestriction.ArtifactUseCost) &&
+                    source.controllerIndex != player.index
+            }
+            .sumOf { (_, restriction) ->
+                when (restriction) {
+                    is UseRestriction.ArtifactPlayCost -> restriction.amount
+                    is UseRestriction.ArtifactUseCost -> restriction.amount
+                    else -> 0
+                }
+            }
+
+    /** Transfers a charged artifact cost to the aura owners (evenly, remainder to the first). */
+    private fun payArtifactCost(game: GameState, player: PlayerState, charge: Int) {
+        if (charge <= 0) return
+        val owners = EffectRegistry.collectUseRestrictions(library, game)
+            .filter { (source, restriction) ->
+                (restriction is UseRestriction.ArtifactPlayCost || restriction is UseRestriction.ArtifactUseCost) &&
+                    source.controllerIndex != player.index
+            }
+            .map { it.first.controllerIndex }
+            .distinct()
+        if (owners.isEmpty()) return
+        val before = player.amber
+        player.amber -= charge
+        val per = charge / owners.size
+        val remainder = charge % owners.size
+        owners.forEachIndexed { index, ownerIndex ->
+            game.gainAmber(game.player(ownerIndex), per + if (index == 0) remainder else 0, "${game.player(ownerIndex).name} gains amber from artifact taxes")
+        }
+        game.log("${player.name} pays $charge amber for an artifact (${player.name}: $before -> ${player.amber})")
     }
 
     private fun discard(game: GameState, cardId: String) {
@@ -248,8 +308,11 @@ class ActionExecutor(
         defender.attackedThisTurn = true
         attacker.exhausted = true
 
-        // Before Fight triggers resolve before Assault/Hazardous.
+        // Before Fight triggers resolve before Assault/Hazardous. The fight
+        // target is exposed for Before Fight effects (Lord Golgotha, Zorg).
+        game.currentFightTargetId = defender.instanceId
         library.scriptFor(attacker.cardId).onBeforeFight(game, player, attacker, defender)
+        game.currentFightTargetId = null
 
         // Assault and Hazardous resolve before normal fight damage.
         val assault = attacker.keywordValue(Keyword.ASSAULT)
@@ -282,8 +345,8 @@ class ActionExecutor(
         val skirmish = attacker.hasKeyword(Keyword.SKIRMISH)
 
         // Normal fight damage. Cards may modify the damage they deal when fighting.
-        val attackerDamage = library.scriptFor(attacker.cardId).modifyFightDamage(true, attacker.power)
-        val defenderDamage = library.scriptFor(defender.cardId).modifyFightDamage(false, if (skirmish) 0 else defender.power)
+        val attackerDamage = library.scriptFor(attacker.cardId).modifyFightDamage(true, attacker.power, game, defender)
+        val defenderDamage = library.scriptFor(defender.cardId).modifyFightDamage(false, if (skirmish) 0 else defender.power, game, attacker)
 
         dealDamage(game, attacker, defenderDamage)
         if (!elusive) {
@@ -362,7 +425,7 @@ class ActionExecutor(
     private fun stateCheck(game: GameState) {
         // Recompute static-effect auras and destroy lethal-damaged creatures until stable.
         // Destroying a creature can invalidate auras (e.g. removing a power buff kills
-        // damaged neighbours), so re-evaluate after every removal.
+        // damaged neighbors), so re-evaluate after every removal.
         while (true) {
             EffectRegistry.recalculate(library, game)
             val dead = game.players.flatMap { player ->

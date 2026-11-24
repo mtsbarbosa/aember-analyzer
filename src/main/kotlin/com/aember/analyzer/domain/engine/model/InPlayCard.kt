@@ -30,6 +30,10 @@ data class InPlayCard(
     var attackedThisTurn: Boolean = false,
     /** Cannot be dealt damage for the remainder of the turn (Protectrix, Shield of Justice). */
     var immuneToDamageThisTurn: Boolean = false,
+    /** Armor removed until end of turn (Red Hot Armor); subtracted when damage is applied. */
+    var armorStrippedThisTurn: Int = 0,
+    /** Cards placed facedown beneath this card (Masterplan). */
+    val beneathCardIds: MutableList<String> = mutableListOf(),
     var keywords: Map<String, Int> = emptyMap(),
     var traits: List<String> = emptyList(),
     var upgrades: MutableList<InPlayCard> = mutableListOf(),

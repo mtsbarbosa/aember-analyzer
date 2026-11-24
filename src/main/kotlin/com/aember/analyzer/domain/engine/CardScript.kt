@@ -26,9 +26,15 @@ interface CardScript {
 
     /**
      * Allows a card to modify the damage it deals during the normal fight damage step.
-     * Called separately for attacker and defender damage.
+     * Called separately for attacker and defender damage; [fightTarget] is the creature
+     * this card is fighting (Valdr: +2 damage against an enemy flank creature).
      */
-    fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = baseDamage
+    fun modifyFightDamage(
+        isAttacker: Boolean,
+        baseDamage: Int,
+        game: com.aember.analyzer.domain.engine.model.GameState? = null,
+        fightTarget: com.aember.analyzer.domain.engine.model.InPlayCard? = null
+    ): Int = baseDamage
 
     /**
      * Static ability: if true, this creature enters play ready (e.g., Silvertooth).

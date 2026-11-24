@@ -1,4 +1,4 @@
-package com.aember.analyzer.engine
+package com.aember.analyzer.engine.cota
 
 import com.aember.analyzer.domain.engine.CardLibrary
 import com.aember.analyzer.domain.engine.action.ActionExecutor
@@ -20,6 +20,7 @@ import com.aember.analyzer.domain.model.CardType
 import com.aember.analyzer.domain.model.CatalogCard
 import com.aember.analyzer.domain.model.House
 import com.aember.analyzer.domain.model.Rarity
+import com.aember.analyzer.engine.EngineTestHelper
 import com.aember.analyzer.engine.EngineTestHelper.IncrementingIdGenerator
 import com.aember.analyzer.engine.EngineTestHelper.creature
 import com.aember.analyzer.engine.EngineTestHelper.emptyDeck

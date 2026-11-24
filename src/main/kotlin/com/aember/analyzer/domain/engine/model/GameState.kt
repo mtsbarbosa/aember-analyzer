@@ -28,6 +28,9 @@ data class GameState(
     var lastSacrificeSucceeded: Boolean = false,
     var lastPurgedFromDiscard: Int = 0,
 
+    /** The creature currently being fought (Before Fight triggers read it: Lord Golgotha, Zorg). */
+    var currentFightTargetId: String? = null,
+
     /** The event currently being dispatched by the EventBus, for event-aware effects. */
     var currentEvent: com.aember.analyzer.domain.engine.events.GameEvent? = null,
 

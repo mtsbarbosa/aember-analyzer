@@ -1,0 +1,5 @@
+# Canonical "keyword-only text" pattern (coverage ratchet + fidelity inventory).
+# Text made exclusively of keywords / parenthesised modifiers has no ability content.
+# Bounded [^()]* instead of .*? so the alternation cannot backtrack catastrophically.
+# Flags: IGNORE_CASE (applied by both consumers).
+^((?:alpha|omega|elusive|skirmish|taunt|hazardous\s*\d*|assault\s*\d*|deploy|poison|splash-attack\s*\d*|\([^()]*\))[\s.,]*)*$

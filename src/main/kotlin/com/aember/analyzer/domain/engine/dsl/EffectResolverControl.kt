@@ -18,6 +18,7 @@ internal fun EffectResolver.registerControlEffects() {
     }
     register<DenyCardUseNextTurn> { game, player, _, _ -> game.opponent(player).cannotUseCardsNextTurn = true }
     register<DenyActionCardsNextTurn> { game, player, _, _ -> game.opponent(player).deniedCardTypeNextTurn = CardType.ACTION }
+    register<DenyCreaturePlaysNextTurn> { game, player, _, _ -> game.opponent(player).deniedCardTypeNextTurn = CardType.CREATURE }
     register<DenyCreatureFightsNextTurn> { game, player, _, _ -> game.opponent(player).cannotFightNextTurn = true }
     register<SkipForgeNextTurn> { game, sourcePlayer, _, effect ->
         targetPlayer(game, sourcePlayer, effect.player).skipsForgeNextTurn = true
@@ -53,6 +54,56 @@ internal fun EffectResolver.registerControlEffects() {
     register<DrawOnCardPlayThisTurn> { _, player, _, effect ->
         player.drawOnCardPlayActive = true
         player.drawOnCardPlayHouse = effect.house
+    }
+    register<PlayTopCardIfChosenHouse> { game, player, _, _ ->
+        ensureLibraryNotEmpty(game, player)
+        // Greedy house: the one with the most cards in the deck.
+        val chosen = player.library.mapNotNull { library?.cardData(it) }
+            .groupingBy { it.house }
+            .eachCount()
+            .maxByOrNull { it.value }?.key
+            ?: return@register
+        val top = player.library.firstOrNull()
+        val topData = top?.let { library?.cardData(it) }
+        game.log("${player.name} chooses $chosen and reveals ${top?.let { cardName(it) } ?: "nothing"}")
+        if (topData == null || topData.house != chosen) return@register
+        // Play the revealed card through the real play path when bridged.
+        val bridge = playBridge
+        val isUpgrade = topData.type == CardType.UPGRADE
+        val host = player.creatures.maxByOrNull { it.power }
+        if (isUpgrade && host == null) {
+            // No creature to attach to: the card stays on top of the deck.
+            game.log("${player.name} has no creature to attach ${cardName(top)} to")
+            return@register
+        }
+        if (bridge != null) {
+            player.library.removeFirst()
+            player.hand.add(top)
+            bridge.playCardFromHand(game, player, top, if (isUpgrade) host?.instanceId else null)
+        } else {
+            player.library.removeFirst()
+            player.discard.add(top)
+            game.log("${player.name} plays ${cardName(top)} from Chaos Portal (approximated)")
+        }
+    }
+    register<MayUseHouseThisTurn> { game, player, _, effect ->
+        player.mayUseHouseThisTurn = effect.house
+        game.log("${player.name} may use friendly ${effect.house} creatures for the remainder of the turn")
+    }
+    register<AllowUseUpToTwoMarsCards> { game, player, _, _ ->
+        val marsCards = (player.creatures.filter { it.house == House.MARS } + player.artifacts.filter { it.house == House.MARS })
+            .sortedByDescending { it.power }
+            .take(2)
+        marsCards.forEach { player.mayUseCardIdsThisTurn.add(it.instanceId) }
+        if (marsCards.isEmpty()) {
+            game.log("${player.name} has no Mars cards to make usable")
+        } else {
+            game.log("${player.name} may use ${marsCards.joinToString(", ") { it.cardId }} for the remainder of the turn")
+        }
+    }
+    register<OpponentNextForgeGivesAmber> { game, player, _, _ ->
+        game.opponent(player).nextForgeGivesAmberTo = player.index
+        game.log("${player.name} claims ${game.opponent(player).name}'s remaining amber if they forge a key next turn")
     }
 }
 

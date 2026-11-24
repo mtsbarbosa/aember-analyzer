@@ -145,6 +145,8 @@ class ScenarioSpec {
         game.actionsThisPhase = 0
         game.endPhaseRightNow = false
         val executor = ActionExecutor(library, SeededIdGenerator(1L))
+        // Masterplan/Chaos Portal play cards through the real play path.
+        library.dslResolver?.playBridge = executor
         return Scenario(game, library, executor)
     }
 }

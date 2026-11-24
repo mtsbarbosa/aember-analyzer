@@ -33,6 +33,18 @@ sealed interface UseRestriction {
      * when it is not the active house (e.g. Witch of the Wilds).
      */
     data class MayPlayHouse(val house: House, val perTurn: Int = 1) : UseRestriction
+
+    /**
+     * The controller's opponent must pay [amount] amber to the restriction
+     * source's controller to use an artifact (Tentacus).
+     */
+    data class ArtifactUseCost(val amount: Int) : UseRestriction
+
+    /**
+     * The controller's opponent must pay [amount] amber to the restriction
+     * source's controller to play an artifact (Customs Office).
+     */
+    data class ArtifactPlayCost(val amount: Int) : UseRestriction
 }
 
 /**
@@ -79,6 +91,14 @@ class UseRestrictionsBuilder {
 
     fun mayPlayHouse(house: House, perTurn: Int = 1) {
         auraRestrictions += UseRestriction.MayPlayHouse(house, perTurn)
+    }
+
+    fun opponentArtifactUseCost(amount: Int) {
+        auraRestrictions += UseRestriction.ArtifactUseCost(amount)
+    }
+
+    fun opponentArtifactPlayCost(amount: Int) {
+        auraRestrictions += UseRestriction.ArtifactPlayCost(amount)
     }
 
     fun selfCannotReap() {

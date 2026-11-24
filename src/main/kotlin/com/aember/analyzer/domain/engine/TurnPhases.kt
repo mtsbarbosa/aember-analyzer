@@ -20,6 +20,7 @@ internal object TurnPhases {
             p.creatures.forEach {
                 it.elusiveUsed = false
                 it.immuneToDamageThisTurn = false
+                it.armorStrippedThisTurn = 0
                 // Restore temporary house changes (e.g. Brain Stem Antenna).
                 if (it.house != it.baseHouse) it.house = it.baseHouse
             }
@@ -60,6 +61,18 @@ internal object TurnPhases {
         if (player.amber < cost) {
             game.log("${player.name} does not forge a key (amber: ${player.amber})")
         }
+        // Interdimensional Graft: when this player forges a key on their next turn,
+        // all remaining amber goes to the graft's owner (claimed once per forge).
+        player.nextForgeGivesAmberTo?.let { creditorIndex ->
+            if (player.forgedKeyThisTurn && player.amber > 0) {
+                val before = player.amber
+                val creditor = game.player(creditorIndex)
+                creditor.amber += player.amber
+                player.amber = 0
+                game.log("${player.name} gives all $before remaining amber to ${creditor.name} (Interdimensional Graft)")
+            }
+            player.nextForgeGivesAmberTo = null
+        }
     }
 
     private fun canForgeKey(player: PlayerState, cost: Int): Boolean =
@@ -93,6 +106,9 @@ internal object TurnPhases {
         val player = game.activePlayer()
         player.activeHouse = null
         game.turnScopedReactions.clear()
+        // Turn-scoped may-use allowances (Sigil of Brotherhood, Combat Pheromones).
+        player.mayUseHouseThisTurn = null
+        player.mayUseCardIdsThisTurn.clear()
         // Temporary house changes (Brain Stem Antenna) last "for the remainder of the turn".
         game.players.forEach { p -> p.creatures.forEach { if (it.house != it.baseHouse) it.house = it.baseHouse } }
         if (isGameOver(game)) return

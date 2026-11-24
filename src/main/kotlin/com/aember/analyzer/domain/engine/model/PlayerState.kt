@@ -41,6 +41,12 @@ data class PlayerState(
     var nextPlaysEnterReady: Int = 0,
     /** Phase Shift: this player may play one card of a house other than this one this turn. */
     var mayPlayNonHouseThisTurn: House? = null,
+    /** Sigil of Brotherhood: this player may use creatures of this house for the remainder of the turn. */
+    var mayUseHouseThisTurn: com.aember.analyzer.domain.model.House? = null,
+    /** Combat Pheromones: specific cards this player may use for the remainder of the turn. */
+    val mayUseCardIdsThisTurn: MutableSet<String> = mutableSetOf(),
+    /** Interdimensional Graft: when this player next forges a key, all remaining amber goes to this player index. */
+    var nextForgeGivesAmberTo: Int? = null,
     /** Derived by EffectRegistry.recalculate (e.g. The Vaultkeeper): amber cannot be stolen. */
     var amberCannotBeStolen: Boolean = false,
     val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()

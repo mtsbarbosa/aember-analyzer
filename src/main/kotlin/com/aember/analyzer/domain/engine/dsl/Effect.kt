@@ -157,6 +157,9 @@ object DenyCardUseNextTurn : Effect
 
 object DenyActionCardsNextTurn : Effect
 
+/** The opponent cannot play creatures on their next turn (Lifeward). */
+object DenyCreaturePlaysNextTurn : Effect
+
 object DenyCreatureFightsNextTurn : Effect
 
 /** Each player with [threshold] or more amber is reduced to [cap] (Doorstep to Heaven). */
@@ -303,6 +306,107 @@ data object PurgeCreatureFromDiscard : Effect
  * `ActionGenerator`; the allowance is spent by the first such play.
  */
 data class MayPlayNonHouseThisTurn(val notHouse: House) : Effect
+
+// ---- Phase 3 batch (d) ----
+
+/** Destroys an artifact in play (Gorm of Omm omni: sacrifice + destroy an artifact). */
+data class DestroyArtifact(val target: TargetSelector = AnyArtifact) : Effect
+
+/** Returns an artifact in play to its owner's hand (Whispering Reliquary, Grasping Vines). */
+data class ReturnArtifactToHand(val maxCount: Int = 1) : Effect
+
+/** Archives a friendly creature or artifact from play (Vezyma Thinkdrone reap). */
+data object ArchiveFriendlyCreatureOrArtifact : Effect
+
+/**
+ * Deals [amount] damage to the fight target's neighbors, reading the fight
+ * target from `currentFightTargetId` (Lord Golgotha "Before Fight").
+ */
+data class DealDamageToFightsNeighbors(val amount: Int) : Effect
+
+/** Stuns the fight target and each of its neighbors (Zorg "Before Fight"). */
+data object StunFightTargetAndNeighbors : Effect
+
+/** Deals damage ignoring armor (Qyxxlyx Plague Master). */
+data class DealDamageIgnoringArmor(val amount: Int, val target: CreatureSelector) : Effect
+
+/**
+ * Deals 3/2/1 damage along a battleline starting at a flank creature
+ * (Positron Bolt).
+ */
+data object DealDamageFlankCascade : Effect
+
+/** Heals up to [upTo] damage from a creature, then deals that amount to another creature (Guardian Demon). */
+data class HealThenDamageOther(val upTo: Int) : Effect
+
+/** Deals [amountPer] damage per creature of [house] in play (Red Planet Ray Gun's granted Reap). */
+data class DealDamagePerHouseInPlay(val house: House, val amountPer: Int, val target: CreatureSelector) : Effect
+
+/** Divides [amountPerCreature] damage per friendly creature among creatures (Cooperative Hunting). */
+data class DealDividedDamage(val amountPerFriendlyCreature: Int, val target: CreatureSelector) : Effect
+
+/**
+ * Removes each enemy creature's armor until end of turn and deals 1 damage per
+ * point of armor lost (Red Hot Armor).
+ */
+data object StripEnemyArmorAndDamagePerLost : Effect
+
+/** Places [amount] amber from the common supply on an enemy creature (Blood Money). */
+data class PlaceAmberOnEnemyCreature(val amount: Int) : Effect
+
+/** Moves 1 amber from one of the resolving player's own cards to their pool (Selwyn the Fence). */
+data object MoveAmberFromOwnCardToPool : Effect
+
+/** Loses all of the resolving player's amber; the opponent then loses triple that amount (Shatter Storm). */
+data object LoseAllAmberAndOpponentLosesTriple : Effect
+
+/**
+ * Shuffles each creature of [house] into its owner's deck; each player gains
+ * [amberPerEach] per own creature shuffled (Mating Season).
+ */
+data class ShuffleHouseCreaturesIntoDeck(val house: House, val amberPerEach: Int = 0) : Effect
+
+/**
+ * Chooses the house with the most enemy creatures in hand and discards each
+ * enemy creature of that house (Deep Probe).
+ */
+data object DiscardEnemyHandCreaturesOfChosenHouse : Effect
+
+/**
+ * Chooses a house (greedy: most copies in own deck); if the top card of the
+ * deck is of that house, plays it for real (Chaos Portal).
+ */
+data object PlayTopCardIfChosenHouse : Effect
+
+/** Discards cards from the top of the deck until a [house] creature is discarded, then takes it to hand (Sound the Horns). */
+data class ScanDeckForHouseCreatureToHand(val house: House) : Effect
+
+/** Readies an own exhausted Mars creature, else stuns an enemy non-Mars creature (Squawker). */
+data object ReadyMarsOrStunNonMars : Effect
+
+/** Places a card from the resolving player's hand facedown beneath the source card (Masterplan). */
+data object StackHandCardBeneath : Effect
+
+/** Plays the card stacked beneath the source card, then sacrifices the source (Masterplan omni). */
+data object PlayBeneathCardAndSacrifice : Effect
+
+/** After a key is forged by the resolving player, destroys every creature and artifact (Strange Gizmo). */
+data object DestroyAllCreaturesAndArtifacts : Effect
+
+/** Stuns each Mars creature and each Robot-trait creature, then destroys each artifact (EMP Blast). */
+data object EmpBlastBurst : Effect
+
+/** Returns a friendly Urchin from play or from the discard pile to hand (Faygin reap). */
+data object ReturnUrchinToHand : Effect
+
+/** For the remainder of the turn, the resolving player may use creatures of [house] (Sigil of Brotherhood). */
+data class MayUseHouseThisTurn(val house: House) : Effect
+
+/** Marks up to [maxCount] own Mars cards usable for the remainder of the turn (Combat Pheromones). */
+data object AllowUseUpToTwoMarsCards : Effect
+
+/** When the opponent next forges a key, they must give you their remaining amber (Interdimensional Graft). */
+data object OpponentNextForgeGivesAmber : Effect
 
 data class Sequence(val effects: List<Effect>) : Effect
 

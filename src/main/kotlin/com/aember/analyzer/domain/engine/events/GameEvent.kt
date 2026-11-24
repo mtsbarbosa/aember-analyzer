@@ -74,3 +74,11 @@ data class KeyForged(
     val playerIndex: Int,
     val cost: Int
 ) : GameEvent
+
+/** A player used an artifact's Action/Omni ability (Veylan Analyst: gain 1A per use). */
+data class ArtifactUsed(
+    val playerIndex: Int,
+    val instanceId: String,
+    val cardId: String,
+    val abilityId: String
+) : GameEvent

@@ -1,4 +1,4 @@
-package com.aember.analyzer.engine.cards
+package com.aember.analyzer.engine.cota
 
 import com.aember.analyzer.domain.engine.dsl.AnyCreature
 import com.aember.analyzer.domain.model.House

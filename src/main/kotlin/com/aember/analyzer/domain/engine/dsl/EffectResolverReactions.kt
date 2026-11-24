@@ -5,6 +5,7 @@ import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.Zone
 import com.aember.analyzer.domain.model.CardType
+import com.aember.analyzer.domain.model.House
 
 /** Event-bus reactions, repeat loops, and the batch-(c) artifact/conditional specials. */
 internal fun EffectResolver.registerReactionEffects() {
@@ -49,6 +50,28 @@ internal fun EffectResolver.registerReactionEffects() {
     }
     register<ReturnChosenHouseCreaturesFromDiscard> { game, player, _, effect ->
         returnChosenHouseCreaturesFromDiscard(game, player, effect)
+    }
+    register<DestroyAllCreaturesAndArtifacts> { game, player, _, _ ->
+        game.players.forEach { p ->
+            p.creatures.toList().forEach { creature ->
+                // Removal is direct (the key phase has no state-check fixpoint) and
+                // mirrors the destroy path: upgrades fall off to their owner's discard.
+                leavePlay(game, creature, LeaveDestination.DISCARD, "${creature.cardId} is destroyed")
+            }
+            p.artifacts.toList().forEach { destroyArtifact(game, it) }
+        }
+        game.log("${player.name} destroys each creature and artifact")
+    }
+    register<EmpBlastBurst> { game, player, _, _ ->
+        game.players.forEach { p ->
+            p.creatures.filter { it.house == House.MARS || it.traits.contains("robot") }
+                .forEach { it.stun = true }
+        }
+        game.log("Each Mars creature and each Robot creature is stunned")
+        game.players.forEach { p ->
+            p.artifacts.toList().forEach { destroyArtifact(game, it) }
+        }
+        game.log("Each artifact is destroyed")
     }
 }
 

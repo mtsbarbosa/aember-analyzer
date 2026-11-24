@@ -96,7 +96,7 @@ object EtherSpider : CardScript {
         notes = "Redirects opponent amber gains to captured amber; deals no damage when fighting"
     )
 
-    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int = 0
+    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int, game: GameState?, fightTarget: InPlayCard?): Int = 0
 
     override fun capturesOpponentAmberGains(): Boolean = true
 }
@@ -116,7 +116,7 @@ object ShadowSelf : CardScript {
         notes = "Deals no damage when fighting; damage to non-Specter neighbors is redirected here"
     )
 
-    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int): Int =
+    override fun modifyFightDamage(isAttacker: Boolean, baseDamage: Int, game: GameState?, fightTarget: InPlayCard?): Int =
         if (isAttacker) 0 else baseDamage
 
     override fun redirectsNeighborDamage(): Boolean = true
@@ -287,6 +287,26 @@ object Fogbank : CardScript {
         val opponent = game.opponent()
         opponent.cannotFightNextTurn = true
         game.log("${player.name} plays Fogbank; ${opponent.name} cannot use creatures to fight on their next turn")
+    }
+}
+
+object Valdr : CardScript {
+    override fun fidelity() = CardFidelity(
+        level = FidelityLevel.FULL,
+        notes = "Deals +2 damage while attacking an enemy creature on the flank"
+    )
+
+    override fun modifyFightDamage(
+        isAttacker: Boolean,
+        baseDamage: Int,
+        game: GameState?,
+        fightTarget: InPlayCard?
+    ): Int {
+        if (!isAttacker || game == null || fightTarget == null) return baseDamage
+        val battleline = game.player(fightTarget.controllerIndex).creatures
+        val onFlank = battleline.size == 1 || battleline.first().instanceId == fightTarget.instanceId ||
+            battleline.last().instanceId == fightTarget.instanceId
+        return if (onFlank) baseDamage + 2 else baseDamage
     }
 }
 
@@ -1313,5 +1333,295 @@ val dslCardOverrides: List<Pair<String, CardDefinition>> = listOf(
         play(MayPlayNonHouseThisTurn(House.LOGOS))
         fidelity(FidelityLevel.FULL, "Play: you may play one non-Logos card this turn")
 
+    },
+
+    // ---- Phase 3 batch (d) ----
+
+    card("gorm-of-omm") {
+
+        omni(Sequence(listOf(SacrificeSelf, DestroyArtifact())))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Gorm of Omm and destroy an artifact")
+
+    },
+    card("deep-probe") {
+
+        play(DiscardEnemyHandCreaturesOfChosenHouse)
+        fidelity(FidelityLevel.FULL, "Play: choose a house (greedy) and discard each enemy creature of that house from their hand")
+
+    },
+    card("emp-blast") {
+
+        play(EmpBlastBurst)
+        fidelity(FidelityLevel.FULL, "Play: stun each Mars/Robot creature and destroy each artifact")
+
+    },
+    card("interdimensional-graft") {
+
+        play(OpponentNextForgeGivesAmber)
+        fidelity(FidelityLevel.FULL, "Play: if the opponent forges a key next turn, they give you their remaining amber")
+
+    },
+    card("positron-bolt") {
+
+        play(DealDamageFlankCascade)
+        fidelity(FidelityLevel.FULL, "Play: deal 3 damage to a flank creature, 2 to its neighbor and 1 to the next")
+
+    },
+    card("tentacus") {
+
+        restrictions { opponentArtifactUseCost(1) }
+        fidelity(FidelityLevel.FULL, "Your opponent pays you 1 amber to use an artifact")
+
+    },
+    card("customs-office") {
+
+        restrictions { opponentArtifactPlayCost(1) }
+        fidelity(FidelityLevel.FULL, "Your opponent pays you 1 amber to play an artifact")
+
+    },
+    card("chaos-portal") {
+
+        action("Choose a house and play the top card of your deck if it is of that house", PlayTopCardIfChosenHouse)
+        fidelity(FidelityLevel.FULL, "Action: choose a house (greedy); if the top card of your deck is of that house, play it")
+
+    },
+    card("guardian-demon") {
+
+        val healThenDamage = HealThenDamageOther(2)
+        play(healThenDamage)
+        reap(healThenDamage)
+        fight(healThenDamage)
+        fidelity(FidelityLevel.FULL, "Play/Fight/Reap: heal up to 2 damage from a creature and deal that amount to another creature")
+
+    },
+    card("red-planet-ray-gun") {
+
+        reaction(
+            "the host gains 'Reap: deal 1 damage per Mars creature in play'",
+            DealDamagePerHouseInPlay(House.MARS, 1, AnyCreature()),
+            matches = { _, _, card, event ->
+                event is CreatureReaped && card.hostId == event.instanceId
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Upgrade: the attached creature gains 'Reap: deal 1 damage per Mars creature in play'")
+
+    },
+    card("selwyn-the-fence") {
+
+        reap(MoveAmberFromOwnCardToPool)
+        fight(MoveAmberFromOwnCardToPool)
+        fidelity(FidelityLevel.FULL, "Fight/Reap: move 1 amber from one of your cards to your pool")
+
+    },
+    card("silent-dagger") {
+
+        reaction(
+            "the host gains 'Reap: deal 4 damage to a flank creature'",
+            DealDamage(4, FlankCreature),
+            matches = { _, _, card, event ->
+                event is CreatureReaped && card.hostId == event.instanceId
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Upgrade: the attached creature gains 'Reap: deal 4 damage to a flank creature'")
+
+    },
+    card("brain-eater") {
+
+        reaction(
+            "after a creature is destroyed fighting Brain Eater, draw a card",
+            Draw(1, SelfPlayer),
+            matches = { _, _, card, event ->
+                event is FightResolved && event.attackerCardId == card.cardId && event.defenderDestroyed
+            }
+        )
+        fidelity(FidelityLevel.FULL, "After a creature is destroyed fighting Brain Eater, draw a card")
+
+    },
+    card("strange-gizmo") {
+
+        reaction(
+            "after you forge a key, destroy each creature and artifact",
+            DestroyAllCreaturesAndArtifacts,
+            matches = { _, player, _, event ->
+                event is KeyForged && event.playerIndex == player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "After you forge a key, destroy each creature and artifact")
+
+    },
+    card("cooperative-hunting") {
+
+        play(DealDividedDamage(1, EnemyCreature(Scope.ALL)))
+        fidelity(FidelityLevel.FULL, "Play: deal 1 damage per friendly creature, divided among creatures")
+
+    },
+    card("red-hot-armor") {
+
+        play(StripEnemyArmorAndDamagePerLost)
+        fidelity(FidelityLevel.FULL, "Play: each enemy creature loses its armor until end of turn and takes 1 damage per armor lost")
+
+    },
+    card("sound-the-horns") {
+
+        play(ScanDeckForHouseCreatureToHand(House.BROBNAR))
+        fidelity(FidelityLevel.FULL, "Play: discard from your deck until a Brobnar creature is discarded, then put it into your hand")
+
+    },
+    card("squawker") {
+
+        play(ReadyMarsOrStunNonMars)
+        fidelity(FidelityLevel.FULL, "Play: ready a Mars creature or stun a non-Mars creature (greedy)")
+
+    },
+    card("sigil-of-brotherhood") {
+
+        omni(Sequence(listOf(SacrificeSelf, MayUseHouseThisTurn(House.SANCTUM))))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Sigil of Brotherhood; you may use friendly Sanctum creatures for the remainder of the turn")
+
+    },
+    card("special-delivery") {
+
+        omni(Sequence(listOf(
+            SacrificeSelf,
+            DealDamage(3, FlankCreature),
+            Conditional(DamageDestroyedTarget, Purge(LastDamagedTarget))
+        )))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Special Delivery, deal 3 damage to a flank creature; purge it if this destroys it")
+
+    },
+    card("whispering-reliquary") {
+
+        action("Return an artifact to its owner's hand", ReturnArtifactToHand())
+        fidelity(FidelityLevel.FULL, "Action: return an artifact to its owner's hand")
+
+    },
+    card("faygin") {
+
+        reap(ReturnUrchinToHand)
+        fidelity(FidelityLevel.FULL, "Reap: return an Urchin from play or from your discard pile to your hand")
+
+    },
+    card("lord-golgotha") {
+
+        beforeFight(DealDamageToFightsNeighbors(3))
+        fidelity(FidelityLevel.FULL, "Before Fight: deal 3 damage to each neighbor of the creature Lord Golgotha fights")
+
+    },
+    card("zorg") {
+
+        entersPlayStunned()
+        beforeFight(StunFightTargetAndNeighbors)
+        fidelity(FidelityLevel.FULL, "Zorg enters play stunned; Before Fight: stun the creature it fights and each neighbor")
+
+    },
+    card("blood-money") {
+
+        play(PlaceAmberOnEnemyCreature(2))
+        fidelity(FidelityLevel.FULL, "Play: place 2 amber from the common supply on an enemy creature")
+
+    },
+    card("veylan-analyst") {
+
+        reaction(
+            "each time you use an artifact, gain 1 amber",
+            GainAmber(1),
+            matches = { _, player, _, event ->
+                event is ArtifactUsed && event.playerIndex == player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Each time you use an artifact, gain 1 amber")
+
+    },
+    card("combat-pheromones") {
+
+        omni(Sequence(listOf(SacrificeSelf, AllowUseUpToTwoMarsCards)))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Combat Pheromones; you may use up to 2 Mars cards for the remainder of the turn")
+
+    },
+    card("bulleteye") {
+
+        reap(Destroy(FlankCreature))
+        fidelity(FidelityLevel.FULL, "Reap: destroy a flank creature")
+
+    },
+    card("qyxxlyx-plague-master") {
+
+        val plague = DealDamageIgnoringArmor(3, AnyCreatureWithTrait("human"))
+        reap(plague)
+        fight(plague)
+        fidelity(FidelityLevel.FULL, "Fight/Reap: deal 3 damage to each Human creature, ignoring armor")
+
+    },
+    card("vezyma-thinkdrone") {
+
+        reap(ArchiveFriendlyCreatureOrArtifact)
+        fidelity(FidelityLevel.FULL, "Reap: archive a friendly creature or artifact from play")
+
+    },
+    card("anomaly-exploiter") {
+
+        action("Destroy a damaged creature", Destroy(DamagedCreature))
+        fidelity(FidelityLevel.FULL, "Action: destroy a damaged creature")
+
+    },
+    card("lifeward") {
+
+        omni(Sequence(listOf(SacrificeSelf, DenyCreaturePlaysNextTurn)))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Lifeward; your opponent cannot play creatures on their next turn")
+
+    },
+    card("potion-of-invulnerability") {
+
+        omni(Sequence(listOf(SacrificeSelf, GrantDamageImmunity(FriendlyCreature(Scope.ALL)))))
+        fidelity(FidelityLevel.FULL, "Omni: sacrifice Potion of Invulnerability; friendly creatures cannot be dealt damage for the remainder of the turn")
+
+    },
+    card("shatter-storm") {
+
+        play(LoseAllAmberAndOpponentLosesTriple)
+        fidelity(FidelityLevel.FULL, "Play: lose all your amber; your opponent loses triple that amount")
+
+    },
+    card("mating-season") {
+
+        play(ShuffleHouseCreaturesIntoDeck(House.MARS, amberPerEach = 1))
+        fidelity(FidelityLevel.FULL, "Play: shuffle each Mars creature into its owner's deck; each player gains 1 amber per own creature shuffled")
+
+    },
+    card("grasping-vines") {
+
+        play(ReturnArtifactToHand(maxCount = 3))
+        fidelity(FidelityLevel.FULL, "Play: return up to 3 artifacts to their owners' hands")
+
+    },
+    card("charge") {
+
+        play(ActivateTurnReaction("creatures you play deal 2 damage"))
+        reaction(
+            "for the remainder of the turn, each creature you play deals 2 damage to an enemy creature",
+            effect = DealDamage(2, EnemyCreature()),
+            subscription = true,
+            matches = { _, player, _, event ->
+                event is CreatureEnteredPlay && event.playerIndex == player.index
+            }
+        )
+        fidelity(FidelityLevel.FULL, "Play: for the remainder of the turn, each creature you play gains 'Play: deal 2 damage to an enemy creature'")
+
+    },
+    card("masterplan") {
+
+        play(StackHandCardBeneath)
+        omni(PlayBeneathCardAndSacrifice)
+        fidelity(FidelityLevel.FULL, "Play: place a card from your hand facedown beneath Masterplan; Omni: play it and sacrifice Masterplan")
+
+    },
+
+    // The generator never emitted these two (their pack text is the literal "(Vanilla)");
+    // registered explicitly so every catalog card has a script.
+    card("virtuous-works") {
+        fidelity(FidelityLevel.VANILLA, "(Vanilla) — no ability text")
+    },
+    card("dust-pixie") {
+        fidelity(FidelityLevel.VANILLA, "(Vanilla) — no ability text")
     },
 )
