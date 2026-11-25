@@ -25,6 +25,30 @@ interface CardScript {
     fun onAfterFight(game: GameState, player: PlayerState, card: InPlayCard, target: InPlayCard) {}
 
     /**
+     * Static behaviors this card projects while in play (forge-step control,
+     * forge-amber redirection, spendable captured amber).
+     */
+    fun staticBehaviors(): List<com.aember.analyzer.domain.engine.effects.StaticBehavior> = emptyList()
+
+    /**
+     * The house this card bans from the opponent's house choice while in play,
+     * reading the house chosen when it was played (Restringuntus), or null.
+     */
+    fun bansHouseChoice(card: InPlayCard): com.aember.analyzer.domain.model.House? = null
+
+    /**
+     * Armageddon Cloak / Phoenix Heart: called when the host of this upgrade would be
+     * destroyed. Return true when the destruction was replaced (the host stays alive);
+     * the upgrade's own removal is handled inside the replacement.
+     */
+    fun onHostWouldBeDestroyed(
+        game: GameState,
+        player: PlayerState,
+        upgrade: InPlayCard,
+        host: InPlayCard
+    ): Boolean = false
+
+    /**
      * Allows a card to modify the damage it deals during the normal fight damage step.
      * Called separately for attacker and defender damage; [fightTarget] is the creature
      * this card is fighting (Valdr: +2 damage against an enemy flank creature).

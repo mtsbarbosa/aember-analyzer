@@ -1,92 +1,73 @@
 id,name,house,type,source,level,verified,no_effect,tags,cluster_size,pool_decks,priority,keyteki_features,keyteki_sha,text
-arise,Arise!,dis,action,manual,PARTIAL,0,0,name-house;play-trigger;discard,52,9,13.68,play;target,46d646e299,Play: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.
-anger,Anger,brobnar,action,manual,PARTIAL,0,0,play-trigger,52,4,6.08,play;fight;target,9779c0e990,Play: Ready and fight with a friendly creature.
-mothership-support,Mothership Support,mars,action,dsl,PARTIAL,0,0,for-each;may;play-trigger,52,4,6.08,play,d48189fbc6,"Play: For each friendly ready Mars creature, deal 2<D> to a creature. (You may choose a different creature each time.)"
-one-last-job,One Last Job,shadows,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,4,6.08,play;target,aadfac6bfa,Play: Purge each friendly Shadows creature. Steal 1<A> for each creature purged this way.
-john-smyth,“John Smyth”,mars,creature,dsl-override,PARTIAL,0,0,fight-reap-trigger,18,5,5.9,fight;target,0e1c62e8da,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Fight/Reap: Ready a non-Agent Mars creature."
-longfused-mines,Longfused Mines,shadows,artifact,dsl,PARTIAL,0,0,omni-action,26,4,5.04,omni;target,c801d83c6a,Omni: Sacrifice Longfused Mines. Deal 3<D> to each enemy creature not on a flank.
-mimicry,Mimicry,untamed,action,dsl,PARTIAL,0,1,discard,17,4,4.68,reaction;target,9f3a605ce8,"When you play this card, treat it as a copy of an action card in your opponent’s discard pile."
-begone,Begone!,sanctum,action,dsl,PARTIAL,0,0,play-trigger,52,3,4.56,play;target,faf24da1a1,"Play: Choose one: destroy each Dis creature, or gain 1<A>."
-help-from-future-self,Help from Future Self,logos,action,dsl,PARTIAL,0,1,play-trigger;discard,52,3,4.56,play;target,4c50eb5671,"Play: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck."
-mass-abduction,Mass Abduction,mars,action,dsl,PARTIAL,0,1,conditional-if;play-trigger;instead,52,3,4.56,play;target,b11a20cd06,"Play: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner’s hand instead."
-orbital-bombardment,Orbital Bombardment,mars,action,dsl,PARTIAL,0,0,for-each;may;play-trigger,52,3,4.56,play;target,59cb455221,"Play: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2<D> to a creature. (You may choose a different creature each time.)"
-sample-collection,Sample Collection,mars,action,dsl,PARTIAL,0,0,conditional-if;for-each;play-trigger;instead,52,3,4.56,play;condition,cac259d3fe,"Play: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner’s hand instead."
-research-smoko,Research Smoko,logos,creature,dsl,PARTIAL,0,0,destroyed-trigger,4,4,4.16,destroyed;target,fc2092edda,Destroyed: Archive the top card of your deck.
-uxlyx-the-zookeeper,Uxlyx the Zookeeper,mars,creature,dsl,PARTIAL,0,0,conditional-if;fight-reap-trigger;instead,30,3,3.9,reap;target,996e46f24f,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Put an enemy creature into your archives. If that creature leaves your archives, it is put into its owner’s hand instead."
-phylyx-the-disintegrator,Phylyx the Disintegrator,mars,creature,dsl,PARTIAL,0,0,for-each;omni-action,26,3,3.78,action,ed33e722fc,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Action: Your opponent loses 1<A> for each other friendly Mars creature."
-screechbomb,Screechbomb,brobnar,artifact,dsl,PARTIAL,0,0,omni-action,26,3,3.78,omni;condition,a9062b8f1b,Omni: Sacrifice Screechbomb. Your opponent loses 2<A>.
-experimental-therapy,Experimental Therapy,logos,upgrade,dsl,PARTIAL,0,0,play-trigger,52,2,3.04,persistentEffect;play;target;gainAbility,e0e697378a,This creature belongs to all houses. Play: Stun and exhaust this creature.
-finishing-blow,Finishing Blow,shadows,action,dsl,APPROXIMATED,0,0,conditional-if;play-trigger,52,2,3.04,play;target,dd59ac4532,"Play: Destroy a damaged creature. If you do, steal 1<A>."
-ganger-chieftain,Ganger Chieftain,brobnar,creature,dsl,PARTIAL,0,0,may;play-trigger,52,2,3.04,play;fight;target;optional,577a2a78cb,Play: You may ready and fight with a neighboring creature.
-glorious-few,Glorious Few,sanctum,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,2,3.04,play;condition,ba4b5d0bab,"Play: For each creature your opponent controls in excess of you, gain 1<A>."
-gongoozle,Gongoozle,dis,action,dsl,PARTIAL,0,0,conditional-if;play-trigger;discard,52,2,3.04,play;target;condition,48d39d22ae,"Play: Deal 3<D> to a creature. If it is not destroyed, its owner discards a random card from their hand."
-hecatomb,Hecatomb,dis,action,dsl,APPROXIMATED,0,0,for-each;play-trigger,52,2,3.04,play;target,fe202d1255,Play: Destroy each Dis creature. Each player gains 1<A> for each creature they controlled that was destroyed this way.
-knowledge-is-power,Knowledge is Power,logos,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,2,3.04,play;target,082dbb9007,"Play: Choose one: Archive a card, or, for each archived card you have, gain 1<A>."
-psychic-network,Psychic Network,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,2,3.04,play,41892f231a,Play: Steal 1<A> for each friendly ready Mars creature.
-routine-job,Routine Job,shadows,action,dsl,PARTIAL,0,0,for-each;play-trigger;discard,52,2,3.04,play,63e4754056,"Play: Steal 1<A>. Then, steal 1<A> for each copy of Routine Job in your discard pile."
-rocket-boots,Rocket Boots,logos,upgrade,dsl,PARTIAL,0,1,conditional-if;fight-reap-trigger,30,2,2.6,gainAbility;condition,4be0154771,"This creature gains, “Fight/Reap: If this is the first time this creature was used this turn, ready it.”"
-giant-sloth,Giant Sloth,untamed,creature,dsl,APPROXIMATED,0,0,discard;omni-action,26,2,2.52,persistentEffect;action;condition,360ef1e27a,You cannot use this card unless you have discarded an Untamed card from your hand this turn. Action: Gain 3<A>.
-mighty-javelin,Mighty Javelin,brobnar,artifact,dsl,PARTIAL,0,0,omni-action,26,2,2.52,omni;target,8c64a6d5e8,Omni: Sacrifice Mighty Javelin. Deal 4<D> to a creature.
-spectral-tunneler,Spectral Tunneler,logos,artifact,dsl,PARTIAL,0,0,fight-reap-trigger;omni-action,26,2,2.52,action;target;gainAbility,b7cd37fabd,"Action: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “Reap: Draw a card.”"
-the-warchest,The Warchest,brobnar,artifact,dsl,PARTIAL,0,0,for-each;omni-action,26,2,2.52,action,ea6f605835,Action: Gain 1<A> for each enemy creature that was destroyed in a fight this turn.
-overlord-greking,Overlord Greking,dis,creature,dsl,PARTIAL,0,1,after-before,9,2,2.18,reaction;target,d9f4117644,"After an enemy creature is destroyed fighting Overlord Greking, put that creature into play under your control."
-a-fair-game,A Fair Game,dis,action,dsl,APPROXIMATED,0,0,for-each;play-trigger;discard,52,1,1.52,play;target;condition,b1041d42d3,Play: Discard the top card of your opponent’s deck and reveal their hand. You gain 1<A> for each card of the discarded card’s house revealed this way. Your opponent repeats the preceding effect on you.
-clear-mind,Clear Mind,sanctum,action,dsl,PARTIAL,0,0,play-trigger,52,1,1.52,play;target,f0a1fa1c7f,Play: Unstun each friendly creature.
-dance-of-doom,Dance of Doom,dis,action,dsl,PARTIAL,0,0,play-trigger,52,1,1.52,play;target,2898e687b8,Play: Choose a number. Destroy each creature with power equal to that number.
-follow-the-leader,Follow the Leader,brobnar,action,dsl,PARTIAL,0,1,may;play-trigger,52,1,1.52,play,d16e6d4d69,"Play: For the remainder of the turn, each friendly creature may fight."
-harland-mindlock,Harland Mindlock,logos,creature,dsl,PARTIAL,0,1,until-next-turn;play-trigger,52,1,1.52,play;target,ded4bbab8f,Play: Take control of an enemy flank creature until Harland Mindlock leaves play.
-key-hammer,Key Hammer,dis,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,1,1.52,play;target;condition,4debe97ac0,"Play: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6<A>."
-martians-make-bad-allies,Martians Make Bad Allies,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,1,1.52,play;target,ab372efaa8,Play: Reveal your hand. Purge each revealed non-Mars creature and gain 1<A> for each card purged this way.
-oath-of-poverty,Oath of Poverty,sanctum,action,dsl,APPROXIMATED,0,0,for-each;play-trigger,52,1,1.52,play;target,2025795d7b,Play: Destroy each of your artifacts. Gain 2<A> for each artifact destroyed this way.
-one-stood-against-many,One Stood Against Many,sanctum,action,dsl,PARTIAL,0,0,play-trigger,52,1,1.52,play;fight;target,c02c58c56c,"Play: Ready and fight with a friendly creature 3 times, each time against a different enemy creature. Resolve these fights one at a time."
-sneklifter,Sneklifter,shadows,creature,dsl,PARTIAL,0,1,static-aura;conditional-if;play-trigger,52,1,1.52,play;target;condition,3800a438ef,"Play: Take control of an enemy artifact. While under your control, if it does not belong to one of your three houses, it is considered to be of house Shadows."
-the-common-cold,The Common Cold,untamed,action,dsl,APPROXIMATED,0,0,may;play-trigger,52,1,1.52,play;target,85b1cf4a63,Play: Deal 1<D> to each creature. You may destroy all Mars creatures.
-total-recall,Total Recall,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,1,1.52,play;target,376a5abf6f,"Play: For each friendly ready creature, gain 1<A>. Return each friendly creature to your hand."
-treasure-map,Treasure Map,shadows,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,1,1.52,play,09af9571b6,"Play: If you have not played any other cards this turn, gain 3<A>. For the remainder of the turn, you cannot play cards."
-troop-call,Troop Call,untamed,action,dsl,PARTIAL,0,0,play-trigger;discard,52,1,1.52,play;target,522a9e69e8,Play: Return each friendly Niffle creature from your discard pile and from play to your hand.
-chuff-ape,Chuff Ape,mars,creature,dsl-override,PARTIAL,0,0,conditional-if;may;fight-reap-trigger,30,1,1.3,persistentEffect;fight;target;optional,010f9c9ec1,"Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) Chuff Ape enters play stunned. Fight/Reap: You may sacrifice another friendly creature. If you do, fully heal Chuff Ape."
-evasion-sigil,Evasion Sigil,shadows,artifact,dsl,PARTIAL,0,1,conditional-if;after-before;discard,30,1,1.3,interrupt;target,c3be7aaf81,"Before a creature fights, discard the top card of its controller's deck. If the discarded card is of the active house, exhaust that creature with no effect."
-mantle-of-the-zealot,Mantle of the Zealot,sanctum,upgrade,dsl,PARTIAL,0,1,conditional-if;may,30,1,1.3,persistentEffect;gainAbility,893a8e4ca6,"This creature gains, “You may use this creature as if it belonged to the active house.”"
-sacrificial-altar,Sacrificial Altar,dis,artifact,dsl,PARTIAL,0,1,conditional-if;discard;omni-action,30,1,1.3,action;target,b83c5b3d42,"Action: Purge a friendly Human creature from play. If you do, play a creature from your discard pile."
-spangler-box,Spangler Box,logos,artifact,dsl,PARTIAL,0,0,conditional-if;omni-action,30,1,1.3,play;action;target;condition,babec69b90,"Action: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box."
-vespilon-theorist,Vespilon Theorist,logos,creature,dsl,APPROXIMATED,0,0,conditional-if;name-house;fight-reap-trigger;discard,30,1,1.3,reap;target;condition,2757926804,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Choose a house. Reveal the top card of your deck. If it is of that house, archive it and gain 1<A>. Otherwise, discard it."
-sniffer,Sniffer,mars,artifact,dsl,PARTIAL,0,1,omni-action,26,1,1.26,action,957fbdd26d,"Action: For the remainder of the turn, each creature loses elusive."
-the-sting,The Sting,shadows,artifact,dsl,PARTIAL,0,1,omni-action,26,1,1.26,persistentEffect;action,3eb55cfb0d,Skip your “forge a key” step. You get all <A> spent by your opponent when forging keys. Action: Sacrifice The Sting.
-transposition-sandals,Transposition Sandals,logos,upgrade,dsl,PARTIAL,0,1,may;omni-action,26,1,1.26,target;gainAbility,d93f9a11f7,"This creature gains, “Action: Swap this creature with another friendly creature in the battleline. You may use that other creature this turn.”"
-master-of-1,Master of 1,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,19,1,1.19,reap;target;optional,9efd6756d4,Reap: You may destroy a creature with 1 power.
-bigtwig,Bigtwig,untamed,creature,dsl,PARTIAL,0,1,fight-reap-trigger,18,1,1.18,persistentEffect;reap;target,2d6583ef96,Bigtwig can only fight stunned creatures.  Reap: Stun and exhaust a creature.
-blypyp,Blypyp,mars,creature,dsl,PARTIAL,0,1,fight-reap-trigger,18,1,1.18,reap;target,a5874cfff6,Reap: The next Mars creature you play this turn enters play ready.
-gabos-longarms,Gabos Longarms,dis,creature,dsl,PARTIAL,0,1,fight-reap-trigger;after-before,18,1,1.18,target,4d0b3cec72,Before Fight: Choose a creature. Gabos Longarms deals damage to that creature rather than the one it is fighting.
-ozmo-martianologist,"Ozmo, Martianologist",logos,creature,dsl,PARTIAL,0,0,fight-reap-trigger,18,1,1.18,fight;condition,f114681aa2,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Fight/Reap: Heal 3 damage from a Mars creature or stun a Mars creature."
-autocannon,Autocannon,brobnar,artifact,dsl,PARTIAL,0,1,after-before,9,1,1.09,reaction;target,34ef8793aa,Deal 1<D> to each creature after it enters play.
-jehu-the-bureaucrat,Jehu the Bureaucrat,sanctum,creature,dsl,PARTIAL,0,1,after-before,9,1,1.09,reaction,89145e1da1,"After you choose Sanctum as your active house, gain 2<A>."
-pingle-who-annoys,Pingle Who Annoys,brobnar,creature,dsl,PARTIAL,0,1,after-before,9,1,1.09,reaction;target,7782cb0c31,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Deal 1<D> to each enemy creature after it enters play."
-duma-the-martyr,Duma the Martyr,sanctum,creature,dsl,PARTIAL,0,0,destroyed-trigger,4,1,1.04,destroyed;target,a4afbd898e,Destroyed: Fully heal each other friendly creature and draw 2 cards.
-collar-of-subordination,Collar of Subordination,dis,upgrade,dsl,PARTIAL,0,1,,0,1,1.0,,1f6a6c2b45,You control this creature.
-the-howling-pit,The Howling Pit,logos,artifact,dsl,PARTIAL,0,1,,0,1,1.0,persistentEffect,7901af79db,"During their “draw cards” step, each player refills their hand to 1 additional card."
+arise,Arise!,dis,action,manual,PARTIAL,0,0,name-house;play-trigger;discard,38,9,12.42,play;target,46d646e299,Play: Choose a house. Return each creature of that house from your discard pile to your hand. Gain 1 chain.
+anger,Anger,brobnar,action,manual,PARTIAL,0,0,play-trigger,38,4,5.52,play;fight;target,9779c0e990,Play: Ready and fight with a friendly creature.
+mothership-support,Mothership Support,mars,action,dsl,PARTIAL,0,0,for-each;may;play-trigger,38,4,5.52,play,d48189fbc6,"Play: For each friendly ready Mars creature, deal 2<D> to a creature. (You may choose a different creature each time.)"
+one-last-job,One Last Job,shadows,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,4,5.52,play;target,aadfac6bfa,Play: Purge each friendly Shadows creature. Steal 1<A> for each creature purged this way.
+john-smyth,“John Smyth”,mars,creature,dsl-override,PARTIAL,0,0,fight-reap-trigger,10,5,5.5,fight;target,0e1c62e8da,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Fight/Reap: Ready a non-Agent Mars creature."
+longfused-mines,Longfused Mines,shadows,artifact,dsl,PARTIAL,0,0,omni-action,13,4,4.52,omni;target,c801d83c6a,Omni: Sacrifice Longfused Mines. Deal 3<D> to each enemy creature not on a flank.
+begone,Begone!,sanctum,action,dsl,PARTIAL,0,0,play-trigger,38,3,4.14,play;target,faf24da1a1,"Play: Choose one: destroy each Dis creature, or gain 1<A>."
+orbital-bombardment,Orbital Bombardment,mars,action,dsl,PARTIAL,0,0,for-each;may;play-trigger,38,3,4.14,play;target,59cb455221,"Play: Reveal any number of Mars cards from your hand. For each card revealed this way, deal 2<D> to a creature. (You may choose a different creature each time.)"
+sample-collection,Sample Collection,mars,action,dsl,PARTIAL,0,0,conditional-if;for-each;play-trigger;instead,38,3,4.14,play;condition,cac259d3fe,"Play: Put an enemy creature into your archives for each key your opponent has forged. If any of these creatures leave your archives, they are put into their owner’s hand instead."
+research-smoko,Research Smoko,logos,creature,dsl,PARTIAL,0,0,destroyed-trigger,2,4,4.08,destroyed;target,fc2092edda,Destroyed: Archive the top card of your deck.
+phylyx-the-disintegrator,Phylyx the Disintegrator,mars,creature,dsl,PARTIAL,0,0,for-each;omni-action,18,3,3.54,action,ed33e722fc,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Action: Your opponent loses 1<A> for each other friendly Mars creature."
+uxlyx-the-zookeeper,Uxlyx the Zookeeper,mars,creature,dsl,PARTIAL,0,0,conditional-if;fight-reap-trigger;instead,16,3,3.48,reap;target,996e46f24f,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Put an enemy creature into your archives. If that creature leaves your archives, it is put into its owner’s hand instead."
+screechbomb,Screechbomb,brobnar,artifact,dsl,PARTIAL,0,0,omni-action,13,3,3.39,omni;condition,a9062b8f1b,Omni: Sacrifice Screechbomb. Your opponent loses 2<A>.
+experimental-therapy,Experimental Therapy,logos,upgrade,dsl,PARTIAL,0,0,play-trigger,38,2,2.76,persistentEffect;play;target;gainAbility,e0e697378a,This creature belongs to all houses. Play: Stun and exhaust this creature.
+finishing-blow,Finishing Blow,shadows,action,dsl,APPROXIMATED,0,0,conditional-if;play-trigger,38,2,2.76,play;target,dd59ac4532,"Play: Destroy a damaged creature. If you do, steal 1<A>."
+ganger-chieftain,Ganger Chieftain,brobnar,creature,dsl,PARTIAL,0,0,may;play-trigger,38,2,2.76,play;fight;target;optional,577a2a78cb,Play: You may ready and fight with a neighboring creature.
+glorious-few,Glorious Few,sanctum,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,2,2.76,play;condition,ba4b5d0bab,"Play: For each creature your opponent controls in excess of you, gain 1<A>."
+gongoozle,Gongoozle,dis,action,dsl,PARTIAL,0,0,conditional-if;play-trigger;discard,38,2,2.76,play;target;condition,48d39d22ae,"Play: Deal 3<D> to a creature. If it is not destroyed, its owner discards a random card from their hand."
+hecatomb,Hecatomb,dis,action,dsl,APPROXIMATED,0,0,for-each;play-trigger,38,2,2.76,play;target,fe202d1255,Play: Destroy each Dis creature. Each player gains 1<A> for each creature they controlled that was destroyed this way.
+knowledge-is-power,Knowledge is Power,logos,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,2,2.76,play;target,082dbb9007,"Play: Choose one: Archive a card, or, for each archived card you have, gain 1<A>."
+psychic-network,Psychic Network,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,2,2.76,play,41892f231a,Play: Steal 1<A> for each friendly ready Mars creature.
+routine-job,Routine Job,shadows,action,dsl,PARTIAL,0,0,for-each;play-trigger;discard,38,2,2.76,play,63e4754056,"Play: Steal 1<A>. Then, steal 1<A> for each copy of Routine Job in your discard pile."
+the-warchest,The Warchest,brobnar,artifact,dsl,PARTIAL,0,0,for-each;omni-action,18,2,2.36,action,ea6f605835,Action: Gain 1<A> for each enemy creature that was destroyed in a fight this turn.
+giant-sloth,Giant Sloth,untamed,creature,dsl,APPROXIMATED,0,0,discard;omni-action,13,2,2.26,persistentEffect;action;condition,360ef1e27a,You cannot use this card unless you have discarded an Untamed card from your hand this turn. Action: Gain 3<A>.
+mighty-javelin,Mighty Javelin,brobnar,artifact,dsl,PARTIAL,0,0,omni-action,13,2,2.26,omni;target,8c64a6d5e8,Omni: Sacrifice Mighty Javelin. Deal 4<D> to a creature.
+spectral-tunneler,Spectral Tunneler,logos,artifact,dsl,PARTIAL,0,0,fight-reap-trigger;omni-action,13,2,2.26,action;target;gainAbility,b7cd37fabd,"Action: Choose a creature. For the remainder of the turn, that creature is considered a flank creature and gains, “Reap: Draw a card.”"
+a-fair-game,A Fair Game,dis,action,dsl,APPROXIMATED,0,0,for-each;play-trigger;discard,38,1,1.38,play;target;condition,b1041d42d3,Play: Discard the top card of your opponent’s deck and reveal their hand. You gain 1<A> for each card of the discarded card’s house revealed this way. Your opponent repeats the preceding effect on you.
+clear-mind,Clear Mind,sanctum,action,dsl,PARTIAL,0,0,play-trigger,38,1,1.38,play;target,f0a1fa1c7f,Play: Unstun each friendly creature.
+dance-of-doom,Dance of Doom,dis,action,dsl,PARTIAL,0,0,play-trigger,38,1,1.38,play;target,2898e687b8,Play: Choose a number. Destroy each creature with power equal to that number.
+key-hammer,Key Hammer,dis,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,1,1.38,play;target;condition,4debe97ac0,"Play: If your opponent forged a key on their previous turn, unforge it. Your opponent gains 6<A>."
+martians-make-bad-allies,Martians Make Bad Allies,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,1,1.38,play;target,ab372efaa8,Play: Reveal your hand. Purge each revealed non-Mars creature and gain 1<A> for each card purged this way.
+oath-of-poverty,Oath of Poverty,sanctum,action,dsl,APPROXIMATED,0,0,for-each;play-trigger,38,1,1.38,play;target,2025795d7b,Play: Destroy each of your artifacts. Gain 2<A> for each artifact destroyed this way.
+one-stood-against-many,One Stood Against Many,sanctum,action,dsl,PARTIAL,0,0,play-trigger,38,1,1.38,play;fight;target,c02c58c56c,"Play: Ready and fight with a friendly creature 3 times, each time against a different enemy creature. Resolve these fights one at a time."
+the-common-cold,The Common Cold,untamed,action,dsl,APPROXIMATED,0,0,may;play-trigger,38,1,1.38,play;target,85b1cf4a63,Play: Deal 1<D> to each creature. You may destroy all Mars creatures.
+total-recall,Total Recall,mars,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,1,1.38,play;target,376a5abf6f,"Play: For each friendly ready creature, gain 1<A>. Return each friendly creature to your hand."
+treasure-map,Treasure Map,shadows,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,1,1.38,play,09af9571b6,"Play: If you have not played any other cards this turn, gain 3<A>. For the remainder of the turn, you cannot play cards."
+troop-call,Troop Call,untamed,action,dsl,PARTIAL,0,0,play-trigger;discard,38,1,1.38,play;target,522a9e69e8,Play: Return each friendly Niffle creature from your discard pile and from play to your hand.
+chuff-ape,Chuff Ape,mars,creature,dsl-override,PARTIAL,0,0,conditional-if;may;fight-reap-trigger,16,1,1.16,persistentEffect;fight;target;optional,010f9c9ec1,"Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) Chuff Ape enters play stunned. Fight/Reap: You may sacrifice another friendly creature. If you do, fully heal Chuff Ape."
+spangler-box,Spangler Box,logos,artifact,dsl,PARTIAL,0,0,conditional-if;omni-action,16,1,1.16,play;action;target;condition,babec69b90,"Action: Purge a creature in play. If you do, your opponent gains control of Spangler Box. If Spangler Box leaves play, return to play all cards purged by Spangler Box."
+vespilon-theorist,Vespilon Theorist,logos,creature,dsl,APPROXIMATED,0,0,conditional-if;name-house;fight-reap-trigger;discard,16,1,1.16,reap;target;condition,2757926804,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Choose a house. Reveal the top card of your deck. If it is of that house, archive it and gain 1<A>. Otherwise, discard it."
+master-of-1,Master of 1,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,10,1,1.1,reap;target;optional,9efd6756d4,Reap: You may destroy a creature with 1 power.
+ozmo-martianologist,"Ozmo, Martianologist",logos,creature,dsl,PARTIAL,0,0,fight-reap-trigger,10,1,1.1,fight;condition,f114681aa2,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Fight/Reap: Heal 3 damage from a Mars creature or stun a Mars creature."
+duma-the-martyr,Duma the Martyr,sanctum,creature,dsl,PARTIAL,0,0,destroyed-trigger,2,1,1.02,destroyed;target,a4afbd898e,Destroyed: Fully heal each other friendly creature and draw 2 cards.
 ammonia-clouds,Ammonia Clouds,mars,action,dsl,FULL,0,0,,0,5,0,play;target,6c6816593c,Play: Deal 3<D> to each creature.
 ancient-bear,Ancient Bear,untamed,creature,dsl-override,FULL,0,0,,0,7,0,,,"Assault 2.(Before this creature attacks, deal 2<D> to the attacked enemy.)"
 annihilation-ritual,Annihilation Ritual ,dis,artifact,manual,FULL,0,0,,0,1,0,reaction;target,931c60510d,"When a creature would enter a discard pile from play, it is purged instead."
 anomaly-exploiter,Anomaly Exploiter,logos,artifact,dsl-override,FULL,0,0,,0,1,0,action;target,25428e1fcb,Action: Destroy a damaged creature.
-armageddon-cloak,Armageddon Cloak,sanctum,upgrade,dsl,PARTIAL,0,1,destroyed-trigger;instead,5,0,0.0,gainAbility,a48cc125b5,"This creature gains hazardous 2 and, “Destroyed: Fully heal this creature and destroy Armageddon Cloak instead.”"
+armageddon-cloak,Armageddon Cloak,sanctum,upgrade,manual,FULL,0,0,,0,0,0,gainAbility,a48cc125b5,"This creature gains hazardous 2 and, “Destroyed: Fully heal this creature and destroy Armageddon Cloak instead.”"
+autocannon,Autocannon,brobnar,artifact,dsl-override,FULL,0,0,,0,1,0,reaction;target,34ef8793aa,Deal 1<D> to each creature after it enters play.
 bad-penny,Bad Penny,shadows,creature,manual,FULL,1,0,,0,7,0,destroyed,ef8e4d43ab,Destroyed: Return Bad Penny to your hand.
 bait-and-switch,Bait and Switch,shadows,action,dsl-override,FULL,0,0,,0,11,0,play;condition,f43fd3e052,"Play: If your opponent has more <A> than you, steal 1<A>. Repeat this card's effect if your opponent still has more <A> than you."
 banner-of-battle,Banner of Battle,brobnar,artifact,dsl-override,FULL,0,0,,0,2,0,persistentEffect,92cbca3888,Each friendly creature gets +1 power.
-barehanded,Barehanded,brobnar,action,dsl,PARTIAL,0,1,play-trigger,52,0,0.0,play;target,118bc63a08,Play: Put each artifact on top of its owner’s deck.
+barehanded,Barehanded,brobnar,action,dsl-override,FULL,0,0,,0,0,0,play;target,118bc63a08,Play: Put each artifact on top of its owner’s deck.
 batdrone,Batdrone,logos,creature,dsl,FULL,1,0,,0,11,0,fight,bd36124629,"Skirmish. (When you use this creature to fight, it is dealt no damage in return.) Fight: Steal 1<A>."
 battle-fleet,Battle Fleet,mars,action,dsl-override,FULL,0,0,,0,4,0,play;target,f24ade2645,"Play: Reveal any number of Mars cards from your hand. For each card revealed this way, draw 1 card."
-bear-flute,Bear Flute,untamed,artifact,dsl,PARTIAL,0,1,conditional-if;discard;omni-action,30,0,0.0,action;target,7be5e2511f,"Action: Fully heal an Ancient Bear. If there are no Ancient Bears in play, search your deck and discard pile and put each Ancient Bear from them into your hand. If you do, shuffle your discard pile into your deck."
-bilgum-avalanche,Bilgum Avalanche,brobnar,creature,dsl,PARTIAL,0,1,after-before,9,0,0.0,reaction;target,a4ad2b7470,"After you forge a key, deal 2<D> to each enemy creature."
+bear-flute,Bear Flute,untamed,artifact,dsl-override,FULL,0,0,,0,0,0,action;target,7be5e2511f,"Action: Fully heal an Ancient Bear. If there are no Ancient Bears in play, search your deck and discard pile and put each Ancient Bear from them into your hand. If you do, shuffle your discard pile into your deck."
+bigtwig,Bigtwig,untamed,creature,dsl-override,FULL,0,0,,0,1,0,persistentEffect;reap;target,2d6583ef96,Bigtwig can only fight stunned creatures.  Reap: Stun and exhaust a creature.
+bilgum-avalanche,Bilgum Avalanche,brobnar,creature,dsl-override,FULL,0,0,,0,0,0,reaction;target,a4ad2b7470,"After you forge a key, deal 2<D> to each enemy creature."
 biomatrix-backup,Biomatrix Backup,mars,upgrade,manual,FULL,0,0,,0,3,0,gainAbility,b0193a2268,"This creature gains, “Destroyed: You may put this creature into its owner's archives.”"
 blinding-light,Blinding Light,sanctum,action,dsl-override,FULL,0,0,,0,5,0,play;target,f4d3d10a2f,Play: Choose a house. Stun each creature of that house.
 blood-money,Blood Money,brobnar,action,dsl-override,FULL,0,0,,0,2,0,play;target,24f7ea4fa6,Play: Place 2<A> from the common supply on an enemy creature.
 blood-of-titans,Blood of Titans,brobnar,upgrade,dsl-override,FULL,0,0,,0,0,0,,d95fe7f9bb,This creature gets +5 power.
+blypyp,Blypyp,mars,creature,dsl-override,FULL,0,0,,0,1,0,reap;target,a5874cfff6,Reap: The next Mars creature you play this turn enters play ready.
 booby-trap,Booby Trap,shadows,action,dsl-override,FULL,0,0,,0,6,0,play;target,fce81dcb72,Play: Deal 4<D> to a creature that is not on a flank with 2<D> splash.
 bouncing-deathquark,Bouncing Deathquark,logos,action,dsl-override,FULL,0,0,,0,4,0,play;condition,55b35c8674,"Play: Destroy an enemy creature and a friendly creature. You may repeat this effect as many times as you like, as long as it is possible to repeat the entire effect."
 brain-eater,Brain Eater,logos,creature,dsl-override,FULL,0,0,,0,4,0,reaction,802271d979,"After a creature is destroyed fighting Brain Eater, draw a card."
-brain-stem-antenna,Brain Stem Antenna,mars,upgrade,dsl-override,PARTIAL,0,0,after-before,9,0,0.0,gainAbility,26f5851d47,"This creature gains, “After you play a Mars creature, ready this creature and for the remainder of the turn it belongs to house Mars.”"
+brain-stem-antenna,Brain Stem Antenna,mars,upgrade,dsl-override,PARTIAL,0,0,after-before,1,0,0.0,gainAbility,26f5851d47,"This creature gains, “After you play a Mars creature, ready this creature and for the remainder of the turn it belongs to house Mars.”"
 briar-grubbling,Briar Grubbling,untamed,creature,dsl-override,FULL,0,0,,0,0,0,,,"Hazardous 5. (Before this creature is attacked, deal 5<D> to the attacking enemy.)"
-brothers-in-battle,Brothers in Battle,brobnar,action,dsl,PARTIAL,0,1,may;name-house;play-trigger,52,0,0.0,play;target,7d6509ba4e,"Play: Choose a house. For the remainder of the turn, each friendly creature of that house may fight."
+brothers-in-battle,Brothers in Battle,brobnar,action,dsl-override,FULL,0,0,,0,0,0,play;target,7d6509ba4e,"Play: Choose a house. For the remainder of the turn, each friendly creature of that house may fight."
 bulleteye,Bulleteye,shadows,creature,dsl-override,FULL,0,0,,0,2,0,reap;target,9e12a407d2,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Destroy a flank creature."
 bulwark,Bulwark,sanctum,creature,dsl-override,FULL,0,0,,0,2,0,persistentEffect,0474c79a6a,Each of Bulwark’s neighbors gets +2 armor.
 bumpsy,Bumpsy,brobnar,creature,dsl,FULL,1,0,,0,1,0,play,9bc1be7bdf,Play: Your opponent loses 1<A>.
@@ -101,23 +82,24 @@ charette,Charette,dis,creature,dsl,FULL,0,0,,0,10,0,play,f14a0453e2,Play: Captur
 charge,Charge!,sanctum,action,dsl-override,FULL,0,0,,0,1,0,play;target;gainAbility,3068ff2f45,"Play: For the remainder of the turn, each creature you play gains, “Play: Deal 2<D> to an enemy creature.”"
 chota-hazri,Chota Hazri,untamed,creature,dsl-override,FULL,0,0,,0,5,0,play;target,12f88f1987,"Play: Lose 1<A>. If you do, you may forge a key at current cost."
 cleansing-wave,Cleansing Wave,sanctum,action,dsl-override,FULL,0,0,,0,5,0,play;target,8baac90a62,Play: Heal 1 damage from each creature. Gain 1<A> for each creature healed this way.
+collar-of-subordination,Collar of Subordination,dis,upgrade,manual,FULL,0,0,,0,1,0,,1f6a6c2b45,You control this creature.
 combat-pheromones,Combat Pheromones,mars,artifact,dsl-override,FULL,0,0,,0,2,0,omni;target,98cb90e88e,Omni: Sacrifice Combat Pheromones. You may use up to 2 other Mars cards this turn.
 commander-remiel,Commander Remiel,sanctum,creature,dsl,FULL,0,0,,0,9,0,reap;target,a4ef7ce9c5,Reap: Use a friendly non-Sanctum creature.
 commpod,Commpod,mars,artifact,dsl-override,FULL,0,0,,0,2,0,action;target;optional,1e69acaffb,"Action: Reveal any number of Mars cards from your hand. For each card revealed this way, you may ready one Mars creature."
 control-the-weak,Control the Weak,dis,action,manual,FULL,0,0,,0,13,0,play;target;condition,e3eeb78410,Play: Choose a house on your opponent’s identity card. Your opponent must choose that house as their active house on their next turn.
 cooperative-hunting,Cooperative Hunting,untamed,action,dsl-override,FULL,0,0,,0,3,0,play,74b2139873,Play: Deal 1<D> for each friendly creature in play. You may divide this damage among any number of creatures.
 coward-s-end,Coward’s End,brobnar,action,dsl,FULL,0,0,,0,4,0,play;target,1dfd99b282,Play: Destroy each undamaged creature. Gain 3 chains.
-crazy-killing-machine,Crazy Killing Machine,logos,artifact,dsl,APPROXIMATED,0,0,conditional-if;for-each;discard;omni-action,30,0,0.0,action;target;condition,9b33de817f,"Action: Discard the top card of each player’s deck. For each of those cards, destroy a creature or artifact of that card’s house, if able. If 2 cards are not destroyed as a result of this, destroy Crazy Killing Machine."
+crazy-killing-machine,Crazy Killing Machine,logos,artifact,dsl,APPROXIMATED,0,0,conditional-if;for-each;discard;omni-action,18,0,0.0,action;target;condition,9b33de817f,"Action: Discard the top card of each player’s deck. For each of those cards, destroy a creature or artifact of that card’s house, if able. If 2 cards are not destroyed as a result of this, destroy Crazy Killing Machine."
 creeping-oblivion,Creeping Oblivion,dis,action,dsl,FULL,0,0,,0,1,0,play,ac772ecfa3,Play: Purge up to 2 cards from a discard pile.
 crystal-hive,Crystal Hive,mars,artifact,dsl,FULL,0,0,,0,1,0,action;target,fd06915ebf,"Action: For the remainder of the turn, gain 1<A> each time a creature reaps."
 curiosity,Curiosity,untamed,action,dsl,FULL,0,0,,0,0,0,play;target,d5439d5b2e,Play: Destroy each Scientist creature.
-custom-virus,Custom Virus,mars,artifact,dsl,PARTIAL,0,0,omni-action,26,0,0.0,omni;target;optional;condition,159e30c44f,Omni: Sacrifice Custom Virus. Purge a creature from your hand. Destroy each creature that shares a trait with the purged creature.
+custom-virus,Custom Virus,mars,artifact,dsl,PARTIAL,0,0,omni-action,13,0,0.0,omni;target;optional;condition,159e30c44f,Omni: Sacrifice Custom Virus. Purge a creature from your hand. Destroy each creature that shares a trait with the purged creature.
 customs-office,Customs Office,shadows,artifact,dsl-override,FULL,0,0,,0,2,0,persistentEffect,ffc27a1fa3,Your opponent must pay you 1<A> in order to play an artifact.
 deep-probe,Deep Probe,mars,action,dsl-override,FULL,0,0,,0,4,0,play;target;condition,a92c1121b7,Play: Choose a house. Reveal your opponent's hand. Discard each creature of that house revealed this way.
-deipno-spymaster,Deipno Spymaster,shadows,creature,dsl,PARTIAL,0,1,may;omni-action,26,0,0.0,omni;target,eb7cbf59e0,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Omni: Choose a friendly creature. You may use that creature this turn."
+deipno-spymaster,Deipno Spymaster,shadows,creature,dsl-override,FULL,0,0,,0,0,0,omni;target,eb7cbf59e0,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Omni: Choose a friendly creature. You may use that creature this turn."
 dew-faerie,Dew Faerie,untamed,creature,dsl,FULL,1,0,,0,5,0,reap,f8b66151b5,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Gain 1<A>."
 dextre,Dextre,logos,creature,dsl-override,FULL,0,0,,0,7,0,play;destroyed,a02313c096,Play: Capture 1<A>. Destroyed: Put Dextre on top of your deck.
-dimension-door,Dimension Door,logos,action,dsl,PARTIAL,0,1,play-trigger;instead,52,0,0.0,play;condition,88f11da8c1,"Play: For the remainder of the turn, any <A> you would gain from reaping is stolen from your opponent instead."
+dimension-door,Dimension Door,logos,action,dsl-override,FULL,0,0,,0,0,0,play;condition,88f11da8c1,"Play: For the remainder of the turn, any <A> you would gain from reaping is stolen from your opponent instead."
 doc-bookton,Doc Bookton,logos,creature,dsl,FULL,1,0,,0,7,0,reap,39e58c72b8,Reap: Draw a card.
 dodger,Dodger,shadows,creature,dsl,FULL,1,0,,0,10,0,fight,f946092687,Fight: Steal 1<A>.
 dominator-bauble,Dominator Bauble,dis,artifact,dsl,FULL,0,0,,0,5,0,action;target,7ebaf8f370,Action: Use a friendly creature.
@@ -126,8 +108,8 @@ dr-escotera,Dr. Escotera,logos,creature,dsl-override,FULL,0,0,,0,4,0,play,fd737e
 drumble,Drumble,dis,creature,manual,FULL,0,0,,0,6,0,play;condition,3bc0a55861,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Play: If your opponent has 7<A> or more, capture all of it."
 duskrunner,Duskrunner,shadows,upgrade,dsl-override,FULL,0,0,,0,6,0,gainAbility,07dcdf9062,"This creature gains, “Reap: Steal 1<A>.”"
 dust-imp,Dust Imp,dis,creature,dsl,FULL,1,0,,0,8,0,destroyed,ac51d5a554,Destroyed: Gain 2<A>.
-dust-pixie,Dust Pixie,untamed,creature,none,VANILLA,0,0,,0,10,0,,,(Vanilla)
-dysania,Dysania,logos,creature,dsl,APPROXIMATED,0,0,for-each;play-trigger;discard,52,0,0.0,play;target;condition,c189e8c32a,Play: Your opponent discards each of their archived cards. You gain 1<A> for each card discarded this way.
+dust-pixie,Dust Pixie,untamed,creature,dsl-override,VANILLA,0,0,,0,10,0,,,(Vanilla)
+dysania,Dysania,logos,creature,dsl,APPROXIMATED,0,0,for-each;play-trigger;discard,38,0,0.0,play;target;condition,c189e8c32a,Play: Your opponent discards each of their archived cards. You gain 1<A> for each card discarded this way.
 earthshaker,Earthshaker,brobnar,creature,dsl,FULL,0,0,,0,2,0,play;target,8aa87829dc,Play: Destroy each creature with power 3 or lower.
 eater-of-the-dead,Eater of the Dead,dis,creature,dsl-override,FULL,0,0,,0,0,0,fight;target,c5e50efbfe,"Fight/Reap: Purge a creature from a discard pile. If you do, put a +1 power counter on Eater of the Dead."
 effervescent-principle,Effervescent Principle,logos,action,dsl-override,FULL,0,0,,0,11,0,play;target,92d23a0cfa,Play: Each player loses half their <A> (rounding down the loss). Gain 1 chain.
@@ -135,18 +117,21 @@ ember-imp,Ember Imp,dis,creature,dsl-override,FULL,1,0,,0,9,0,persistentEffect;c
 emp-blast,EMP Blast,mars,action,dsl-override,FULL,0,0,,0,4,0,play;target,5efd91c071,Play: Each Mars creature and each Robot creature is stunned. Each artifact is destroyed.
 epic-quest,Epic Quest,sanctum,artifact,dsl-override,FULL,0,0,,0,1,0,play;omni;target;condition,7ff40a7aa4,"Play: Archive each friendly Knight creature in play. Omni: If you have played 7 or more Sanctum cards this turn, sacrifice Epic Quest and forge a key at no cost."
 ether-spider,Ether Spider,mars,creature,manual,FULL,0,0,,0,4,0,persistentEffect;interrupt,735d242992,Ether Spider deals no damage when fighting. Each <A> that would be added to your opponent’s pool is captured by Ether Spider instead.
+evasion-sigil,Evasion Sigil,shadows,artifact,dsl-override,FULL,0,0,,0,1,0,interrupt;target,c3be7aaf81,"Before a creature fights, discard the top card of its controller's deck. If the discarded card is of the active house, exhaust that creature with no effect."
 faygin,Faygin,shadows,creature,dsl-override,FULL,0,0,,0,3,0,reap;target,990b62259f,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: Return an Urchin from play or from your discard pile to your hand."
 fear,Fear,dis,action,dsl-override,FULL,0,0,,0,3,0,play;target,bb74a765af,Play: Return an enemy creature to its owner’s hand.
-feeding-pit,Feeding Pit,mars,artifact,dsl,APPROXIMATED,0,0,conditional-if;discard;omni-action,30,0,0.0,action;target,38084a0de9,"Action: Discard a creature from your hand. If you do, gain 1<A>."
-fertility-chant,Fertility Chant,untamed,action,dsl,PARTIAL,0,0,play-trigger,52,0,0.0,play;target;condition,a93132d6cc,Play: Your opponent gains 2<A>.
+feeding-pit,Feeding Pit,mars,artifact,dsl,APPROXIMATED,0,0,conditional-if;discard;omni-action,16,0,0.0,action;target,38084a0de9,"Action: Discard a creature from your hand. If you do, gain 1<A>."
+fertility-chant,Fertility Chant,untamed,action,dsl,PARTIAL,0,0,play-trigger,38,0,0.0,play;target;condition,a93132d6cc,Play: Your opponent gains 2<A>.
 firespitter,Firespitter,brobnar,creature,dsl,FULL,0,0,,0,5,0,target,d038941467,Before Fight: Deal 1<D> to each enemy creature.
 flame-wreathed,Flame-Wreathed,dis,upgrade,dsl-override,FULL,0,0,,0,4,0,,e1532c798d,"This creature gets +2 power and gains hazardous 2. (Before this creature is attacked, deal 2<D> to the attacking enemy.)"
 flaxia,Flaxia,untamed,creature,dsl-override,FULL,0,0,,0,6,0,play;condition,34dc8e963f,Play: Gain 2<A> if you control more creatures than your opponent.
 fogbank,Fogbank,untamed,action,manual,FULL,0,0,,0,2,0,play;condition,e0b29ce020,Play: Your opponent cannot use creatures to fight on their next turn.
 foggify,Foggify,logos,action,dsl-override,FULL,0,0,,0,6,0,play;condition,c19b692e90,Play: Your opponent cannot use creatures to fight on their next turn.
+follow-the-leader,Follow the Leader,brobnar,action,dsl-override,FULL,0,0,,0,1,0,play,d16e6d4d69,"Play: For the remainder of the turn, each friendly creature may fight."
 francus,Francus,sanctum,creature,dsl-override,FULL,0,0,,0,1,0,reaction,87675eb6e5,"After an enemy creature is destroyed fighting Francus, Francus captures 1<A>."
 full-moon,Full Moon,untamed,action,dsl,FULL,0,0,,0,12,0,play;target,1a0f105eb0,"Play: For the remainder of the turn, gain 1<A> each time you play a creature."
-fuzzy-gruen,Fuzzy Gruen,untamed,creature,dsl,PARTIAL,0,0,play-trigger,52,0,0.0,play;target;condition,376ecf8646,Play: Your opponent gains 1<A>.
+fuzzy-gruen,Fuzzy Gruen,untamed,creature,dsl,PARTIAL,0,0,play-trigger,38,0,0.0,play;target;condition,376ecf8646,Play: Your opponent gains 1<A>.
+gabos-longarms,Gabos Longarms,dis,creature,dsl-override,FULL,0,0,,0,1,0,target,4d0b3cec72,Before Fight: Choose a creature. Gabos Longarms deals damage to that creature rather than the one it is fighting.
 ganymede-archivist,Ganymede Archivist,logos,creature,dsl,FULL,0,0,,0,6,0,reap;target,b7ea30b5f0,Reap: Archive a card.
 gatekeeper,Gatekeeper,sanctum,creature,dsl-override,FULL,0,0,,0,2,0,play;condition,c631fcd73d,"Play: If your opponent has 7 or more <A>, capture all but 5 of it."
 gateway-to-dis,Gateway to Dis,dis,action,dsl,FULL,0,0,,0,14,0,play;target,7b512f7ecd,Play: Destroy each creature. Gain 3 chains.
@@ -163,32 +148,35 @@ guilty-hearts,Guilty Hearts,dis,action,dsl,FULL,0,0,,0,1,0,play;target,8351ca385
 halacor,Halacor,untamed,creature,dsl-override,FULL,0,0,,0,3,0,persistentEffect,a5fb0ed1ba,"Each friendly flank creature gains skirmish. (When you use a creature with skirmish to fight, it is dealt no damage in return.)"
 hallowed-blaster,Hallowed Blaster,sanctum,artifact,dsl,FULL,0,0,,0,4,0,action;target,e36cbcfb34,Action: Heal 3 damage from a creature.
 hand-of-dis,Hand of Dis,dis,action,dsl,FULL,0,0,,0,4,0,play;target,8f4f3ca69e,Play: Destroy a creature that is not on a flank.
-hayyel-the-merchant,Hayyel the Merchant,sanctum,creature,dsl,PARTIAL,0,1,static-aura,2,0,0.0,reaction,9df6f6de4c,"Each time you play an artifact, gain 1<A>."
+harland-mindlock,Harland Mindlock,logos,creature,manual,FULL,0,0,,0,1,0,play;target,ded4bbab8f,Play: Take control of an enemy flank creature until Harland Mindlock leaves play.
+hayyel-the-merchant,Hayyel the Merchant,sanctum,creature,dsl-override,FULL,0,0,,0,0,0,reaction,9df6f6de4c,"Each time you play an artifact, gain 1<A>."
 headhunter,Headhunter,brobnar,creature,dsl,FULL,1,0,,0,1,0,fight,d375b25d08,Fight: Gain 1<A>.
 hebe-the-huge,Hebe the Huge,brobnar,creature,dsl-override,FULL,0,0,,0,2,0,play;target,c734088860,Play: Deal 2<D> to each other undamaged creature.
+help-from-future-self,Help from Future Self,logos,action,dsl-override,FULL,0,0,,0,3,0,play;target,4c50eb5671,"Play: Search your deck and discard pile for a Timetraveller, reveal it, and put it into your hand. Shuffle your discard pile into your deck."
 hidden-stash,Hidden Stash,shadows,action,dsl,FULL,0,0,,0,7,0,play;target,ee919c4df9,Play: Archive a card.
 honorable-claim,Honorable Claim,sanctum,action,dsl-override,FULL,0,0,,0,1,0,play;target,a339bc008d,Play: Each friendly Knight creature captures 1<A>.
 horseman-of-death,Horseman of Death,sanctum,creature,dsl,FULL,0,0,,0,0,0,play;target,db602550fe,Play: Return each Horseman creature from your discard pile to your hand.
 horseman-of-famine,Horseman of Famine,sanctum,creature,dsl,FULL,0,0,,0,0,0,play;target,2c66098f7b,Play/Fight/Reap: Destroy the least powerful creature.
-horseman-of-pestilence,Horseman of Pestilence,sanctum,creature,dsl,PARTIAL,0,1,fight-reap-trigger,18,0,0.0,play;target,9d5c297071,Play/Fight/Reap: Deal 1<D> to each non-Horseman creature.
-horseman-of-war,Horseman of War,sanctum,creature,dsl,PARTIAL,0,1,conditional-if;play-trigger,52,0,0.0,play,f6548cf6b3,"Play: For the remainder of the turn, each friendly creature can be used as if they were in the active house, but can only fight."
-hunting-witch,Hunting Witch,untamed,creature,dsl,FULL,0,1,,0,12,0,reaction,d264b09b38,"Each time you play another creature, gain 1<A>."
+horseman-of-pestilence,Horseman of Pestilence,sanctum,creature,dsl-override,FULL,0,0,,0,0,0,play;target,9d5c297071,Play/Fight/Reap: Deal 1<D> to each non-Horseman creature.
+horseman-of-war,Horseman of War,sanctum,creature,dsl-override,FULL,0,0,,0,0,0,play,f6548cf6b3,"Play: For the remainder of the turn, each friendly creature can be used as if they were in the active house, but can only fight."
+hunting-witch,Hunting Witch,untamed,creature,dsl-override,FULL,0,0,,0,12,0,reaction,d264b09b38,"Each time you play another creature, gain 1<A>."
 hypnotic-command,Hypnotic Command,mars,action,dsl-override,FULL,0,0,,0,2,0,play,eac95b98a3,"Play: For each friendly Mars creature, choose an enemy creature to capture 1<A> from their own side."
 hysteria,Hysteria,dis,action,dsl,FULL,0,0,,0,2,0,play;target,0320876548,Play: Return each creature to its owner’s hand.
-imperial-traitor,Imperial Traitor,shadows,action,dsl,PARTIAL,0,1,may;play-trigger,52,0,0.0,play;target;condition,86e1504af2,Play: Look at your opponent’s hand. You may choose and purge a Sanctum card in it.
-incubation-chamber,Incubation Chamber,mars,artifact,dsl,PARTIAL,0,1,conditional-if;omni-action,30,0,0.0,omni;target;optional,74fe920a7b,"Omni: Reveal a Mars creature from your hand. If you do, archive it."
-inka-the-spider,Inka the Spider,untamed,creature,dsl,PARTIAL,0,0,fight-reap-trigger,18,0,0.0,play;target,f806d1099b,Poison. (Any damage dealt by this creature’s power during a fight destroys the damaged creature.) Play/Reap: Stun a creature.
+imperial-traitor,Imperial Traitor,shadows,action,dsl-override,FULL,0,0,,0,0,0,play;target;condition,86e1504af2,Play: Look at your opponent’s hand. You may choose and purge a Sanctum card in it.
+incubation-chamber,Incubation Chamber,mars,artifact,dsl-override,FULL,0,0,,0,0,0,omni;target;optional,74fe920a7b,"Omni: Reveal a Mars creature from your hand. If you do, archive it."
+inka-the-spider,Inka the Spider,untamed,creature,dsl,PARTIAL,0,0,fight-reap-trigger,10,0,0.0,play;target,f806d1099b,Poison. (Any damage dealt by this creature’s power during a fight destroys the damaged creature.) Play/Reap: Stun a creature.
 inspiration,Inspiration,sanctum,action,dsl,FULL,0,0,,0,5,0,play;target,310e419cca,Play: Ready and use a friendly creature.
 interdimensional-graft,Interdimensional Graft,logos,action,dsl-override,FULL,0,0,,0,4,0,play;target;condition,7e321e3a10,"Play: If an opponent forges a key on their next turn, they must give you their remaining <A>."
 invasion-portal,Invasion Portal,mars,artifact,dsl-override,FULL,0,0,,0,1,0,action;target,53deae0cde,"Action: Discard cards from the top of your deck until you discard a Mars creature or run out of cards. If you discard a Mars creature this way, put it into your hand."
 iron-obelisk,Iron Obelisk,brobnar,artifact,dsl-override,FULL,0,0,,0,1,0,persistentEffect,608c927213,Your opponent’s keys cost +1<A> for each friendly damaged Brobnar creature.
-irradiated-mber,Irradiated Æmber,mars,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,0,0.0,play;target;condition,3b624df775,"Play: If your opponent has 6<A> or more, deal 3<D> to each enemy creature."
+irradiated-mber,Irradiated Æmber,mars,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,0,0.0,play;target;condition,3b624df775,"Play: If your opponent has 6<A> or more, deal 3<D> to each enemy creature."
 jammer-pack,Jammer Pack,mars,upgrade,manual,FULL,0,0,,0,4,0,persistentEffect;gainAbility,6396b7599c,"This creature gains, “Your opponent's keys cost +2<A>.“"
+jehu-the-bureaucrat,Jehu the Bureaucrat,sanctum,creature,dsl-override,FULL,0,0,,0,1,0,reaction,89145e1da1,"After you choose Sanctum as your active house, gain 2<A>."
 kelifi-dragon,Kelifi Dragon,brobnar,creature,dsl-override,FULL,0,0,,0,0,0,persistentEffect;fight;target,9f573dd2ab,Kelifi Dragon cannot be played unless you have 7<A> or more. Fight/Reap: Gain 1<A>. Deal 5<D> to a creature.
 key-abduction,Key Abduction,mars,action,dsl-override,FULL,0,0,,0,4,0,play;target,aa0c06d0c0,"Play: Return each Mars creature to its owner's hand. Then, you may forge a key at +9<A> current cost, reduced by 1<A> for each card in your hand."
 key-charge,Key Charge,untamed,action,dsl-override,FULL,0,0,,0,7,0,play;target,90832b3e4a,"Play: Lose 1<A>. If you do, you may forge a key at current cost."
 key-of-darkness,Key of Darkness,shadows,action,dsl-override,FULL,0,0,,0,0,0,play,3508c2c675,"Play: Forge a key at +6<A> current cost. If your opponent has no <A>, forge a key at +2<A> current cost instead."
-key-to-dis,Key to Dis,dis,artifact,dsl,PARTIAL,0,0,omni-action,26,0,0.0,omni;target,d3f0fe3ced,Omni: Sacrifice Key to Dis. Destroy each creature.
+key-to-dis,Key to Dis,dis,artifact,dsl,PARTIAL,0,0,omni-action,13,0,0.0,omni;target,d3f0fe3ced,Omni: Sacrifice Key to Dis. Destroy each creature.
 kindrith-longshot,Kindrith Longshot,untamed,creature,dsl,FULL,0,0,,0,2,0,reap;target,c60b400a14,Elusive. Skirmish. Reap: Deal 2<D> to a creature.
 king-of-the-crag,King of the Crag,brobnar,creature,dsl-override,FULL,0,0,,0,1,0,persistentEffect,b3fad8fb5a,Each enemy Brobnar creature gets –2 power.
 krump,Krump,brobnar,creature,dsl-override,FULL,0,0,,0,5,0,reaction,2d092c05b4,"After an enemy creature is destroyed fighting Krump, its controller loses 1<A>."
@@ -200,7 +188,7 @@ library-access,Library Access,logos,action,dsl-override,FULL,0,0,,0,12,0,play;ta
 library-of-babble,Library of Babble,logos,artifact,dsl,FULL,0,0,,0,4,0,action,fb2b2a0eb3,Action: Draw a card.
 library-of-the-damned,Library of the Damned,dis,artifact,dsl,FULL,0,0,,0,5,0,action;target,01206cde9c,Action: Archive a card.
 lifeward,Lifeward,dis,artifact,dsl-override,FULL,0,0,,0,1,0,omni;condition,b7ddb03aba,Omni: Sacrifice Lifeward. Your opponent cannot play creatures on their next turn.
-lifeweb,Lifeweb,untamed,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,0,0.0,play;condition,d98f4c4f3d,"Play: If your opponent played 3 or more creatures on their previous turn, steal 2<A>."
+lifeweb,Lifeweb,untamed,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,0,0.0,play;condition,d98f4c4f3d,"Play: If your opponent played 3 or more creatures on their previous turn, steal 2<A>."
 lights-out,Lights Out,shadows,action,dsl,FULL,0,0,,0,7,0,play;target,7a8bd84fff,Play: Return 2 enemy creatures to their owner’s hand.
 lomir-flamefist,Lomir Flamefist,brobnar,creature,dsl-override,FULL,0,0,,0,5,0,play;condition,833d5d49cd,"Play: If your opponent has 7<A> or more, they lose 2<A>."
 loot-the-bodies,Loot the Bodies,brobnar,action,dsl-override,FULL,0,0,,0,1,0,play;target,3db23bf6b7,"Play: For the remainder of the turn, gain 1<A> each time an enemy creature is destroyed."
@@ -209,19 +197,22 @@ lord-golgotha,Lord Golgotha,sanctum,creature,dsl-override,FULL,0,0,,0,3,0,target
 lost-in-the-woods,Lost in the Woods,untamed,action,dsl-override,FULL,0,0,,0,11,0,play,e771783408,Play: Choose 2 friendly creatures and 2 enemy creatures. Shuffle each chosen creature into its owner’s deck.
 lupo-the-scarred,Lupo the Scarred,untamed,creature,dsl-override,FULL,0,0,,0,0,0,play;target,8545f136ac,"Skirmish. (When you use this creature to fight, it is dealt no damage in return.)  Play: Deal 2<D> to an enemy creature."
 macis-asp,Macis Asp,shadows,creature,dsl-override,FULL,0,0,,0,4,0,,,"Skirmish. (When you use this creature to fight, it is dealt no damage in return.) Poison. (Any damage dealt by this creature’s power during a fight destroys the damaged creature.)"
-mack-the-knife,Mack the Knife,shadows,creature,dsl,PARTIAL,0,0,conditional-if;may;omni-action,30,0,0.0,persistentEffect;action;target;condition,a7d1727a56,"Elusive. You may use Mack the Knife as if it belonged to the active house. Action: Deal 1<D> to a creature. If this damage destroys that creature, gain 1<A>."
+mack-the-knife,Mack the Knife,shadows,creature,dsl,PARTIAL,0,0,conditional-if;may;omni-action,16,0,0.0,persistentEffect;action;target;condition,a7d1727a56,"Elusive. You may use Mack the Knife as if it belonged to the active house. Action: Deal 1<D> to a creature. If this damage destroys that creature, gain 1<A>."
 magda-the-rat,Magda the Rat,shadows,creature,dsl-override,FULL,0,0,,0,4,0,play;target,3a8ed66647,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Play: Steal 2<A>. Leaves Play: Your opponent steals 2<A>."
+mantle-of-the-zealot,Mantle of the Zealot,sanctum,upgrade,dsl-override,FULL,0,0,,0,1,0,persistentEffect;gainAbility,893a8e4ca6,"This creature gains, “You may use this creature as if it belonged to the active house.”"
 martian-hounds,Martian Hounds,mars,action,dsl-override,FULL,0,0,,0,0,0,play;target,2218863dce,"Play: Choose a creature. For each damaged creature, give the chosen creature two +1 power counters."
-master-of-2,Master of 2,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,19,0,0.0,reap;target;optional,cc8725c635,Reap: You may destroy a creature with 2 power.
-master-of-3,Master of 3,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,19,0,0.0,reap;target;optional,558589bdca,Reap: You may destroy a creature with 3 power.
+mass-abduction,Mass Abduction,mars,action,dsl-override,FULL,0,0,,0,3,0,play;target,b11a20cd06,"Play: Put up to 3 damaged enemy creatures into your archives. If any of these creatures leave your archives, they are put into their owner’s hand instead."
+master-of-2,Master of 2,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,10,0,0.0,reap;target;optional,cc8725c635,Reap: You may destroy a creature with 2 power.
+master-of-3,Master of 3,dis,creature,dsl,PARTIAL,0,0,may;fight-reap-trigger,10,0,0.0,reap;target;optional,558589bdca,Reap: You may destroy a creature with 3 power.
 masterplan,Masterplan,shadows,artifact,dsl-override,FULL,0,0,,0,3,0,play;omni;target,03affa01c8,Play: Put a card from your hand facedown beneath Masterplan. Omni: Play the card beneath Masterplan. Sacrifice Masterplan.
 mating-season,Mating Season,mars,action,dsl-override,FULL,0,0,,0,1,0,play;target,a7e543c827,Play: Shuffle each Mars creature into its owner’s deck. Each player gains 1<A> for each creature shuffled into their deck this way.
 miasma,Miasma,shadows,action,manual,FULL,0,0,,0,12,0,play;condition,a5e1fb706b,Play: Your opponent skips the “forge a key” step on their next turn.
 mighty-lance,Mighty Lance,sanctum,action,dsl,FULL,0,0,,0,0,0,play,c42113ea28,Play: Deal 3<D> to a creature and 3<D> to a neighbor of that creature.
 mighty-tiger,Mighty Tiger,untamed,creature,dsl-override,FULL,0,0,,0,3,0,play;target,bbfdbe8261,Play: Deal 4<D> to an enemy creature.
+mimicry,Mimicry,untamed,action,dsl-override,FULL,0,0,,0,4,0,reaction;target,9f3a605ce8,"When you play this card, treat it as a copy of an action card in your opponent’s discard pile."
 mind-barb,Mind Barb,dis,action,dsl,FULL,0,0,,0,7,0,play,5ba658057b,Play: Your opponent discards a random card from their hand.
 mindwarper,Mindwarper,mars,creature,dsl-override,FULL,0,0,,0,4,0,action;target,fed6c86663,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Action: Choose an enemy creature. It captures 1<A> from its own side."
-mobius-scroll,Mobius Scroll,logos,artifact,dsl,PARTIAL,0,1,omni-action,26,0,0.0,action;target,7a33863b94,Action: Archive Mobius Scroll and up to 2 cards from your hand.
+mobius-scroll,Mobius Scroll,logos,artifact,dsl-override,FULL,0,0,,0,0,0,action;target,7a33863b94,Action: Archive Mobius Scroll and up to 2 cards from your hand.
 mooncurser,Mooncurser,shadows,creature,dsl,FULL,0,0,,0,2,0,fight,797f87f930,Skirmish. Poison. Fight: Steal 1<A>.
 mother,Mother,logos,creature,dsl-override,FULL,0,0,,0,11,0,persistentEffect,f3d8cd530e,"During your “draw cards” step, refill your hand to 1 additional card."
 mothergun,Mothergun,mars,artifact,dsl-override,FULL,0,0,,0,7,0,action,2c77b346f1,Action: Reveal any number of Mars cards from your hand. Deal damage to a creature equal to the number of Mars cards revealed this way.
@@ -239,52 +230,56 @@ niffle-queen,Niffle Queen,untamed,creature,dsl-override,FULL,0,0,,0,1,0,persiste
 nocturnal-maneuver,Nocturnal Maneuver,untamed,action,dsl-override,FULL,0,0,,0,6,0,play;target,f0efeb1736,Play: Exhaust up to 3 creatures.
 noddy-the-thief,Noddy the Thief,shadows,creature,dsl,FULL,0,0,,0,11,0,action,f3d5d90f8b,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Action: Steal 1<A>."
 novu-archaeologist,Novu Archaeologist,logos,creature,dsl,FULL,0,0,,0,1,0,action;target,b17a1bc98e,Action: Archive a card from your discard pile.
-numquid-the-fair,Numquid the Fair,sanctum,creature,dsl,PARTIAL,0,1,conditional-if;play-trigger,52,0,0.0,play;target;condition,37f52eb30d,Play: Destroy an enemy creature. Repeat this card’s effect if your opponent still controls more creatures than you.
+numquid-the-fair,Numquid the Fair,sanctum,creature,dsl-override,FULL,0,0,,0,0,0,play;target;condition,37f52eb30d,Play: Destroy an enemy creature. Repeat this card’s effect if your opponent still controls more creatures than you.
 old-bruno,Old Bruno,shadows,creature,dsl,FULL,0,0,,0,8,0,play,1d30ba9781,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Play: Capture 3<A>."
 oubliette,Oubliette,shadows,action,dsl,FULL,0,0,,0,3,0,play;target,a329a5eb7d,Play: Purge a creature with power 3 or lower.
+overlord-greking,Overlord Greking,dis,creature,dsl-override,FULL,0,0,,0,2,0,reaction;target,d9f4117644,"After an enemy creature is destroyed fighting Overlord Greking, put that creature into play under your control."
 pandemonium,Pandemonium,dis,action,dsl-override,FULL,0,0,,0,0,0,play;target,c4d8e01a59,Play: Each undamaged creature captures 1<A> from its opponent.
 pawn-sacrifice,Pawn Sacrifice,shadows,action,dsl-override,FULL,0,0,,0,8,0,play;target,7d1b7a01da,"Play: Sacrifice a friendly creature. If you do, deal 3<D> each to 2 creatures."
 perilous-wild,Perilous Wild,untamed,action,dsl,FULL,0,0,,0,1,0,play;target,e4573a3588,Play: Destroy each elusive creature.
 phase-shift,Phase Shift,logos,action,dsl-override,FULL,0,0,,0,5,0,play,2b30603b9a,Play: You may play one non-Logos card this turn.
-phoenix-heart,Phoenix Heart,brobnar,upgrade,dsl,PARTIAL,0,1,destroyed-trigger,4,0,0.0,target;gainAbility,1570a0d80f,"This creature gains, “Destroyed: Return this creature to its owner’s hand and deal 3<D> to each creature in play.”"
+phoenix-heart,Phoenix Heart,brobnar,upgrade,manual,FULL,0,0,,0,0,0,target;gainAbility,1570a0d80f,"This creature gains, “Destroyed: Return this creature to its owner’s hand and deal 3<D> to each creature in play.”"
 phosphorus-stars,Phosphorus Stars,mars,action,dsl-override,FULL,0,0,,0,5,0,play;target,3171834cf5,Play: Stun each non-Mars creature. Gain 2 chains.
 pile-of-skulls,Pile of Skulls,brobnar,artifact,dsl-override,FULL,0,0,,0,1,0,reaction;target,d74c5dab74,"Each time an enemy creature is destroyed during your turn, a friendly creature captures 1<A>."
+pingle-who-annoys,Pingle Who Annoys,brobnar,creature,dsl-override,FULL,0,0,,0,1,0,reaction;target,7782cb0c31,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Deal 1<D> to each enemy creature after it enters play."
 piranha-monkeys,Piranha Monkeys,untamed,creature,dsl,FULL,0,0,,0,3,0,play;target,53130b30be,Play/Reap: Deal 2<D> to each other creature.
 pit-demon,Pit Demon,dis,creature,dsl,FULL,0,0,,0,8,0,action,9d7c6ef1bb,Action: Steal 1<A>.
 pitlord,Pitlord,dis,creature,dsl-override,FULL,1,0,,0,0,0,persistentEffect,9850686bde,Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) While Pitlord is in play you must choose Dis as your active house.
-pocket-universe,Pocket Universe,logos,artifact,dsl,PARTIAL,0,1,may;omni-action,26,0,0.0,persistentEffect;action,5c5b32ea7d,You may spend <A> on Pocket Universe when forging keys. Action: Move 1<A> from your pool to Pocket Universe.
+pocket-universe,Pocket Universe,logos,artifact,manual,FULL,0,0,,0,0,0,persistentEffect;action,5c5b32ea7d,You may spend <A> on Pocket Universe when forging keys. Action: Move 1<A> from your pool to Pocket Universe.
 poison-wave,Poison Wave,shadows,action,dsl,FULL,0,0,,0,13,0,play;target,e2ba3d6a21,Play: Deal 2<D> to each creature.
-poltergeist,Poltergeist,dis,action,dsl,PARTIAL,0,1,conditional-if;play-trigger,52,0,0.0,play;target,46988e2a2f,Play: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
+poltergeist,Poltergeist,dis,action,dsl-override,FULL,0,0,,0,0,0,play;target,46988e2a2f,Play: Use an artifact controlled by any player as if it were yours. Destroy that artifact.
 positron-bolt,Positron Bolt,logos,action,dsl-override,FULL,0,0,,0,4,0,play;target,cf9b96ec4c,Play: Deal 3<D> to a flank creature. Deal 2<D> to its neighbor. Deal 1<D> to the second creature’s other neighbor.
 potion-of-invulnerability,Potion of Invulnerability,sanctum,artifact,dsl-override,FULL,0,0,,0,1,0,omni,546d0b7aee,"Omni: Sacrifice Potion of Invulnerability. For the remainder of the turn, each friendly creature cannot be dealt damage."
 protect-the-weak,Protect the Weak,sanctum,upgrade,dsl-override,FULL,0,0,,0,7,0,,bff04dba75,This creature gets +1 armor and gains taunt. (This creature’s neighbors cannot be attacked unless they have taunt.)
 protectrix,Protectrix,sanctum,creature,dsl-override,FULL,0,0,,0,7,0,reap;target;optional;condition,522f8faaea,"Reap: You may fully heal a creature. If you do, that creature cannot be dealt damage for the remainder of the turn."
-psychic-bug,Psychic Bug,logos,creature,dsl,PARTIAL,0,1,fight-reap-trigger,18,0,0.0,play;target;condition,fe34560032,Play/Reap: Look at your opponent’s hand.
+psychic-bug,Psychic Bug,logos,creature,dsl-override,FULL,0,0,,0,0,0,play;target;condition,fe34560032,Play/Reap: Look at your opponent’s hand.
 punch,Punch,brobnar,action,dsl,FULL,1,0,,0,2,0,play;target,23d540f65c,Play: Deal 3<D> to a creature.
 quixo-the-adventurer,Quixo the “Adventurer”,logos,creature,dsl,FULL,0,0,,0,7,0,fight,7bb77c9599,"Skirmish. (When you use this creature to fight, it is dealt no damage in return.) Fight: Draw a card."
 qyxxlyx-plague-master,Qyxxlyx Plague Master,mars,creature,dsl-override,FULL,0,0,,0,2,0,fight;target,f133d5d741,Fight/Reap: Deal 3<D> to each Human creature. This damage cannot be prevented by armor.
-radiant-truth,Radiant Truth,sanctum,action,dsl,PARTIAL,0,0,play-trigger,52,0,0.0,play;target;condition,9875685a96,Play: Stun each enemy creature not on a flank.
+radiant-truth,Radiant Truth,sanctum,action,dsl,PARTIAL,0,0,play-trigger,38,0,0.0,play;target;condition,9875685a96,Play: Stun each enemy creature not on a flank.
 raiding-knight,Raiding Knight,sanctum,creature,dsl,FULL,0,0,,0,5,0,play,f20d6f9660,Play: Capture 1<A>.
-random-access-archives,Random Access Archives,logos,action,dsl,PARTIAL,0,0,play-trigger,52,0,0.0,play;target,27aa610a12,Play: Archive the top card of your deck.
+random-access-archives,Random Access Archives,logos,action,dsl,PARTIAL,0,0,play-trigger,38,0,0.0,play;target,27aa610a12,Play: Archive the top card of your deck.
 red-hot-armor,Red-Hot Armor,dis,action,dsl-override,FULL,0,0,,0,3,0,play;target;condition,9f55e7ebaa,Play: Each enemy creature with armor loses all of its armor until the end of the turn and is dealt 1<D> for each point of armor it lost this way.
 red-planet-ray-gun,Red Planet Ray Gun,mars,upgrade,dsl-override,FULL,0,0,,0,4,0,target;gainAbility,b4e162c6fa,"This creature gains, “Reap: Choose a creature. Deal 1<D> to that creature for each Mars creature in play.”"
 regrowth,Regrowth,untamed,action,dsl,FULL,0,0,,0,7,0,play;target,07e1edb2a0,Play: Return a creature from your discard pile to your hand.
-relentless-assault,Relentless Assault,brobnar,action,dsl,PARTIAL,0,0,play-trigger,52,0,0.0,play;fight;target;optional,2eb8ebac80,"Play: Ready and fight with up to 3 different friendly creatures, one at a time."
+relentless-assault,Relentless Assault,brobnar,action,dsl,PARTIAL,0,0,play-trigger,38,0,0.0,play;fight;target;optional,2eb8ebac80,"Play: Ready and fight with up to 3 different friendly creatures, one at a time."
 relentless-whispers,Relentless Whispers,shadows,action,dsl-override,FULL,0,0,,0,13,0,play;target;condition,14dc817378,"Play: Deal 2<D> to a creature. If this damage destroys that creature, steal 1<A>."
 remote-access,Remote Access,logos,action,dsl-override,FULL,0,0,,0,5,0,play;target,50089d0ec2,Play: Use an opponent's artifact as if it were yours.
-replicator,Replicator,logos,creature,dsl,PARTIAL,0,1,conditional-if;fight-reap-trigger,30,0,0.0,reap;target,92c5c6e1c7,Reap: Trigger the reap effect of another creature in play as if you controlled that creature. (That creature does not exhaust.)
-restringuntus,Restringuntus,dis,creature,dsl,PARTIAL,0,1,until-next-turn;name-house;play-trigger,52,0,0.0,play;target;condition,2a760f8ffa,Play: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
+replicator,Replicator,logos,creature,dsl-override,FULL,0,0,,0,0,0,reap;target,92c5c6e1c7,Reap: Trigger the reap effect of another creature in play as if you controlled that creature. (That creature does not exhaust.)
+restringuntus,Restringuntus,dis,creature,manual,FULL,0,0,,0,0,0,play;target;condition,2a760f8ffa,Play: Choose a house. Your opponent cannot choose that house as their active house until Restringuntus leaves play.
 reverse-time,Reverse Time,logos,action,dsl,FULL,0,0,,0,0,0,play;target,403078e6a0,"Play: Swap your deck and your discard pile. Then, shuffle your deck."
 ring-of-invisibility,Ring of Invisibility,shadows,upgrade,dsl-override,FULL,0,0,,0,1,0,,5e83399fcd,This creature gains elusive and skirmish.
 ritual-of-balance,Ritual of Balance,untamed,artifact,dsl-override,FULL,0,0,,0,5,0,action;condition,bd1cc542c4,"Action: If your opponent has 6<A> or more, steal 1<A>."
-ritual-of-the-hunt,Ritual of the Hunt,untamed,artifact,dsl,PARTIAL,0,1,may;omni-action,26,0,0.0,omni,c091d654e2,"Omni: Sacrifice Ritual of the Hunt. For the remainder of the turn, you may use friendly Untamed creatures."
-rock-hurling-giant,Rock-Hurling Giant,brobnar,creature,dsl,PARTIAL,0,1,may;discard,19,0,0.0,reaction;target;optional,8f5013a72e,"During your turn, each time you discard a Brobnar card from your hand, you may deal 4<D> to a creature."
-rogue-ogre,Rogue Ogre,brobnar,creature,dsl,PARTIAL,0,1,conditional-if;capture,30,0,0.0,interrupt,da8b20e754,"At the end of your turn, if you played exactly one card this turn, Rogue Ogre heals 2 damage and captures 1<A>."
+ritual-of-the-hunt,Ritual of the Hunt,untamed,artifact,dsl-override,FULL,0,0,,0,0,0,omni,c091d654e2,"Omni: Sacrifice Ritual of the Hunt. For the remainder of the turn, you may use friendly Untamed creatures."
+rock-hurling-giant,Rock-Hurling Giant,brobnar,creature,dsl-override,FULL,0,0,,0,0,0,reaction;target;optional,8f5013a72e,"During your turn, each time you discard a Brobnar card from your hand, you may deal 4<D> to a creature."
+rocket-boots,Rocket Boots,logos,upgrade,dsl-override,FULL,0,0,,0,2,0,gainAbility;condition,4be0154771,"This creature gains, “Fight/Reap: If this is the first time this creature was used this turn, ready it.”"
+rogue-ogre,Rogue Ogre,brobnar,creature,dsl-override,FULL,0,0,,0,0,0,interrupt,da8b20e754,"At the end of your turn, if you played exactly one card this turn, Rogue Ogre heals 2 damage and captures 1<A>."
 round-table,Round Table,sanctum,artifact,dsl-override,FULL,0,0,,0,3,0,persistentEffect,1b62e95673,Each friendly Knight creature gets +1 power and gains taunt.
-safe-place,Safe Place,shadows,artifact,dsl,PARTIAL,0,1,may;omni-action,26,0,0.0,persistentEffect;action,fc4b4e6e3f,You may spend <A> on Safe Place when forging keys. Action: Move 1<A> from your pool to Safe Place.
-sanctum-guardian,Sanctum Guardian,sanctum,creature,dsl,PARTIAL,0,1,fight-reap-trigger,18,0,0.0,fight;target,d4114e7b1e,Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) Fight/Reap: Swap Sanctum Guardian with another friendly creature in your battleline.
+sacrificial-altar,Sacrificial Altar,dis,artifact,dsl-override,FULL,0,0,,0,1,0,action;target,b83c5b3d42,"Action: Purge a friendly Human creature from play. If you do, play a creature from your discard pile."
+safe-place,Safe Place,shadows,artifact,manual,FULL,0,0,,0,0,0,persistentEffect;action,fc4b4e6e3f,You may spend <A> on Safe Place when forging keys. Action: Move 1<A> from your pool to Safe Place.
+sanctum-guardian,Sanctum Guardian,sanctum,creature,dsl-override,FULL,0,0,,0,0,0,fight;target,d4114e7b1e,Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) Fight/Reap: Swap Sanctum Guardian with another friendly creature in your battleline.
 save-the-pack,Save the Pack,untamed,action,dsl,FULL,0,0,,0,7,0,play;target,459a0cd1ce,Play: Destroy each damaged creature. Gain 1 chain.
-scout,Scout,untamed,action,dsl,PARTIAL,0,1,play-trigger,52,0,0.0,play;fight;target,a2912d55ed,"Play: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time."
+scout,Scout,untamed,action,dsl-override,FULL,0,0,,0,0,0,play;fight;target,a2912d55ed,"Play: For the remainder of the turn, up to 2 friendly creatures gain skirmish. Then, fight with those creatures one at a time."
 scrambler-storm,Scrambler Storm,logos,action,dsl-override,FULL,0,0,,0,3,0,play;condition,ce27bfbdd9,Play: Your opponent cannot play action cards on their next turn.
 screaming-cave,Screaming Cave,dis,artifact,dsl,FULL,0,0,,0,1,0,action;target,834a71dfbf,Action: Shuffle your hand and discard pile into your deck.
 seeker-needle,Seeker Needle,shadows,artifact,dsl-override,FULL,0,0,,0,8,0,action;target;condition,620c9cdb61,"Action: Deal 1<D> to a creature. If this damage destroys that creature, gain 1<A>."
@@ -292,7 +287,7 @@ selwyn-the-fence,Selwyn the Fence,shadows,creature,dsl-override,FULL,0,0,,0,4,0,
 sequis,Sequis,sanctum,creature,dsl,FULL,0,0,,0,6,0,reap,9a7b916c17,Reap: Capture 1<A>.
 sergeant-zakiel,Sergeant Zakiel,sanctum,creature,dsl-override,FULL,0,0,,0,7,0,play;fight;target;optional,fd5b869e0b,Play: You may ready and fight with a neighboring creature.
 shadow-self,Shadow Self,shadows,creature,manual,FULL,0,0,,0,15,0,persistentEffect;interrupt,19bda88ef3,Shadow Self deals no damage when fighting.   Damage dealt to non-Specter neighbors is dealt to Shadow Self instead.
-shaffles,Shaffles,dis,creature,dsl,FULL,0,1,,0,4,0,interrupt,3bae5174e7,"At the end of your turn, your opponent loses 1<A>."
+shaffles,Shaffles,dis,creature,dsl-override,FULL,0,0,,0,4,0,interrupt,3bae5174e7,"At the end of your turn, your opponent loses 1<A>."
 shatter-storm,Shatter Storm,mars,action,dsl-override,FULL,0,0,,0,1,0,play;target,c21eed217a,"Play: Lose all your <A>. Then, your opponent loses triple the amount of <A> you lost this way."
 shield-of-justice,Shield of Justice,sanctum,action,dsl-override,FULL,0,0,,0,5,0,play,a9cdaeca34,"Play: For the remainder of the turn, each friendly creature cannot be dealt damage."
 shooler,Shooler,dis,creature,dsl-override,FULL,0,0,,0,8,0,play;condition,28002257af,"Play: If your opponent has 4<A> or more, steal 1<A>."
@@ -306,6 +301,8 @@ sloppy-labwork,Sloppy Labwork,logos,action,dsl,FULL,0,0,,0,2,0,play,2b21aaf60b,P
 smaaash,Smaaash,brobnar,creature,dsl-override,FULL,0,0,,0,1,0,play;target,40ac335f9d,Play: Stun a creature.
 smiling-ruth,Smiling Ruth,shadows,creature,dsl-override,FULL,0,0,,0,1,0,reap;target;condition,3e3fd7e84f,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Reap: If you forged a key this turn, take control of an enemy flank creature."
 smith,Smith,brobnar,action,dsl-override,FULL,0,0,,0,2,0,play;condition,02a8fc270f,Play: Gain 2<A> if you control more creatures than your opponent.
+sneklifter,Sneklifter,shadows,creature,manual,FULL,0,0,,0,1,0,play;target;condition,3800a438ef,"Play: Take control of an enemy artifact. While under your control, if it does not belong to one of your three houses, it is considered to be of house Shadows."
+sniffer,Sniffer,mars,artifact,dsl-override,FULL,0,0,,0,1,0,action,957fbdd26d,"Action: For the remainder of the turn, each creature loses elusive."
 snudge,Snudge,dis,creature,dsl-override,FULL,0,0,,0,6,0,fight;target,da1c443b78,Fight/Reap: Return an artifact or flank creature to its owner’s hand.
 snufflegator,Snufflegator,untamed,creature,dsl-override,FULL,0,0,,0,4,0,,,"Skirmish. (When you use this creature to fight, it is dealt no damage in return.)"
 soft-landing,Soft Landing,mars,action,dsl-override,FULL,0,0,,0,7,0,play;target,b634af7a7f,Play: The next creature or artifact you play this turn enters play ready.
@@ -314,21 +311,23 @@ sound-the-horns,Sound the Horns,brobnar,action,dsl-override,FULL,0,0,,0,3,0,play
 special-delivery,Special Delivery,shadows,artifact,dsl-override,FULL,0,0,,0,3,0,omni;target;condition,f505e429f5,"Omni: Sacrifice Special Delivery. Deal 3<D> to a flank creature. If this damage destroys that creature, purge it."
 speed-sigil,Speed Sigil,shadows,artifact,manual,FULL,0,0,,0,7,0,interrupt;target,d36adad52a,The first creature played each turn enters play ready.
 squawker,Squawker,mars,action,dsl-override,FULL,0,0,,0,3,0,play;target,79cdc118aa,Play: Ready a Mars creature or stun a non-Mars creature.
-stampede,Stampede,untamed,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,0,0.0,play;condition,32c26636ad,"Play: If you used 3 or more creatures this turn, steal 2<A>."
+stampede,Stampede,untamed,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,0,0.0,play;condition,32c26636ad,"Play: If you used 3 or more creatures this turn, steal 2<A>."
 staunch-knight,Staunch Knight,sanctum,creature,dsl-override,FULL,0,0,,0,4,0,persistentEffect;condition,bb1c794f8f,Staunch Knight gets +2 power while it is on a flank.
-stealer-of-souls,Stealer of Souls,dis,creature,dsl,PARTIAL,0,1,after-before,9,0,0.0,reaction;target,0e914f6519,"After an enemy creature is destroyed fighting Stealer of Souls, purge that creature and gain 1<A>."
+stealer-of-souls,Stealer of Souls,dis,creature,dsl-override,FULL,0,0,,0,0,0,reaction;target,0e914f6519,"After an enemy creature is destroyed fighting Stealer of Souls, purge that creature and gain 1<A>."
 strange-gizmo,Strange Gizmo,logos,artifact,dsl-override,FULL,0,0,,0,4,0,reaction;target,954c6e951c,"After you forge a key, destroy each creature and artifact."
 subtle-maul,Subtle Maul,shadows,artifact,dsl,FULL,0,0,,0,5,0,action;condition,88ddcc7b7e,Action: Your opponent discards a random card from their hand.
 succubus,Succubus,dis,creature,dsl-override,FULL,0,0,,0,9,0,persistentEffect,5df3370fd5,"During their “draw cards” step, your opponent refills their hand to 1 less card."
-swap-widget,Swap Widget,mars,artifact,dsl,PARTIAL,0,1,conditional-if;omni-action,30,0,0.0,action;target;condition,bdd57bca35,"Action: Return a ready friendly Mars creature to your hand. If you do, put a Mars creature with a different name from your hand into play, then ready it."
+swap-widget,Swap Widget,mars,artifact,dsl-override,FULL,0,0,,0,0,0,action;target;condition,bdd57bca35,"Action: Return a ready friendly Mars creature to your hand. If you do, put a Mars creature with a different name from your hand into play, then ready it."
 take-hostages,Take Hostages,sanctum,action,dsl-override,FULL,0,0,,0,4,0,play;target,50a073e899,"Play: For the remainder of the turn, each time a friendly creature fights, it captures 1<A>."
-take-that-smartypants,"Take that, Smartypants",brobnar,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,52,0,0.0,play;condition,96f5f9c859,Play: Steal 2<A> if your opponent has 3 or more Logos cards in play.
-teliga,Teliga,untamed,creature,dsl,FULL,0,1,,0,1,0,reaction,2652f0a473,"Each time your opponent plays a creature, gain 1<A>."
+take-that-smartypants,"Take that, Smartypants",brobnar,action,dsl,PARTIAL,0,0,conditional-if;play-trigger,38,0,0.0,play;condition,96f5f9c859,Play: Steal 2<A> if your opponent has 3 or more Logos cards in play.
+teliga,Teliga,untamed,creature,dsl-override,FULL,0,0,,0,1,0,reaction,2652f0a473,"Each time your opponent plays a creature, gain 1<A>."
 tendrils-of-pain,Tendrils of Pain,dis,action,manual,FULL,0,0,,0,4,0,play;target,1df509d14e,Play: Deal 1<D> to each creature. Deal an additional 3<D> to each creature if your opponent forged a key on their previous turn.
 tentacus,Tentacus,dis,creature,dsl-override,FULL,0,0,,0,6,0,persistentEffect,61e36c6240,Your opponent must pay you 1<A> in order to use an artifact.
 terms-of-redress,Terms of Redress,sanctum,action,dsl-override,FULL,0,0,,0,6,0,play;target,45ba54ff42,Play: Choose a friendly creature to capture 2<A>.
 the-harder-they-come,The Harder They Come,sanctum,action,dsl,FULL,0,0,,0,1,0,play;target,ce81a649a9,Play: Purge a creature with power 5 or higher.
+the-howling-pit,The Howling Pit,logos,artifact,dsl-override,FULL,0,0,,0,1,0,persistentEffect,7901af79db,"During their “draw cards” step, each player refills their hand to 1 additional card."
 the-spirit-s-way,The Spirit’s Way,sanctum,action,dsl,FULL,0,0,,0,2,0,play;target,2bc501b3d7,Play: Destroy each creature with power 3 or higher.
+the-sting,The Sting,shadows,artifact,manual,FULL,0,0,,0,1,0,persistentEffect;action,3eb55cfb0d,Skip your “forge a key” step. You get all <A> spent by your opponent when forging keys. Action: Sacrifice The Sting.
 the-terror,The Terror,dis,creature,dsl-override,FULL,0,0,,0,10,0,play;condition,db2ad59895,"Play: If your opponent has no <A>, gain 2<A>."
 the-vaultkeeper,The Vaultkeeper,sanctum,creature,dsl-override,FULL,1,0,,0,1,0,persistentEffect,256eccaabb,Your <A> cannot be stolen.
 three-fates,Three Fates,dis,action,dsl,FULL,0,0,,0,5,0,play;target,d5cf4c2cad,Play: Destroy the 3 most powerful creatures.
@@ -338,6 +337,7 @@ titan-mechanic,Titan Mechanic,logos,creature,dsl-override,FULL,0,0,,0,8,0,persis
 tocsin,Tocsin,dis,creature,dsl,FULL,0,0,,0,13,0,reap,42705c955a,Reap: Your opponent discards a random card from their hand.
 tolas,Tolas,dis,creature,dsl-override,FULL,0,0,,0,0,0,reaction;target,319f01254a,"Elusive. (The first time this creature is attacked each turn, no damage is dealt.) Each time a creature is destroyed, its opponent gains 1<A>."
 too-much-to-protect,Too Much to Protect,shadows,action,manual,FULL,0,0,,0,15,0,play;condition,a40c1697fe,Play: Steal all but 6 of your opponent’s <A>.
+transposition-sandals,Transposition Sandals,logos,upgrade,dsl-override,FULL,0,0,,0,1,0,target;gainAbility,d93f9a11f7,"This creature gains, “Action: Swap this creature with another friendly creature in the battleline. You may use that other creature this turn.”"
 tremor,Tremor,brobnar,action,dsl-override,FULL,0,0,,0,3,0,play;target,a7919c47ad,Play: Stun a creature and each of its neighbors.
 troll,Troll,brobnar,creature,dsl,FULL,0,0,,0,3,0,reap,f9f48739f7,Reap: Troll heals 3 damage.
 truebaru,Truebaru,dis,creature,dsl,FULL,0,0,,0,1,0,persistentEffect;destroyed,164540753e,You must lose 3<A> in order to play Truebaru.   Taunt. (This creature’s neighbors cannot be attacked unless they have taunt.) Destroyed: Gain 5<A>.
@@ -352,7 +352,7 @@ veemos-lightbringer,Veemos Lightbringer,sanctum,creature,dsl,FULL,0,0,,0,2,0,pla
 veylan-analyst,Veylan Analyst,logos,creature,dsl-override,FULL,0,0,,0,3,0,reaction,bee47c9d59,"Each time you use an artifact, gain 1<A>."
 vezyma-thinkdrone,Vezyma Thinkdrone,mars,creature,dsl-override,FULL,0,0,,0,2,0,reap;target;optional,f1a465ae59,Reap: You may archive a friendly creature or artifact from play.
 vigor,Vigor,untamed,action,dsl-override,FULL,0,0,,0,7,0,play;target;condition,716e1818ed,"Play: Heal up to 3 damage from a creature. If you healed 3 damage, gain 1<A>."
-virtuous-works,Virtuous Works,sanctum,action,none,VANILLA,0,0,,0,0,0,,,(Vanilla)
+virtuous-works,Virtuous Works,sanctum,action,dsl-override,VANILLA,0,0,,0,0,0,,,(Vanilla)
 wardrummer,Wardrummer,brobnar,creature,dsl,FULL,0,0,,0,5,0,play;target,f4f7d79a2e,Play: Return each other friendly Brobnar creature to your hand.
 warsong,Warsong,brobnar,action,dsl-override,FULL,0,0,,0,1,0,play;target,4ddd021d53,"Play: For the remainder of the turn, gain 1<A> each time a friendly creature fights."
 way-of-the-bear,Way of the Bear,untamed,upgrade,dsl-override,FULL,0,0,,0,4,0,,6580fe6bb9,"This creature gains assault 2. (Before this creature attacks, deal 2<D> to the attacked enemy.)"
@@ -361,8 +361,8 @@ whispering-reliquary,Whispering Reliquary,sanctum,artifact,dsl-override,FULL,0,0
 wild-wormhole,Wild Wormhole,logos,action,dsl,FULL,0,0,,0,11,0,play;target,e855140e77,Play: Play the top card of your deck.
 witch-of-the-eye,Witch of the Eye,untamed,creature,dsl,FULL,0,0,,0,3,0,reap;target,a4bb170b57,Reap: Return a card from your discard pile to your hand.
 witch-of-the-wilds,Witch of the Wilds,untamed,creature,dsl-override,FULL,1,0,,0,1,0,persistentEffect;condition,081535f966,"During each turn in which Untamed is not your active house, you may play one Untamed card."
-word-of-returning,Word of Returning,untamed,action,dsl,PARTIAL,0,0,for-each;play-trigger,52,0,0.0,play;target;condition,12d21d3f32,Play: Deal 1<D> to each enemy creature for each <A> on it. Return all <A> from those creatures to your pool.
-world-tree,World Tree,untamed,artifact,dsl,PARTIAL,0,1,discard;omni-action,26,0,0.0,action;target,32071a4e2d,Action: Return a creature from your discard pile to the top of your deck.
+word-of-returning,Word of Returning,untamed,action,dsl,PARTIAL,0,0,for-each;play-trigger,38,0,0.0,play;target;condition,12d21d3f32,Play: Deal 1<D> to each enemy creature for each <A> on it. Return all <A> from those creatures to your pool.
+world-tree,World Tree,untamed,artifact,dsl-override,FULL,0,0,,0,0,0,action;target,32071a4e2d,Action: Return a creature from your discard pile to the top of your deck.
 yo-mama-mastery,Yo Mama Mastery,brobnar,upgrade,dsl-override,FULL,0,0,,0,0,0,play;target,0597348d83,This creature gains taunt. Play: Fully heal this creature.
 yxili-marauder,Yxili Marauder,mars,creature,dsl-override,FULL,0,0,,0,7,0,persistentEffect;play,a7fd4ff369,Yxili Marauder gets +1 power for each <A> on it. Play: Capture 1<A> for each friendly ready Mars creature.
 yxilo-bolter,Yxilo Bolter,mars,creature,dsl-override,FULL,0,0,,0,3,0,fight;target;condition,a9590daf3c,"Fight/Reap: Deal 2<D> to a creature. If this damage destroys that creature, purge it."

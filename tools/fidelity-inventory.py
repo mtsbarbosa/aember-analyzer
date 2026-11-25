@@ -26,6 +26,7 @@ import csv
 import hashlib
 import json
 import os
+import pathlib
 import re
 import sys
 import urllib.request
@@ -157,23 +158,38 @@ def parse_dsl_levels(path):
     return out
 
 
-def parse_manual(core_cards_kt, config_kt):
+def parse_manual(core_cards_kt, config_kt, cards_dir=None):
     """card id -> (level, notes) for manual CardScript objects registered in CardLibraryConfig."""
     objs = {}
-    src = open(core_cards_kt).read()
-    for name, body in re.findall(r"object (\w+) : CardScript \{(.*?)(?=\nobject |\nval |\Z)", src, re.S):
-        m = re.search(r"level = FidelityLevel\.(\w+)(?:,\s*notes = \"([^\"]*)\")?", body)
-        objs[name] = (m.group(1), m.group(2) or "") if m else ("UNKNOWN", "")
+    files = [core_cards_kt]
+    if cards_dir:
+        files += sorted(str(f) for f in pathlib.Path(cards_dir).glob("*.kt")
+                        if pathlib.Path(f).name != "CoreSetDslCards.kt" and
+                        not pathlib.Path(f).name.startswith("DslOverrides"))
+    for path in files:
+        src = open(path).read()
+        for name, body in re.findall(r"object (\w+) : CardScript \{(.*?)(?=\nobject |\nval |\Z)", src, re.S):
+            m = re.search(r"level = FidelityLevel\.(\w+)(?:,\s*notes = \"([^\"]*)\")?", body)
+            objs[name] = (m.group(1), m.group(2) or "") if m else ("UNKNOWN", "")
     return {cid: objs.get(obj, ("UNKNOWN", "")) for cid, obj in re.findall(r'library\.register\("([^"]+)", (\w+)\)', open(config_kt).read())}
 
 
-def parse_override_ids(core_cards_kt):
-    src = open(core_cards_kt).read()
+def parse_override_ids(core_cards_kt, cards_dir=None):
+    """card id -> (level, notes) for the hand-written DSL override lists.
+
+    CoreCards.kt aggregates the per-mechanic DslOverrides*.kt files, so every
+    file carrying `card("id") { ... fidelity(...) }` blocks is scanned.
+    """
+    files = [core_cards_kt]
+    if cards_dir:
+        files += sorted(str(f) for f in pathlib.Path(cards_dir).glob("DslOverrides*.kt"))
     out = {}
-    for chunk in re.split(r'\n\s*card\("', src)[1:]:
-        cid = chunk.split('"', 1)[0]
-        m = re.search(r'fidelity\(FidelityLevel\.(\w+),\s*"([^"]*)"', chunk)
-        out[cid] = (m.group(1), m.group(2)) if m else ("UNKNOWN", "")
+    for path in files:
+        src = open(path).read()
+        for chunk in re.split(r'\n\s*card\("', src)[1:]:
+            cid = chunk.split('"', 1)[0]
+            m = re.search(r'fidelity\(FidelityLevel\.(\w+),\s*"([^"]*)"', chunk)
+            out[cid] = (m.group(1), m.group(2)) if m else ("UNKNOWN", "")
     return out
 
 
@@ -299,8 +315,8 @@ def main():
     cards = load_cards(args.pack)
     dsl = parse_dsl_levels(os.path.join(CARDS_DIR, "CoreSetDslCards.kt"))
     core_kt = os.path.join(CARDS_DIR, "CoreCards.kt")
-    overrides = parse_override_ids(core_kt)
-    manual = parse_manual(core_kt, CONFIG)
+    overrides = parse_override_ids(core_kt, os.path.dirname(core_kt))
+    manual = parse_manual(core_kt, CONFIG, os.path.dirname(core_kt))
     kt = keyteki_features(args.keyteki_cards)
     verified = verified_ids()
     impact, n_decks = pool_impact(args.server, args.pool, args.decks_dir)

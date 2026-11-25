@@ -13,18 +13,20 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("barehanded") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("blood-money") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("brothers-in-battle") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("burn-the-stockpile") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -39,9 +41,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("follow-the-leader") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("lava-ball") {
             play(DealDamage(4, AnyCreature(), splash = 2))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -89,9 +92,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("autocannon") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("banner-of-battle") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -128,9 +132,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("bilgum-avalanche") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("valdr") {
             play(NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
@@ -195,17 +200,20 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("pingle-who-annoys") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("rock-hurling-giant") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("rogue-ogre") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("smaaash") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -306,9 +314,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("poltergeist") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("red-hot-armor") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -344,9 +353,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("sacrificial-altar") {
-            action("Purge a friendly Human creature from play", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("screaming-cave") {
             action("Shuffle your hand and discard pile into your deck", ShuffleHandAndDiscardIntoDeck(SelfPlayer))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -379,13 +389,15 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("gabos-longarms") {
-            beforeFight(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("overlord-greking") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("guardian-demon") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -417,9 +429,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("shaffles") {
-            play(NoEffect)
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("shooler") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -431,9 +444,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("stealer-of-souls") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("succubus") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -477,9 +491,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("dimension-door") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("effervescent-principle") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -491,9 +506,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("help-from-future-self") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("interdimensional-graft") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -577,9 +593,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("mobius-scroll") {
-            action("Archive Mobius Scroll and up to 2 cards from your hand", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("pocket-universe") {
             action("Move 1A from your pool to Pocket Universe", NoEffect)
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
@@ -660,14 +677,15 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("psychic-bug") {
-            play(NoEffect)
-            reap(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("replicator") {
-            reap(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("research-smoko") {
             destroyed(ArchiveTopDeck(SelfPlayer))
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
@@ -705,9 +723,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("transposition-sandals") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("ammonia-clouds") {
             play(DealDamage(3, AnyCreature(Scope.ALL)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -751,9 +770,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("mass-abduction") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("mating-season") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -827,9 +847,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("incubation-chamber") {
-            omni(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("mothergun") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -840,13 +861,15 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
         },
     card("swap-widget") {
-            action("Return a ready friendly Mars creature to your hand", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("blypyp") {
-            reap(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("chuff-ape") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1098,9 +1121,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("hayyel-the-merchant") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("horseman-of-death") {
             play(ReturnFromDiscardToHand(3, SelfPlayer))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -1112,19 +1136,20 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("horseman-of-pestilence") {
-            play(NoEffect)
-            reap(NoEffect)
-            fight(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("horseman-of-war") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("jehu-the-bureaucrat") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("lady-maxena") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1136,9 +1161,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("numquid-the-fair") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("protectrix") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1149,10 +1175,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("sanctum-guardian") {
-            reap(NoEffect)
-            fight(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("sequis") {
             reap(CaptureAmber(1, FriendlyCreature()))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -1284,9 +1310,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("evasion-sigil") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("longfused-mines") {
             omni(DealDamage(3, EnemyCreature(Scope.ALL)))
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
@@ -1342,9 +1369,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("deipno-spymaster") {
-            omni(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("faygin") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1472,9 +1500,10 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("mimicry") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("nature-s-call") {
             play(ReturnToHand(AnyCreature(Scope.ALL)))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
@@ -1497,9 +1526,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("scout") {
-            play(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("stampede") {
             play(StealAmber(2))
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
@@ -1522,9 +1552,10 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.PARTIAL, "Mapped simple parts; complex interaction not implemented")
         },
     card("bear-flute") {
-            action("Fully heal an Ancient Bear", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("nepenthe-seed") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1536,22 +1567,25 @@ val coreSetCards = listOf(
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("ritual-of-the-hunt") {
-            omni(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("world-tree") {
-            action("Return a creature from your discard pile to the top of your deck", NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("ancient-bear") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
                 fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
             },
     card("bigtwig") {
-            reap(NoEffect)
-            fidelity(FidelityLevel.PARTIAL, "Effect text present but not yet implemented")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("witch-of-the-wilds") {
                 // Implemented by an override list in CoreCards.kt; not generated.
                 play(NoEffect)
@@ -1644,13 +1678,15 @@ val coreSetCards = listOf(
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")
         },
     card("teliga") {
-            play(NoEffect)
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("hunting-witch") {
-            play(NoEffect)
-            fidelity(FidelityLevel.FULL, "All effect sentences mapped")
-        },
+                // Implemented by an override list in CoreCards.kt; not generated.
+                play(NoEffect)
+                fidelity(FidelityLevel.PARTIAL, "Overridden: real implementation lives in an override list")
+            },
     card("witch-of-the-eye") {
             reap(ReturnFromDiscardToHand(1, SelfPlayer))
             fidelity(FidelityLevel.FULL, "All effect sentences mapped")

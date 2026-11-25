@@ -183,7 +183,7 @@ class Phase3BatchCTest {
     }
 
     @Test
-    fun `Gatekeeper is not playable below 7 opponent amber`() {
+    fun `Gatekeeper is playable below 7 opponent amber but captures nothing`() {
         val scenario = scenario {
             player1 {
                 house(House.SANCTUM)
@@ -195,8 +195,12 @@ class Phase3BatchCTest {
         }
         scenario.run {
             chooseHouse(House.SANCTUM)
-            assertThat(generator.generate(game).none { it is PlayCardAction && it.cardId == "gatekeeper" })
+            // keyteki gates only the capture; the creature itself can always be played.
+            assertThat(generator.generate(game).any { it is PlayCardAction && it.cardId == "gatekeeper" })
                 .isTrue()
+            play("gatekeeper")
+            assertThat(p2.amber).isEqualTo(6)
+            assertThat(p1.creatures.first { it.cardId == "gatekeeper" }.capturedAmber).isEqualTo(0)
         }
     }
 

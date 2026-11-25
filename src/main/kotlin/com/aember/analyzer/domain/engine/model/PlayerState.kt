@@ -42,11 +42,23 @@ data class PlayerState(
     /** Phase Shift: this player may play one card of a house other than this one this turn. */
     var mayPlayNonHouseThisTurn: House? = null,
     /** Sigil of Brotherhood: this player may use creatures of this house for the remainder of the turn. */
-    var mayUseHouseThisTurn: com.aember.analyzer.domain.model.House? = null,
+    var mayUseHouseThisTurn: House? = null,
     /** Combat Pheromones: specific cards this player may use for the remainder of the turn. */
     val mayUseCardIdsThisTurn: MutableSet<String> = mutableSetOf(),
     /** Interdimensional Graft: when this player next forges a key, all remaining amber goes to this player index. */
     var nextForgeGivesAmberTo: Int? = null,
+    /** Blypyp: the next creature of this house the player plays enters play ready. */
+    var nextCreatureOfHouseEntersReady: House? = null,
+    /** Dimension Door: amber the player gains from reaping is taken from the opponent instead. */
+    var reapAmberStolenFromOpponent: Boolean = false,
+    /** Follow the Leader: every friendly creature may fight for the remainder of the turn. */
+    var allMayFightThisTurn: Boolean = false,
+    /** Brothers in Battle: friendly creatures of this house may fight for the remainder of the turn. */
+    var mayFightHouseThisTurn: House? = null,
+    /** Horseman of War: every friendly creature is usable as the active house but can only fight. */
+    var allCreaturesFightOnlyThisTurn: Boolean = false,
+    /** Mass Abduction: card ids archived from the enemy board; leaving the archives returns them to their owner's hand. */
+    val abductedCardIds: MutableSet<String> = mutableSetOf(),
     /** Derived by EffectRegistry.recalculate (e.g. The Vaultkeeper): amber cannot be stolen. */
     var amberCannotBeStolen: Boolean = false,
     val cardsPlayedThisTurnByHouse: MutableMap<House, Int> = mutableMapOf()

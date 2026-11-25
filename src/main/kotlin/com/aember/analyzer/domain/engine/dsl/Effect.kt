@@ -51,21 +51,13 @@ data class CaptureAmber(
     val from: TargetPlayer = OpponentPlayer
 ) : Effect
 
-/**
- * Capture with a dynamic amount computed at resolution (Yxili Marauder: 1A per
- * friendly ready Mars creature; Gatekeeper/Drumble: all but N).
- */
 data class CaptureAmberDynamic(
     val amount: (GameState, PlayerState) -> Int,
     val target: CreatureSelector,
     val from: TargetPlayer = OpponentPlayer
 ) : Effect
 
-/**
- * Each selected creature captures [amountPerEach] amber (Pandemonium, Honorable
- * Claim, Unguarded Camp). [maxTargets] optionally limits how many creatures
- * capture (Unguarded Camp: one per excess creature).
- */
+/** [maxTargets] limits how many creatures capture (Unguarded Camp: one per excess creature). */
 data class CaptureEach(
     val amountPerEach: Int = 1,
     val target: CreatureSelector,
@@ -73,18 +65,11 @@ data class CaptureEach(
     val from: TargetPlayer = OpponentPlayer
 ) : Effect
 
-/**
- * The fight participant referenced by the dispatched event captures amber
- * (Francus: the destroyed-by-me defender triggers; Take Hostages: the attacker).
- */
+/** The fight participant referenced by the dispatched event captures (Francus, Take Hostages). */
 data class EventSubjectCaptures(val amount: Int, val subject: EventSubject = EventSubject.ATTACKER) : Effect
 
 data class LoseAmber(val amount: Int, val player: TargetPlayer) : Effect
 
-/**
- * Deals [amount] damage to each selected creature and [splash] damage to its neighbors
- * (e.g. Lava Ball deals 4 with 2 splash).
- */
 data class DealDamage(val amount: Int, val target: CreatureSelector, val splash: Int = 0) : Effect
 
 data class Destroy(val target: CreatureSelector) : Effect
@@ -110,6 +95,8 @@ data class GainChains(val amount: Int, val player: TargetPlayer) : Effect
 data class LoseChains(val amount: Int, val player: TargetPlayer) : Effect
 
 data class Stun(val target: CreatureSelector) : Effect
+
+data class StunAndExhaust(val target: CreatureSelector) : Effect
 
 data class Unstun(val target: CreatureSelector) : Effect
 
@@ -139,25 +126,19 @@ data class ArchiveFromDiscard(val amount: Int, val player: TargetPlayer) : Effec
 
 data class ArchiveFromHand(val amount: Int, val player: TargetPlayer) : Effect
 
-/**
- * Archives a creature from hand. When no creature is in hand nothing is archived
- * (e.g., Zyzzix the Many's reap/fight ability).
- */
+/** Nothing is archived when no creature is in hand (Zyzzix the Many). */
 data class ArchiveCreatureFromHand(val amount: Int, val player: TargetPlayer) : Effect
 
 data class LoseAllAmber(val player: TargetPlayer) : Effect
 
 data class GainAmberOpponent(val amount: Int) : Effect
 
-/** The opponent of the player resolving this effect loses amber (min 0). */
 data class LoseAmberOpponent(val amount: Int) : Effect
 
-/** Next-turn denials (Skippy Timehog, Scrambler Storm, Foggify). */
 object DenyCardUseNextTurn : Effect
 
 object DenyActionCardsNextTurn : Effect
 
-/** The opponent cannot play creatures on their next turn (Lifeward). */
 object DenyCreaturePlaysNextTurn : Effect
 
 object DenyCreatureFightsNextTurn : Effect
@@ -165,7 +146,6 @@ object DenyCreatureFightsNextTurn : Effect
 /** Each player with [threshold] or more amber is reduced to [cap] (Doorstep to Heaven). */
 data class ReduceAmberTo(val threshold: Int, val cap: Int) : Effect
 
-/** Shuffles the card resolving this effect from play into its owner's deck. */
 data object ShuffleSelfIntoDeck : Effect
 
 /**
@@ -189,20 +169,12 @@ data class EventSideLosesAmber(
     val subject: EventSubject = EventSubject.EVENT_CREATURE
 ) : Effect
 
-/**
- * Amber moves from [from] (relative to the resolving player) to that player's
- * opponent (e.g. Magda the Rat's "Leaves Play: your opponent steals 2A").
- */
+/** Amber moves from [from] to that player's opponent (Magda the Rat's "Leaves Play"). */
 data class StealFrom(val amount: Int, val from: TargetPlayer) : Effect
 
-/**
- * Activates a turn-scoped event subscription for the source card (e.g. Looter
- * Goblin "for the remainder of the turn"); consumed by reaction matchers via
- * `PlayerState.eventReactionsThisTurn`.
- */
+/** Activates the source card's turn-scoped reaction subscriptions (Looter Goblin). */
 data class ActivateTurnReaction(val tag: String) : Effect
 
-/** Readies the host creature of an upgrade and optionally changes its house until end of turn. */
 data class ReadyHost(val houseUntilEndOfTurn: House? = null) : Effect
 
 data class Exhaust(val target: CreatureSelector, val count: Int? = null) : Effect
@@ -228,7 +200,6 @@ data class ReadyCreaturesOfHousePerCardInHand(val house: House, val player: Targ
 
 data class AddPowerCounters(val amount: Int, val target: CreatureSelector = SelfCreature) : Effect
 
-/** Power counters with a dynamic amount (Martian Hounds: 2 per damaged creature). */
 data class AddPowerCountersDynamic(
     val amount: (GameState, PlayerState) -> Int,
     val target: CreatureSelector
@@ -236,177 +207,191 @@ data class AddPowerCountersDynamic(
 
 data object SacrificeSelf : Effect
 
-/** Sacrifices a chosen friendly creature in play (Pawn Sacrifice); sets SacrificedTarget. */
+/** Sets `SacrificedTarget` so follow-up effects can gate on the sacrifice. */
 data class Sacrifice(val target: CreatureSelector) : Effect
 
-/**
- * Resolves [effect] repeatedly while [condition] holds, up to [maxRepeats]
- * (Bait and Switch: steal 1 amber while the opponent has more).
- */
+/** Resolves [effect] repeatedly while [condition] holds, up to [maxRepeats] (Bait and Switch). */
 data class RepeatWhile(val condition: Condition, val effect: Effect, val maxRepeats: Int = 20) : Effect
 
-/** Each player loses half their amber, rounding down the loss (Effervescent Principle). */
+/** Both players lose half their amber, rounding the loss down (Effervescent Principle). */
 data object LoseHalfAmber : Effect
 
-/**
- * Shuffles up to [friendlyCount] friendly and [enemyCount] enemy creatures into
- * their owners' decks (Lost in the Woods).
- */
 data class ShuffleCreaturesIntoDeck(val friendlyCount: Int = 2, val enemyCount: Int = 2) : Effect
 
-/** Moves the resolving card from play to the top of its owner's deck (Dextre). */
 data object PutSelfOnTopOfDeck : Effect
 
-/** Chosen creatures cannot be dealt damage for the remainder of the turn. */
+/** The immunity lasts for the remainder of the turn (Protectrix, Shield of Justice). */
 data class GrantDamageImmunity(val target: CreatureSelector) : Effect
 
-/** The next [count] creatures/artifacts the resolving player plays enter play ready (Soft Landing). */
 data class NextPlaysEnterReady(val count: Int) : Effect
 
-/**
- * Heals [amount] damage from every creature in play (both sides) and gains
- * [gainPerHealed] amber per creature actually healed (Cleansing Wave).
- */
+/** Heals every creature in play and gains [gainPerHealed] per creature actually healed (Cleansing Wave). */
 data class HealEach(val amount: Int = 1, val gainPerHealed: Int = 0) : Effect
 
-/**
- * Greedily picks the house with the most creatures in the resolving player's
- * discard pile and returns all of them to hand (Arise!).
- */
+/** Greedy: the house with the most creatures in the discard pile (Arise!). */
 data class ReturnChosenHouseCreaturesFromDiscard(val gainChains: Int = 0) : Effect
 
-/**
- * Returns an artifact or flank creature (either side) to its owner's hand
- * (Snudge); greedy pick prefers the opponent's artifact, then their strongest
- * flank creature.
- */
+/** Greedy: the opponent's artifact first, then their strongest flank creature (Snudge). */
 data object ReturnArtifactOrFlankCreatureToHand : Effect
 
-/**
- * Uses an opponent's ready artifact that has an Action ability, as if it were
- * the resolving player's (Nexus reap, Remote Access play).
- */
+/** Uses the opponent's first ready artifact with an Action ability as if it were ours (Nexus, Remote Access). */
 data object UseOpponentArtifact : Effect
 
-/**
- * Reveals all [house] cards from the resolving player's hand (greedy: all of
- * them) and deals their count as damage (Mothergun).
- */
+/** Greedy reveal: all [house] cards in hand, dealing their count as damage (Mothergun). */
 data class DealDamagePerHouseCardInHand(val house: House, val target: CreatureSelector) : Effect
 
-/**
- * Purges a creature from either player's discard pile (Eater of the Dead);
- * sets `lastPurgedFromDiscard` so [PurgedTarget] can gate follow-up effects.
- */
+/** Sets `lastPurgedFromDiscard` so [PurgedTarget] can gate follow-up effects (Eater of the Dead). */
 data object PurgeCreatureFromDiscard : Effect
 
 /**
- * The resolving player may play one card of a house other than [notHouse] this
- * turn (Phase Shift: "You may play one non-Logos card this turn"). Consumed by
- * `ActionGenerator`; the allowance is spent by the first such play.
+ * One off-house non-[notHouse] play this turn (Phase Shift); consumed by
+ * `ActionGenerator`, spent by the first such play.
  */
 data class MayPlayNonHouseThisTurn(val notHouse: House) : Effect
 
 // ---- Phase 3 batch (d) ----
 
-/** Destroys an artifact in play (Gorm of Omm omni: sacrifice + destroy an artifact). */
 data class DestroyArtifact(val target: TargetSelector = AnyArtifact) : Effect
 
-/** Returns an artifact in play to its owner's hand (Whispering Reliquary, Grasping Vines). */
 data class ReturnArtifactToHand(val maxCount: Int = 1) : Effect
 
-/** Archives a friendly creature or artifact from play (Vezyma Thinkdrone reap). */
 data object ArchiveFriendlyCreatureOrArtifact : Effect
 
-/**
- * Deals [amount] damage to the fight target's neighbors, reading the fight
- * target from `currentFightTargetId` (Lord Golgotha "Before Fight").
- */
+/** Reads the fight target from `currentFightTargetId` (Lord Golgotha). */
 data class DealDamageToFightsNeighbors(val amount: Int) : Effect
 
-/** Stuns the fight target and each of its neighbors (Zorg "Before Fight"). */
+/** Before Fight (Zorg). */
 data object StunFightTargetAndNeighbors : Effect
 
-/** Deals damage ignoring armor (Qyxxlyx Plague Master). */
 data class DealDamageIgnoringArmor(val amount: Int, val target: CreatureSelector) : Effect
 
-/**
- * Deals 3/2/1 damage along a battleline starting at a flank creature
- * (Positron Bolt).
- */
+/** 3/2/1 damage along a battleline starting at a flank creature (Positron Bolt). */
 data object DealDamageFlankCascade : Effect
 
-/** Heals up to [upTo] damage from a creature, then deals that amount to another creature (Guardian Demon). */
 data class HealThenDamageOther(val upTo: Int) : Effect
 
-/** Deals [amountPer] damage per creature of [house] in play (Red Planet Ray Gun's granted Reap). */
 data class DealDamagePerHouseInPlay(val house: House, val amountPer: Int, val target: CreatureSelector) : Effect
 
-/** Divides [amountPerCreature] damage per friendly creature among creatures (Cooperative Hunting). */
 data class DealDividedDamage(val amountPerFriendlyCreature: Int, val target: CreatureSelector) : Effect
 
-/**
- * Removes each enemy creature's armor until end of turn and deals 1 damage per
- * point of armor lost (Red Hot Armor).
- */
 data object StripEnemyArmorAndDamagePerLost : Effect
 
-/** Places [amount] amber from the common supply on an enemy creature (Blood Money). */
+/** The amber comes from the common supply, not from either player's pool (Blood Money). */
 data class PlaceAmberOnEnemyCreature(val amount: Int) : Effect
 
-/** Moves 1 amber from one of the resolving player's own cards to their pool (Selwyn the Fence). */
 data object MoveAmberFromOwnCardToPool : Effect
 
-/** Loses all of the resolving player's amber; the opponent then loses triple that amount (Shatter Storm). */
 data object LoseAllAmberAndOpponentLosesTriple : Effect
 
-/**
- * Shuffles each creature of [house] into its owner's deck; each player gains
- * [amberPerEach] per own creature shuffled (Mating Season).
- */
 data class ShuffleHouseCreaturesIntoDeck(val house: House, val amberPerEach: Int = 0) : Effect
 
-/**
- * Chooses the house with the most enemy creatures in hand and discards each
- * enemy creature of that house (Deep Probe).
- */
+/** Greedy house: the one with the most enemy creatures in hand (Deep Probe). */
 data object DiscardEnemyHandCreaturesOfChosenHouse : Effect
 
-/**
- * Chooses a house (greedy: most copies in own deck); if the top card of the
- * deck is of that house, plays it for real (Chaos Portal).
- */
+/** Greedy house: the one with the most copies in own deck (Chaos Portal). */
 data object PlayTopCardIfChosenHouse : Effect
 
-/** Discards cards from the top of the deck until a [house] creature is discarded, then takes it to hand (Sound the Horns). */
 data class ScanDeckForHouseCreatureToHand(val house: House) : Effect
 
-/** Readies an own exhausted Mars creature, else stuns an enemy non-Mars creature (Squawker). */
+/** Greedy: ready an own exhausted Mars creature, else stun an enemy creature (Squawker). */
 data object ReadyMarsOrStunNonMars : Effect
 
-/** Places a card from the resolving player's hand facedown beneath the source card (Masterplan). */
 data object StackHandCardBeneath : Effect
 
-/** Plays the card stacked beneath the source card, then sacrifices the source (Masterplan omni). */
 data object PlayBeneathCardAndSacrifice : Effect
 
-/** After a key is forged by the resolving player, destroys every creature and artifact (Strange Gizmo). */
 data object DestroyAllCreaturesAndArtifacts : Effect
 
-/** Stuns each Mars creature and each Robot-trait creature, then destroys each artifact (EMP Blast). */
 data object EmpBlastBurst : Effect
 
-/** Returns a friendly Urchin from play or from the discard pile to hand (Faygin reap). */
 data object ReturnUrchinToHand : Effect
 
-/** For the remainder of the turn, the resolving player may use creatures of [house] (Sigil of Brotherhood). */
 data class MayUseHouseThisTurn(val house: House) : Effect
 
-/** Marks up to [maxCount] own Mars cards usable for the remainder of the turn (Combat Pheromones). */
 data object AllowUseUpToTwoMarsCards : Effect
 
-/** When the opponent next forges a key, they must give you their remaining amber (Interdimensional Graft). */
 data object OpponentNextForgeGivesAmber : Effect
+
+// ---- Phase 3 batch (e) ----
+
+data object PlayCopyOfOpponentDiscardAction : Effect
+
+data class SearchForCreatureToHand(
+    val cardName: String,
+    val shuffleDiscardIntoDeck: Boolean = false,
+    val maxCards: Int = Int.MAX_VALUE
+) : Effect
+
+/** Fully heals every [cardName] in play; if none, searches deck and discard for them (Bear Flute). */
+data class HealOrSearchAncientCreatures(val cardName: String) : Effect
+
+data class NextCreatureOfHouseEntersReady(val house: House) : Effect
+
+data class DealDamageToEventCreature(val amount: Int) : Effect
+
+data class CreatureWithoutTrait(val trait: String, val scope: Scope = Scope.ALL) : CreatureSelector
+
+/** The triggered creature does not exhaust (Replicator). */
+data object TriggerOtherCreatureReap : Effect
+
+data object RevealOpponentHand : Effect
+
+data class PurgeEnemyHandCardOfHouse(val house: House) : Effect
+
+data class ArchiveHouseCreatureFromHand(val house: House) : Effect
+
+data object ArchiveSelf : Effect
+
+/** Abducted cards return to their owner's hand when leaving the archives (Mass Abduction). */
+data class AbductEnemyDamagedCreatures(val amount: Int) : Effect
+
+/** [gainAmber] > 0 purges the destroyed creature instead of claiming it (Stealer of Souls). */
+data class ClaimDestroyedFightTarget(val gainAmber: Int = 0) : Effect
+
+data object SwapWithOtherFriendlyCreature : Effect
+
+/** Upgrade action: swaps the host with another friendly creature (Transposition Sandals). */
+data object SwapHostAndMayUseOther : Effect
+
+data class RotateHouseCreatures(val house: House) : Effect
+
+data object UseArtifactAndDestroyIt : Effect
+
+data object ReturnDiscardCreatureToTopOfDeck : Effect
+
+/** Exhausted creatures included (Follow the Leader). */
+data object AllCreaturesMayFightThisTurn : Effect
+
+/** Greedy house: the one with the most friendly creatures (Brothers in Battle). */
+data class ChosenHouseMayFightThisTurn(val house: House? = null) : Effect
+
+/** Usable as the active house, but only fight uses are offered (Horseman of War). */
+data object AllCreaturesFightOnlyThisTurn : Effect
+
+data object ReapStealsInstead : Effect
+
+data class AllowUseFriendlyCreaturesThisTurn(val count: Int) : Effect
+
+data class GrantSkirmishAndFight(val count: Int) : Effect
+
+data object LoseElusiveThisTurn : Effect
+
+/** Excludes the fight target and the source card (Gabos Longarms). */
+data object ChangeFightDamageTarget : Effect
+
+/** Discards the top card of the attacker's controller's deck; cancels the fight when it matches the active house (Evasion Sigil). */
+data object EvasionSigilDiscardAndCancel : Effect
+
+data object PlayCreatureFromDiscard : Effect
+
+data object HealSelfFully : Effect
+
+data object PurgeFriendlyHumanAndPlayFromDiscard : Effect
+
+data object ReturnAllArtifactsToTopOfDeck : Effect
+
+/** Removes the creature immediately instead of waiting for the state-check fixpoint (Numquid's repeat loop). */
+data object DestroyCreatureNow : Effect
 
 data class Sequence(val effects: List<Effect>) : Effect
 

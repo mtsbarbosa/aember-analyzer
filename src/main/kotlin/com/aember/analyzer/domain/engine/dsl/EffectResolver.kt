@@ -34,6 +34,7 @@ class EffectResolver(
         OpponentHasFewerCreatures::class to { _, g, p -> g.opponent(p).creatures.size < p.creatures.size },
         SelfHasFewerCreatures::class to { _, g, p -> p.creatures.size < g.opponent(p).creatures.size },
         SelfHasMoreCreatures::class to { _, g, p -> p.creatures.size > g.opponent(p).creatures.size },
+        OpponentHasMoreCreatures::class to { _, g, p -> g.opponent(p).creatures.size > p.creatures.size },
         TargetIsDamaged::class to { _, _, _ -> false },
         Always::class to { _, _, _ -> true },
         OpponentAmberAtLeast::class to { c, g, p -> g.opponent(p).amber >= (c as OpponentAmberAtLeast).amount },
@@ -115,7 +116,6 @@ class EffectResolver(
     }
 
     fun evaluateCondition(game: GameState, player: PlayerState, condition: Condition): Boolean {
-        val opponent = game.opponent()
         val handler = conditionHandlers[condition::class] ?: return false
         return handler(condition, game, player)
     }

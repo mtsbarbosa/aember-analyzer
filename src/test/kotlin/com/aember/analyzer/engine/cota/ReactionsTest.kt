@@ -343,7 +343,7 @@ class ReactionsTest {
         game.activePlayer().creatures.add(c)
         c.house = House.MARS
 
-        TurnPhases.endPhase(game)
+        TurnPhases.endPhase(game, library)
 
         assertThat(c.house).isEqualTo(c.baseHouse)
     }

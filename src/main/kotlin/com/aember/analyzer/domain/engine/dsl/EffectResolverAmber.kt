@@ -12,7 +12,11 @@ import kotlin.math.min
 internal fun EffectResolver.registerAmberEffects() {
     register<GainAmber> { game, player, _, effect -> gainAmber(game, player, effect.amount) }
     register<GainAmberOpponent> { game, _, _, effect -> gainAmberOpponent(game, effect.amount) }
-    register<LoseAmber> { game, player, _, effect -> loseAmber(game, targetPlayer(game, player, effect.player), effect.amount) }
+    register<LoseAmber> { game, player, _, effect -> loseAmber(
+        game,
+        targetPlayer(game, player, effect.player),
+        effect.amount
+    ) }
     register<LoseAmberOpponent> { game, player, _, effect ->
         loseAmber(game, game.opponent(player), effect.amount)
     }
@@ -24,7 +28,7 @@ internal fun EffectResolver.registerAmberEffects() {
         captureAmber(game, player, sourceCard, effect.amount(game, player), effect.target, effect.from)
     }
     register<CaptureEach> { game, player, sourceCard, effect -> captureEach(game, player, sourceCard, effect) }
-    register<EventSubjectCaptures> { game, player, _, effect -> eventSubjectCaptures(game, player, effect) }
+    register<EventSubjectCaptures> { game, _, _, effect -> eventSubjectCaptures(game, effect) }
     register<EventSideGainsAmber> { game, _, _, effect -> eventSideGainsAmber(game, effect) }
     register<EventSideLosesAmber> { game, _, _, effect -> eventSideLosesAmber(game, effect) }
     register<ReduceAmberTo> { game, _, _, effect -> reduceAmberTo(game, effect) }
@@ -62,6 +66,9 @@ internal fun EffectResolver.registerAmberEffects() {
         if (lost > 0) loseAmber(game, player, lost)
         loseAmber(game, game.opponent(player), lost * 3)
     }
+    register<ReapStealsInstead> { _, player, _, _ ->
+        player.reapAmberStolenFromOpponent = true
+    }
 }
 
 internal fun gainAmber(game: GameState, player: PlayerState, amount: Int) {
@@ -75,7 +82,7 @@ internal fun gainAmberOpponent(game: GameState, amount: Int) {
 
 internal fun EffectResolver.stealAmber(game: GameState, player: PlayerState, amount: Int) {
     val opponent = game.opponent()
-    if (library != null && EffectRegistry.cannotBeStolenFrom(library, game, opponent)) {
+    if (library != null && EffectRegistry.cannotBeStolenFrom(library, opponent)) {
         game.lastStealAmount = 0
         game.log("${opponent.name}'s amber cannot be stolen (${opponent.name}: ${opponent.amber} -> ${opponent.amber})")
         return
@@ -141,7 +148,7 @@ internal fun EffectResolver.captureEach(game: GameState, player: PlayerState, so
     }
 }
 
-internal fun EffectResolver.eventSubjectCaptures(game: GameState, player: PlayerState, effect: EventSubjectCaptures) {
+internal fun EffectResolver.eventSubjectCaptures(game: GameState, effect: EventSubjectCaptures) {
     val event = game.currentEvent
     val creature = when (event) {
         is FightResolved -> when (effect.subject) {
@@ -160,7 +167,7 @@ internal fun EffectResolver.eventSubjectCaptures(game: GameState, player: Player
     game.log("${creature.cardId} captures $captured amber from ${poolOwner.name} (fight reaction)")
 }
 
-internal fun EffectResolver.loseAmber(game: GameState, player: PlayerState, amount: Int) {
+internal fun loseAmber(game: GameState, player: PlayerState, amount: Int) {
     val before = player.amber
     player.amber = (player.amber - amount).coerceAtLeast(0)
     game.log("${player.name} loses $amount amber (${player.name}: $before -> ${player.amber})")
@@ -202,7 +209,7 @@ internal fun eventSideGainsAmber(game: GameState, effect: EventSideGainsAmber) {
     game.gainAmber(beneficiary, effect.amount, "${beneficiary.name} gains ${effect.amount} amber from a reaction")
 }
 
-internal fun EffectResolver.eventSideLosesAmber(game: GameState, effect: EventSideLosesAmber) {
+internal fun eventSideLosesAmber(game: GameState, effect: EventSideLosesAmber) {
     val payer = eventSidePlayer(game, effect.side, effect.subject) ?: return
     loseAmber(game, payer, effect.amount)
 }
@@ -210,7 +217,7 @@ internal fun EffectResolver.eventSideLosesAmber(game: GameState, effect: EventSi
 internal fun EffectResolver.stealFrom(game: GameState, player: PlayerState, effect: StealFrom) {
     val victim = targetPlayer(game, player, effect.from)
     val thief = game.opponent(victim)
-    if (library != null && EffectRegistry.cannotBeStolenFrom(library, game, victim)) {
+    if (library != null && EffectRegistry.cannotBeStolenFrom(library, victim)) {
         game.lastStealAmount = 0
         game.log("${victim.name}'s amber cannot be stolen (${victim.name}: ${victim.amber} -> ${victim.amber})")
         return

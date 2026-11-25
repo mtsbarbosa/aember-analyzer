@@ -9,7 +9,16 @@ import com.aember.analyzer.domain.engine.cards.BiomatrixBackup
 import com.aember.analyzer.domain.engine.cards.ControlTheWeak
 import com.aember.analyzer.domain.engine.cards.Drumble
 import com.aember.analyzer.domain.engine.cards.EtherSpider
+import com.aember.analyzer.domain.engine.cards.ArmageddonCloak
+import com.aember.analyzer.domain.engine.cards.CollarOfSubordination
 import com.aember.analyzer.domain.engine.cards.Fogbank
+import com.aember.analyzer.domain.engine.cards.HarlandMindlock
+import com.aember.analyzer.domain.engine.cards.PhoenixHeart
+import com.aember.analyzer.domain.engine.cards.PocketUniverse
+import com.aember.analyzer.domain.engine.cards.Restringuntus
+import com.aember.analyzer.domain.engine.cards.SafePlace
+import com.aember.analyzer.domain.engine.cards.Sneklifter
+import com.aember.analyzer.domain.engine.cards.TheSting
 import com.aember.analyzer.domain.engine.cards.Valdr
 import com.aember.analyzer.domain.engine.cards.JammerPack
 import com.aember.analyzer.domain.engine.cards.keyCheatDslCardOverrides
@@ -89,6 +98,16 @@ fun buildCoreCardLibrary(catalog: Map<String, CatalogCard>, targetChooser: Targe
     library.register("too-much-to-protect", TooMuchToProtect)
     library.register("fogbank", Fogbank)
     library.register("valdr", Valdr)
+    // Phase 3 batch (e) manual scripts.
+    library.register("armageddon-cloak", ArmageddonCloak)
+    library.register("phoenix-heart", PhoenixHeart)
+    library.register("collar-of-subordination", CollarOfSubordination)
+    library.register("harland-mindlock", HarlandMindlock)
+    library.register("sneklifter", Sneklifter)
+    library.register("the-sting", TheSting(resolver))
+    library.register("pocket-universe", PocketUniverse)
+    library.register("safe-place", SafePlace)
+    library.register("restringuntus", Restringuntus)
 
     return library
 }

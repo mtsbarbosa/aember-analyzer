@@ -16,6 +16,18 @@ enum class StaticEffectKind {
     KEY_COST_MODIFIER
 }
 
+/** CardScript-level static behaviors consulted by the engine while the card is in play. */
+sealed interface StaticBehavior
+
+/** The-sting: its controller skips their forge step entirely. */
+object SkipOwnForgeStep : StaticBehavior
+
+/** The-sting: the opponent's forge amber goes to this card's controller instead of the supply. */
+object RedirectOpponentForgeAmber : StaticBehavior
+
+/** Pocket Universe / Safe Place: amber captured on this card may be spent when forging keys. */
+object SpendCapturedAmberOnKeys : StaticBehavior
+
 /**
  * Which creatures a card-targeted static effect applies to.
  */

@@ -101,6 +101,8 @@ class GreedyTargetChooser : TargetChooser {
                 .filter { it.traits.contains(selector.trait.lowercase()) }
             is CreatureOtherThanLastHealed -> (sourcePlayer.creatures + opponent.creatures)
                 .filter { it.instanceId != game.lastHealedTargetId }
+            is CreatureWithoutTrait -> (sourcePlayer.creatures + opponent.creatures)
+                .filter { !it.traits.contains(selector.trait.lowercase()) }
         }
         val sorted = when (selector) {
             is FriendlyCreature, is FriendlyCreatureWithTrait, is FriendlyCreatureWithHouse, is OtherFriendlyCreatureWithHouse -> candidates.sortedByDescending { it.power }
@@ -137,6 +139,10 @@ class GreedyTargetChooser : TargetChooser {
                 val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
                 enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
             }
+            is CreatureWithoutTrait -> {
+                val (enemies, friendlies) = candidates.partition { it.controllerIndex != source.controllerIndex }
+                enemies.sortedByDescending { it.power } + friendlies.sortedByDescending { it.power }
+            }
         }
         val scope = when (selector) {
             is FriendlyCreature -> selector.scope
@@ -161,6 +167,7 @@ class GreedyTargetChooser : TargetChooser {
             is FlankCreature -> Scope.ONE
             is DamagedCreature -> Scope.ONE
             is AnyCreatureWithTrait -> selector.scope
+            is CreatureWithoutTrait -> selector.scope
             is CreatureOtherThanLastHealed -> Scope.ONE
         }
         return if (scope == Scope.ONE) sorted.take(1) else sorted

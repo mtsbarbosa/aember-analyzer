@@ -10,6 +10,9 @@ import com.aember.analyzer.domain.engine.events.CreatureDestroyed
 import com.aember.analyzer.domain.engine.events.CreatureEnteredPlay
 import com.aember.analyzer.domain.engine.events.CreatureReaped
 import com.aember.analyzer.domain.engine.events.ArtifactUsed
+import com.aember.analyzer.domain.engine.events.CardDiscarded
+import com.aember.analyzer.domain.engine.events.FightDeclared
+import com.aember.analyzer.domain.engine.events.HouseChosen
 import com.aember.analyzer.domain.engine.events.EventBus
 import com.aember.analyzer.domain.engine.events.FightResolved
 import com.aember.analyzer.domain.engine.effects.UseRestriction
@@ -32,6 +35,18 @@ class ActionExecutor(
         playCard(game, PlayCardAction(cardId, targetCreatureId = targetCreatureId))
     }
 
+    /** Scout: fight through the real fight resolution (keywords, triggers, events). */
+    override fun fightWith(
+        game: GameState,
+        player: PlayerState,
+        attackerInstanceId: String,
+        targetInstanceId: String
+    ): Boolean {
+        val target = game.opponent(player).creatures.find { it.instanceId == targetInstanceId } ?: return false
+        execute(game, UseCreatureAction(attackerInstanceId, FightUse(target.instanceId)))
+        return true
+    }
+
 
     fun execute(game: GameState, action: Action) {
         when (action) {
@@ -51,6 +66,7 @@ class ActionExecutor(
         player.deniedHouseNextTurn = null
         game.log("${player.name} chooses $house")
         player.statistics.housesChosen[house.name] = (player.statistics.housesChosen[house.name] ?: 0) + 1
+        EventBus.emit(library, game, HouseChosen(player.index, house))
     }
 
     private fun playCard(game: GameState, action: PlayCardAction) {
@@ -85,6 +101,12 @@ class ActionExecutor(
             }
         val selfEntersReady = catalog.type == CardType.CREATURE && library.scriptFor(cardId).cardEntersReady()
         var entersReady = selfEntersReady || globalEntersReady
+        // Blypyp: the next creature of the marked house enters play ready.
+        val houseEntersReady = catalog.type == CardType.CREATURE && player.nextCreatureOfHouseEntersReady == catalog.house
+        if (houseEntersReady) {
+            player.nextCreatureOfHouseEntersReady = null
+        }
+        entersReady = entersReady || houseEntersReady
         // Soft Landing: the next creature/artifact this player plays enters ready.
         if (!entersReady && player.nextPlaysEnterReady > 0 &&
             (catalog.type == CardType.CREATURE || catalog.type == CardType.ARTIFACT)
@@ -187,7 +209,20 @@ class ActionExecutor(
             is ReapUse -> {
                 library.scriptFor(creature.cardId).onBeforeReap(game, player, creature)
                 creature.exhausted = true
-                game.gainAmber(player, 1, "${player.name} reaps with ${creature.cardId} for 1 amber")
+                creature.usedThisTurn++
+                // Dimension Door: reap amber is taken from the opponent instead of the supply.
+                if (player.reapAmberStolenFromOpponent) {
+                    val opponent = game.opponent()
+                    val stolen = minOf(1, opponent.amber)
+                    opponent.amber -= stolen
+                    player.amber += stolen
+                    game.log(
+                        "${player.name} reaps with ${creature.cardId}, taking the amber from ${opponent.name} " +
+                            "(${player.name}: ${player.amber - stolen} -> ${player.amber}, ${opponent.name} -> ${opponent.amber})"
+                    )
+                } else {
+                    game.gainAmber(player, 1, "${player.name} reaps with ${creature.cardId} for 1 amber")
+                }
                 library.scriptFor(creature.cardId).onReap(game, player, creature)
                 library.scriptFor(creature.cardId).onAfterReap(game, player, creature)
                 EventBus.emit(library, game, CreatureReaped(player.index, creature.instanceId, creature.cardId))
@@ -199,6 +234,7 @@ class ActionExecutor(
                 val target = game.opponent().creatures.find { it.instanceId == action.useType.targetInstanceId }
                     ?: throw IllegalStateException("Fight target not found")
                 creature.exhausted = true
+                creature.usedThisTurn++
                 fight(game, player, creature, target)
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
                 player.statistics.fights++
@@ -206,6 +242,7 @@ class ActionExecutor(
             }
             is ActionAbilityUse -> {
                 creature.exhausted = true
+                creature.usedThisTurn++
                 game.log("${player.name} uses ${creature.cardId}'s ${action.useType.abilityId}")
                 library.scriptFor(creature.cardId).resolveActionAbility(
                     action.useType.abilityId, game, player, creature
@@ -217,6 +254,7 @@ class ActionExecutor(
             is RemoveStunUse -> {
                 creature.stun = false
                 creature.exhausted = true
+                creature.usedThisTurn++
                 game.log("${player.name} removes stun from ${creature.cardId}")
                 player.cardNamesPlayedOrUsedThisRound[creature.cardId] = (player.cardNamesPlayedOrUsedThisRound[creature.cardId] ?: 0) + 1
                 game.actionsThisPhase++
@@ -287,6 +325,10 @@ class ActionExecutor(
         player.cardNamesPlayedOrUsedThisRound[cardId] = (player.cardNamesPlayedOrUsedThisRound[cardId] ?: 0) + 1
         player.statistics.cardsDiscarded++
         game.actionsThisPhase++
+        val catalog = library.cardData(cardId)
+        if (catalog != null) {
+            EventBus.emit(library, game, CardDiscarded(player.index, cardId, catalog.house))
+        }
     }
 
     private fun trackAbilityUse(game: GameState, abilityId: String) {
@@ -308,6 +350,22 @@ class ActionExecutor(
         defender.attackedThisTurn = true
         attacker.exhausted = true
 
+        // Evasion Sigil reacts to the fight being declared and may cancel it.
+        EventBus.emit(
+            library, game,
+            FightDeclared(
+                attackerInstanceId = attacker.instanceId,
+                attackerCardId = attacker.cardId,
+                defenderInstanceId = defender.instanceId,
+                defenderCardId = defender.cardId,
+                attackerController = attacker.controllerIndex
+            )
+        )
+        if (game.cancelCurrentFight) {
+            game.log("The fight is cancelled (Evasion Sigil)")
+            game.cancelCurrentFight = false
+            return
+        }
         // Before Fight triggers resolve before Assault/Hazardous. The fight
         // target is exposed for Before Fight effects (Lord Golgotha, Zorg).
         game.currentFightTargetId = defender.instanceId
@@ -350,7 +408,17 @@ class ActionExecutor(
 
         dealDamage(game, attacker, defenderDamage)
         if (!elusive) {
-            dealDamage(game, defender, attackerDamage)
+            // Gabos Longarms: the attacker's damage may be redirected to another creature.
+            val redirect = game.fightDamageRedirectId?.let { id ->
+                game.players.asSequence().flatMap { it.creatures.asSequence() }.find { it.instanceId == id }
+            }
+            game.fightDamageRedirectId = null
+            if (redirect != null) {
+                dealDamage(game, redirect, attackerDamage)
+                game.log("$attackerDamage damage goes to ${redirect.cardId} instead of ${defender.cardId}")
+            } else {
+                dealDamage(game, defender, attackerDamage)
+            }
         }
 
         // Poison: any damage dealt by this creature's power during a fight destroys the
@@ -451,12 +519,22 @@ class ActionExecutor(
 
     private fun destroyCreature(game: GameState, player: PlayerState, creature: InPlayCard) {
         logCardFidelity(game, creature.cardId, "destroyed")
+        // Upgrade destruction replacements (Armageddon Cloak, Phoenix Heart).
+        for (upgrade in creature.upgrades.toList()) {
+            if (library.scriptFor(upgrade.cardId).onHostWouldBeDestroyed(game, player, upgrade, creature)) {
+                creature.upgrades.remove(upgrade)
+                player.discard.add(upgrade.cardId)
+                emitLeavePlayForUpgrade(game, player, upgrade)
+                return
+            }
+        }
         val archivesInstead = creature.upgrades.any { library.scriptFor(it.cardId).archivesAttachedCreatureOnDestroyed() }
         if (archivesInstead) {
             // The creature is archived; upgrades fall off and are discarded.
             creature.upgrades.forEach { upgrade ->
                 player.discard.add(upgrade.cardId)
                 game.log("${upgrade.cardId} goes to ${player.name}'s discard")
+                emitLeavePlayForUpgrade(game, player, upgrade)
             }
             player.creatures.remove(creature)
             player.archives.add(creature.cardId)
@@ -467,7 +545,10 @@ class ActionExecutor(
         }
         library.scriptFor(creature.cardId).onDestroyed(game, player, creature)
         // Move upgrades to discard
-        creature.upgrades.forEach { player.discard.add(it.cardId) }
+        creature.upgrades.forEach { upgrade ->
+            player.discard.add(upgrade.cardId)
+            emitLeavePlayForUpgrade(game, player, upgrade)
+        }
         player.creatures.remove(creature)
         // If a script moved the card (e.g. Bad Penny to hand, Dextre to deck), do not also discard it.
         val alreadyMoved = player.hand.contains(creature.cardId)
@@ -488,6 +569,13 @@ class ActionExecutor(
         }
         game.log("${creature.cardId} is destroyed")
         emitLeavePlay(game, creature)
+    }
+
+    /** Upgrade left play with (or instead of) its host: let the upgrade react (Collar of Subordination). */
+    private fun emitLeavePlayForUpgrade(game: GameState, player: PlayerState, upgrade: InPlayCard) {
+        val event = CardLeftPlay(upgrade.instanceId, upgrade.cardId, upgrade.ownerIndex, upgrade.controllerIndex)
+        EventBus.deliver(library, game, player, upgrade, event)
+        EventBus.emit(library, game, event)
     }
 
     /** Destroyed/removal reactions fire after the card left play, so it cannot react to itself. */

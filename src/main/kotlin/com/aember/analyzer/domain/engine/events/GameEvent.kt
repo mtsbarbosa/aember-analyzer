@@ -10,7 +10,6 @@ import com.aember.analyzer.domain.model.House
  */
 sealed interface GameEvent
 
-/** A card was played from hand (any type). Emitted after the play resolves. */
 data class CardPlayed(
     val playerIndex: Int,
     val cardId: String,
@@ -18,7 +17,6 @@ data class CardPlayed(
     val house: House
 ) : GameEvent
 
-/** A creature entered play. Emitted at the end of the play action. */
 data class CreatureEnteredPlay(
     val playerIndex: Int,
     val instanceId: String,
@@ -26,7 +24,6 @@ data class CreatureEnteredPlay(
     val house: House
 ) : GameEvent
 
-/** A creature reaped. Emitted after the reap triggers resolve. */
 data class CreatureReaped(
     val playerIndex: Int,
     val instanceId: String,
@@ -69,7 +66,6 @@ data class CardLeftPlay(
     val controllerIndex: Int
 ) : GameEvent
 
-/** A player forged a key. */
 data class KeyForged(
     val playerIndex: Int,
     val cost: Int
@@ -81,4 +77,31 @@ data class ArtifactUsed(
     val instanceId: String,
     val cardId: String,
     val abilityId: String
+) : GameEvent
+
+data class TurnEnded(
+    val playerIndex: Int
+) : GameEvent
+
+data class HouseChosen(
+    val playerIndex: Int,
+    val house: House
+) : GameEvent
+
+data class CardDiscarded(
+    val playerIndex: Int,
+    val cardId: String,
+    val house: House
+) : GameEvent
+
+/**
+ * A fight is about to resolve (Evasion Sigil: discard the top card of the
+ * attacker's controller's deck and possibly cancel the fight).
+ */
+data class FightDeclared(
+    val attackerInstanceId: String,
+    val attackerCardId: String,
+    val defenderInstanceId: String,
+    val defenderCardId: String,
+    val attackerController: Int
 ) : GameEvent

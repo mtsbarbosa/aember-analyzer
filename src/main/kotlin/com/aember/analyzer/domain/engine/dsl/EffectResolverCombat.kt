@@ -1,5 +1,7 @@
 package com.aember.analyzer.domain.engine.dsl
 
+import com.aember.analyzer.domain.engine.events.CreatureEnteredPlay
+import com.aember.analyzer.domain.engine.events.FightDeclared
 import com.aember.analyzer.domain.engine.model.GameState
 import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
@@ -23,6 +25,13 @@ internal fun EffectResolver.registerCombatEffects() {
     register<ReadyAndUse> { game, player, sourceCard, effect -> readyAndUse(game, player, sourceCard, effect) }
     register<UseCreature> { game, player, sourceCard, effect -> useCreature(game, player, sourceCard, effect) }
     register<Stun> { game, player, sourceCard, effect -> stun(game, player, sourceCard, effect) }
+    register<StunAndExhaust> { game, _, sourceCard, effect ->
+        targetChooser.chooseCreature(game, effect.target, sourceCard).firstOrNull()?.let {
+            it.stun = true
+            it.exhausted = true
+            game.log("${it.cardId} is stunned and exhausted")
+        }
+    }
     register<Unstun> { game, player, sourceCard, effect -> unstun(game, player, sourceCard, effect) }
     register<Heal> { game, _, sourceCard, effect -> heal(game, sourceCard, effect) }
     register<HealEach> { game, player, _, effect -> healEach(game, player, effect) }
@@ -149,8 +158,7 @@ internal fun EffectResolver.registerCombatEffects() {
             game.log("${enemy.cardId} loses $armor armor and takes $armor damage")
         }
     }
-    register<ReadyMarsOrStunNonMars> { game, player, sourceCard, _ ->
-        // Greedy: ready an own exhausted Mars creature, else stun an enemy non-Mars
+    register<ReadyMarsOrStunNonMars> { game, player, sourceCard, _ ->        // Greedy: ready an own exhausted Mars creature, else stun an enemy non-Mars
         // creature, else stun an enemy Mars creature.
         val ownMars = player.creatures.filter { it.house == House.MARS && (it.exhausted || it.stun) }.maxByOrNull { it.power }
         if (ownMars != null && !ownMars.stun) {
@@ -169,6 +177,86 @@ internal fun EffectResolver.registerCombatEffects() {
         } else {
             game.log("${sourceCard.cardId} has no valid target")
         }
+    }
+    register<DealDamageToEventCreature> { game, _, sourceCard, effect ->
+        val event = game.currentEvent
+        val creature = when (event) {
+            is CreatureEnteredPlay -> findCreatureInPlay(game, event.instanceId)
+            else -> null
+        }
+        if (creature != null) {
+            applyDamage(game, creature, effect.amount)
+            game.log("${sourceCard.cardId} deals ${effect.amount} damage to ${creature.cardId} as it enters play")
+        }
+    }
+    register<ChangeFightDamageTarget> { game, _, sourceCard, _ ->
+        val fightTargetId = game.currentFightTargetId
+        // Greedy: redirect onto an enemy creature (never our own board) other than the fight target.
+        val target = game.players[1 - sourceCard.controllerIndex].creatures
+            .filter { it.instanceId != fightTargetId }
+            .maxByOrNull { it.power } ?: return@register
+        game.fightDamageRedirectId = target.instanceId
+        game.log("${sourceCard.cardId} will deal its fight damage to ${target.cardId} instead")
+    }
+    register<EvasionSigilDiscardAndCancel> { game, _, sourceCard, _ ->
+        val event = game.currentEvent
+        if (event !is FightDeclared) return@register
+        val attackerController = game.player(event.attackerController)
+        val top = attackerController.library.removeFirstOrNull()
+        if (top == null) {
+            game.log("${attackerController.name} has no card to discard from their deck")
+            return@register
+        }
+        attackerController.discard.add(top)
+        game.log("Evasion Sigil discards the top card of ${attackerController.name}'s deck: ${cardName(top)}")
+        val topData = library?.cardData(top)
+        val activeHouse = game.activePlayer().activeHouse
+        if (topData != null && activeHouse != null && topData.house == activeHouse) {
+            game.cancelCurrentFight = true
+            game.log("The discarded card matches the active house; the fighting creature is exhausted with no effect")
+        }
+    }
+    register<LoseElusiveThisTurn> { game, _, _, _ ->
+        game.players.forEach { p ->
+            p.creatures.forEach { creature ->
+                if (creature.keywords.containsKey("elusive")) {
+                    creature.removedKeywordsThisTurn.add("elusive")
+                    creature.keywords = creature.keywords - "elusive"
+                }
+            }
+        }
+        game.log("Each creature loses elusive for the remainder of the turn")
+    }
+    register<GrantSkirmishAndFight> { game, player, sourceCard, effect ->
+        val granted = player.creatures.sortedByDescending { it.power }.take(effect.count)
+        granted.forEach { creature ->
+            creature.grantedKeywordsThisTurn["skirmish"] = 1
+            creature.keywords = creature.keywords + ("skirmish" to 1)
+        }
+        if (granted.isNotEmpty()) {
+            game.log("${granted.joinToString(", ") { it.cardId }} gain skirmish for the remainder of the turn")
+        }
+        val bridge = playBridge
+        granted.forEach { creature ->
+            val enemy = game.opponent(player).creatures.maxByOrNull { it.power } ?: return@forEach
+            if (bridge != null) {
+                bridge.fightWith(game, player, creature.instanceId, enemy.instanceId)
+            } else {
+                // Approximated: raw power swap without keywords.
+                creature.exhausted = false
+                enemy.damage += creature.power
+                creature.damage += enemy.power
+                game.log("${creature.cardId} fights ${enemy.cardId} (approximated)")
+            }
+        }
+    }
+    register<HealSelfFully> { game, _, sourceCard, _ ->
+        sourceCard.damage = 0
+        game.log("${sourceCard.cardId} is fully healed")
+    }
+    register<DestroyCreatureNow> { game, player, sourceCard, _ ->
+        val target = targetChooser.chooseCreature(game, EnemyCreature(), sourceCard).firstOrNull() ?: return@register
+        leavePlay(game, target, LeaveDestination.DISCARD, "${target.cardId} is destroyed")
     }
 }
 
@@ -233,7 +321,12 @@ internal fun EffectResolver.resolveDamageTarget(game: GameState, card: InPlayCar
 }
 
 internal fun EffectResolver.destroy(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Destroy) {
-    val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
+    // Destroying our own creature is a cost (Bouncing Deathquark, Neutron Shark): give up the cheapest.
+    val targets = if (effect.target is FriendlyCreature) {
+        targetChooser.chooseCreature(game, effect.target.allScope(), sourceCard).cheapestFirst().take(1)
+    } else {
+        targetChooser.chooseCreature(game, effect.target, sourceCard)
+    }
     targets.forEach { target ->
         target.damage = Int.MAX_VALUE
         game.lastDamagedTargetId = target.instanceId
@@ -309,7 +402,17 @@ internal fun EffectResolver.unstun(game: GameState, sourcePlayer: PlayerState, s
 }
 
 internal fun EffectResolver.heal(game: GameState, sourceCard: InPlayCard, effect: Heal) {
-    val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
+    // "Heal a creature" with an open selector: the greedy chooser ranks enemies first, which would
+    // heal (and, for Protectrix, shield) an opponent's creature. Healing is only worth doing on our
+    // own most damaged creature; with none damaged the heal does nothing.
+    val targets = if (effect.target is AnyCreature && effect.target.scope == Scope.ONE) {
+        game.player(sourceCard.controllerIndex).creatures
+            .filter { it.damage > 0 }
+            .maxByOrNull { it.damage }
+            ?.let { listOf(it) } ?: emptyList()
+    } else {
+        targetChooser.chooseCreature(game, effect.target, sourceCard)
+    }
     targets.forEach { target ->
         val healed = if (effect.fully) target.damage else min(effect.amount, target.damage)
         target.damage = if (effect.fully) 0 else (target.damage - effect.amount).coerceAtLeast(0)

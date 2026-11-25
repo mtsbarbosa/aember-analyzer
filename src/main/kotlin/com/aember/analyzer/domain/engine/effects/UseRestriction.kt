@@ -59,6 +59,9 @@ sealed interface SelfRestriction {
     /** This card may be used as if it belonged to the active house. */
     object UsableAsActiveHouse : SelfRestriction
 
+    /** This card can only fight stunned creatures (Bigtwig). */
+    object OnlyFightStunned : SelfRestriction
+
     /**
      * This card is destroyed while [condition] holds (checked in the engine's
      * state check, e.g. Tireless Crocag when the opponent has no creatures).
@@ -107,6 +110,10 @@ class UseRestrictionsBuilder {
 
     fun selfUsableAsActiveHouse() {
         selfRestrictions += SelfRestriction.UsableAsActiveHouse
+    }
+
+    fun selfOnlyFightStunned() {
+        selfRestrictions += SelfRestriction.OnlyFightStunned
     }
 
     fun selfDestructIf(condition: (GameState, PlayerState, InPlayCard) -> Boolean) {

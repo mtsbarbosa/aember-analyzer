@@ -2,9 +2,6 @@ package com.aember.analyzer.domain.engine.model
 
 import com.aember.analyzer.domain.engine.fidelity.FidelityLevel
 
-/**
- * Mutable root state for a single KeyForge match.
- */
 data class GameState(
     val players: List<PlayerState>,
     var activePlayerIndex: Int = 0,
@@ -30,6 +27,18 @@ data class GameState(
 
     /** The creature currently being fought (Before Fight triggers read it: Lord Golgotha, Zorg). */
     var currentFightTargetId: String? = null,
+
+    /**
+     * Gabos Longarms: when set during a fight, the attacker's damage goes to this
+     * creature instead of the fight target.
+     */
+    var fightDamageRedirectId: String? = null,
+
+    /** Evasion Sigil: cancel the fight currently being resolved. */
+    var cancelCurrentFight: Boolean = false,
+
+    /** Mimicry: recursion guard for chained play-as-copy resolutions. */
+    var playCopyDepth: Int = 0,
 
     /** The event currently being dispatched by the EventBus, for event-aware effects. */
     var currentEvent: com.aember.analyzer.domain.engine.events.GameEvent? = null,
@@ -93,7 +102,6 @@ data class GameState(
 enum class EndCause {
     KEYS,
     TIMEOUT,
-    DRAW
 }
 
 /**

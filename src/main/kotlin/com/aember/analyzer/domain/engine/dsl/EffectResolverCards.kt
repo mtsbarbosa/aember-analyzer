@@ -35,12 +35,12 @@ internal fun EffectResolver.registerCardEffects() {
     register<ReturnCreaturesOfHouseFromDiscardToHand> { game, sourcePlayer, _, effect ->
         returnCreaturesOfHouseFromDiscardToHand(game, targetPlayer(game, sourcePlayer, effect.player))
     }
-    register<Archive> { game, player, sourceCard, effect -> archive(game, player, sourceCard, effect) }
+    register<Archive> { game, _, sourceCard, effect -> archive(game, sourceCard, effect) }
     register<ArchiveTopDeck> { game, player, _, effect -> archiveTopDeck(game, targetPlayer(game, player, effect.player)) }
     register<ArchiveFromDiscard> { game, player, _, effect -> archiveFromDiscard(game, targetPlayer(game, player, effect.player), effect.amount) }
     register<ArchiveFromHand> { game, player, _, effect -> archiveFromHand(game, targetPlayer(game, player, effect.player), effect.amount) }
     register<ArchiveCreatureFromHand> { game, player, _, effect -> archiveCreatureFromHand(game, targetPlayer(game, player, effect.player), effect.amount) }
-    register<Purge> { game, player, sourceCard, effect -> purge(game, player, sourceCard, effect) }
+    register<Purge> { game, _, sourceCard, effect -> purge(game, sourceCard, effect) }
     register<PurgeFromDiscard> { game, player, _, effect -> purgeFromDiscard(
         game,
         targetPlayer(game, player, effect.player),
@@ -51,8 +51,8 @@ internal fun EffectResolver.registerCardEffects() {
         game,
         targetPlayer(game, player, effect.player)
     ) }
-    register<ShuffleCreaturesIntoDeck> { game, player, sourceCard, effect ->
-        shuffleCreaturesIntoDeck(game, player, sourceCard, effect)
+    register<ShuffleCreaturesIntoDeck> { game, _, sourceCard, effect ->
+        shuffleCreaturesIntoDeck(game, sourceCard, effect)
     }
     register<PutSelfOnTopOfDeck> { game, _, sourceCard, _ -> putSelfOnTopOfDeck(game, sourceCard) }
     register<PlayTopCard> { game, player, _, effect -> playTopCard(game, targetPlayer(game, player, effect.player)) }
@@ -61,9 +61,11 @@ internal fun EffectResolver.registerCardEffects() {
         targetPlayer(game, player, effect.player)
     ) }
     register<DestroyArtifact> { game, player, sourceCard, effect ->
-        val artifacts = game.players.flatMap { it.artifacts }
+        // Greedy: an opponent's artifact first (never the source itself), our own only as a last resort.
+        val enemyArtifacts = game.players[1 - sourceCard.controllerIndex].artifacts
+        val ownArtifacts = game.players[sourceCard.controllerIndex].artifacts.filter { it.instanceId != sourceCard.instanceId }
         val target = when (effect.target) {
-            AnyArtifact -> artifacts.sortedByDescending { it.power }.firstOrNull()
+            AnyArtifact -> (enemyArtifacts.sortedByDescending { it.power } + ownArtifacts.sortedByDescending { it.power }).firstOrNull()
             else -> null
         }
         if (target != null) destroyArtifact(game, target)
@@ -153,7 +155,7 @@ internal fun EffectResolver.registerCardEffects() {
             game.log("${player.name} finds no ${effect.house.name.lowercase()} creature in their deck")
         }
     }
-    register<ShuffleHouseCreaturesIntoDeck> { game, _, sourceCard, effect ->
+    register<ShuffleHouseCreaturesIntoDeck> { game, _, _, effect ->
         game.players.forEach { p ->
             val creatures = p.creatures.filter { it.house == effect.house && it.ownerIndex == p.index }
             if (creatures.isEmpty()) return@forEach
@@ -176,8 +178,7 @@ internal fun EffectResolver.registerCardEffects() {
         sourceCard.beneathCardIds.add(cardId)
         game.log("${player.name} places ${cardName(cardId)} facedown beneath ${sourceCard.cardId}")
     }
-    register<PlayBeneathCardAndSacrifice> { game, player, sourceCard, _ ->
-        val cardId = sourceCard.beneathCardIds.removeFirstOrNull()
+    register<PlayBeneathCardAndSacrifice> { game, player, sourceCard, _ ->        val cardId = sourceCard.beneathCardIds.removeFirstOrNull()
         if (cardId == null) {
             game.log("${sourceCard.cardId} has no card beneath it")
             sacrificeCreature(game, sourceCard)
@@ -218,11 +219,272 @@ internal fun EffectResolver.registerCardEffects() {
         }
         game.log("${player.name} has no urchin in play or discard")
     }
+    register<PlayCopyOfOpponentDiscardAction> { game, player, sourceCard, _ ->
+        if (game.playCopyDepth >= 5) {
+            game.log("${player.name}'s copy chain stops (Mimicry depth limit)")
+            return@register
+        }
+        val opponent = game.opponent(player)
+        val chosen = opponent.discard.lastOrNull { library?.cardData(it)?.type == CardType.ACTION }
+        if (chosen == null) {
+            game.log("${player.name} finds no action card in ${opponent.name}'s discard")
+            return@register
+        }
+        game.log("${player.name} plays Mimicry as a copy of ${cardName(chosen)}")
+        val copyCard = InPlayCard(
+            instanceId = sourceCard.instanceId,
+            cardId = chosen,
+            ownerIndex = player.index,
+            controllerIndex = player.index,
+            zone = Zone.PLAY_AREA,
+            house = library?.cardData(chosen)?.house ?: House.BROBNAR,
+            type = CardType.ACTION
+        )
+        game.playCopyDepth++
+        library?.scriptFor(chosen)?.onPlay(game, player, copyCard)
+        game.playCopyDepth--
+    }
+    register<SearchForCreatureToHand> { game, player, _, effect ->
+        val found = mutableListOf<String>()
+        player.discard.filter { it == effect.cardName && library?.cardData(it)?.type == CardType.CREATURE }
+            .forEach { found.add(it) }
+        player.library.filter { it == effect.cardName && library?.cardData(it)?.type == CardType.CREATURE }
+            .forEach { found.add(it) }
+        val taken = found.take(effect.maxCards)
+        if (taken.isEmpty()) {
+            game.log("${player.name} finds no ${effect.cardName} in deck or discard")
+        } else {
+            // Remove exactly the chosen copies (one occurrence each), discard first.
+            taken.forEach { id -> if (!player.discard.remove(id)) player.library.remove(id) }
+            player.hand.addAll(taken)
+            game.log("${player.name} searches and puts ${taken.joinToString(", ") { cardName(it) }} into their hand")
+        }
+        // The shuffle is unconditional (keyteki sequences it after the search).
+        if (effect.shuffleDiscardIntoDeck && player.discard.isNotEmpty()) {
+            player.library.addAll(player.discard)
+            player.discard.clear()
+            player.library.shuffle(game.rng)
+            game.log("${player.name} shuffles their discard pile into their deck")
+        }
+    }
+    register<HealOrSearchAncientCreatures> { game, player, sourceCard, effect ->
+        val inPlay = game.players.flatMap { it.creatures }.filter { it.cardId == effect.cardName }
+        if (inPlay.isNotEmpty()) {
+            inPlay.forEach { it.damage = 0 }
+            game.log("${sourceCard.cardId} fully heals the ${effect.cardName} in play")
+            return@register
+        }
+        // No [cardName] in play: search deck and discard for each copy.
+        val found = (player.discard + player.library).filter { it == effect.cardName }
+        if (found.isEmpty()) {
+            game.log("${player.name} finds no ${effect.cardName} anywhere")
+            return@register
+        }
+        player.discard.removeAll(found)
+        player.library.removeAll(found)
+        player.hand.addAll(found)
+        game.log("${player.name} puts ${found.joinToString(", ") { cardName(it) }} into their hand and shuffles their discard pile into their deck")
+        if (player.discard.isNotEmpty()) {
+            player.library.addAll(player.discard)
+            player.discard.clear()
+            player.library.shuffle(game.rng)
+        }
+    }
+    register<ArchiveHouseCreatureFromHand> { game, player, _, effect ->
+        val candidates = player.hand.filter { library?.cardData(it)?.type == CardType.CREATURE && library.cardData(it)?.house == effect.house }
+        val cardId = candidates.firstOrNull()
+        if (cardId == null) {
+            game.log("${player.name} has no ${effect.house.name.lowercase()} creature to archive from hand")
+            return@register
+        }
+        player.hand.remove(cardId)
+        player.archives.add(cardId)
+        game.log("${player.name} reveals ${cardName(cardId)} and archives it")
+    }
+    register<ArchiveSelf> { game, _, sourceCard, _ ->
+        leavePlay(game, sourceCard, LeaveDestination.ARCHIVES, "${sourceCard.cardId} is archived")
+    }
+    register<AbductEnemyDamagedCreatures> { game, player, _, effect ->
+        val damaged = game.opponent(player).creatures.filter { it.damage > 0 }
+            .sortedByDescending { it.power }.take(effect.amount)
+        if (damaged.isEmpty()) {
+            game.log("${player.name} has no damaged enemy creatures to abduct")
+            return@register
+        }
+        damaged.forEach { creature ->
+            val controller = game.player(creature.controllerIndex)
+            controller.creatures.remove(creature)
+            creature.upgrades.forEach { upgrade -> game.player(upgrade.ownerIndex).discard.add(upgrade.cardId) }
+            creature.upgrades.clear()
+            player.archives.add(creature.cardId)
+            player.abductedCardIds.add(creature.cardId)
+            game.log("${player.name} abducts ${creature.cardId} into their archives")
+            if (library != null) {
+                EventBus.emit(library, game, CardLeftPlay(creature.instanceId, creature.cardId, creature.ownerIndex, creature.controllerIndex))
+            }
+        }
+    }
+    register<SwapWithOtherFriendlyCreature> { game, player, sourceCard, _ ->
+        val others = player.creatures.filter { it.instanceId != sourceCard.instanceId }
+        val other = others.maxByOrNull { it.power } ?: run {
+            game.log("${sourceCard.cardId} has no other friendly creature to swap with")
+            return@register
+        }
+        val idxSource = player.creatures.indexOf(sourceCard)
+        val idxOther = player.creatures.indexOf(other)
+        if (idxSource >= 0 && idxOther >= 0) {
+            player.creatures[idxSource] = other
+            player.creatures[idxOther] = sourceCard
+            game.log("${sourceCard.cardId} and ${other.cardId} swap places in the battleline")
+        }
+    }
+    register<SwapHostAndMayUseOther> { game, player, sourceCard, _ ->
+        val hostId = sourceCard.hostId ?: return@register
+        val host = findCreatureInPlay(game, hostId) ?: return@register
+        val others = player.creatures.filter { it.instanceId != hostId }
+        val other = others.maxByOrNull { it.power } ?: run {
+            game.log("${sourceCard.cardId} has no other friendly creature to swap with")
+            return@register
+        }
+        val idxHost = player.creatures.indexOf(host)
+        val idxOther = player.creatures.indexOf(other)
+        if (idxHost >= 0 && idxOther >= 0) {
+            player.creatures[idxHost] = other
+            player.creatures[idxOther] = host
+            game.log("${host.cardId} and ${other.cardId} swap places in the battleline")
+        }
+        player.mayUseCardIdsThisTurn.add(other.instanceId)
+        game.log("${player.name} may use ${other.cardId} this turn")
+    }
+    register<RotateHouseCreatures> { game, player, _, effect ->
+        val ready = player.creatures.filter { it.house == effect.house && !it.exhausted && !it.stun }.maxByOrNull { it.power }
+        if (ready == null) {
+            game.log("${player.name} has no ready ${effect.house.name.lowercase()} creature to return")
+            return@register
+        }
+        leavePlay(game, ready, LeaveDestination.HAND, "${ready.cardId} returns to hand")
+        player.hand.add(ready.cardId)
+        // A different-named creature of that house enters play (real play path) and readies.
+        val handMatch = player.hand.filter { cardId ->
+            val data = library?.cardData(cardId)
+            data?.type == CardType.CREATURE && data.house == effect.house && cardId != ready.cardId
+        }.maxByOrNull { library?.cardData(it)?.power ?: 0 }
+        if (handMatch == null) {
+            game.log("${player.name} has no other ${effect.house.name.lowercase()} creature in hand")
+            return@register
+        }
+        val bridge = playBridge
+        if (bridge != null) {
+            bridge.playCardFromHand(game, player, handMatch)
+        } else {
+            player.hand.remove(handMatch)
+            player.discard.add(handMatch)
+            game.log("${player.name} plays ${cardName(handMatch)} (approximated)")
+        }
+        val entered = player.creatures.lastOrNull { it.cardId == handMatch }
+        if (entered != null) {
+            entered.exhausted = false
+            game.log("${entered.cardId} readies")
+        }
+    }
+    register<UseArtifactAndDestroyIt> { game, player, _, _ ->
+        // Any player's artifact with an Action ability; greedy: the opponent's first.
+        val artifact = game.opponent(player).artifacts.firstOrNull { candidate ->
+            !candidate.exhausted &&
+                library?.scriptFor(candidate.cardId)?.actionAbilities()?.any { it != "Omni" } == true
+        } ?: player.artifacts.firstOrNull { candidate ->
+            !candidate.exhausted &&
+                library?.scriptFor(candidate.cardId)?.actionAbilities()?.any { it != "Omni" } == true
+        }
+        if (artifact == null) {
+            game.log("${player.name} finds no usable artifact")
+            return@register
+        }
+        val ability = library?.scriptFor(artifact.cardId)?.actionAbilities()?.first { it != "Omni" } ?: return@register
+        artifact.exhausted = true
+        game.log("${player.name} uses ${artifact.cardId} as if it were theirs")
+        library.scriptFor(artifact.cardId).resolveActionAbility(ability, game, player, artifact)
+        destroyArtifact(game, artifact)
+    }
+    register<ReturnDiscardCreatureToTopOfDeck> { game, player, _, _ ->
+        val cardId = player.discard.lastOrNull { library?.cardData(it)?.type == CardType.CREATURE }
+        if (cardId == null) {
+            game.log("${player.name} has no creature in their discard pile")
+            return@register
+        }
+        player.discard.remove(cardId)
+        player.library.add(0, cardId)
+        game.log("${player.name} puts ${cardName(cardId)} on top of their deck")
+    }
+    register<PlayCreatureFromDiscard> { game, player, _, _ ->
+        val cardId = player.discard.lastOrNull { library?.cardData(it)?.type == CardType.CREATURE }
+        if (cardId == null) {
+            game.log("${player.name} has no creature in their discard pile to play")
+            return@register
+        }
+        player.discard.remove(cardId)
+        val bridge = playBridge
+        if (bridge != null) {
+            player.hand.add(cardId)
+            bridge.playCardFromHand(game, player, cardId)
+        } else {
+            player.discard.add(cardId)
+            game.log("${player.name} plays ${cardName(cardId)} from their discard pile (approximated)")
+        }
+    }
+    register<PurgeFriendlyHumanAndPlayFromDiscard> { game, player, sourceCard, _ ->
+        val target = targetChooser.chooseCreature(game, FriendlyCreatureWithTrait("human"), sourceCard).firstOrNull()
+        if (target == null) {
+            game.log("${player.name} has no friendly Human creature to purge")
+            return@register
+        }
+        game.player(target.ownerIndex).creatures.remove(target)
+        target.upgrades.forEach { upgrade -> game.player(upgrade.ownerIndex).discard.add(upgrade.cardId) }
+        target.upgrades.clear()
+        game.player(target.ownerIndex).purged.add(target.cardId)
+        game.log("${target.cardId} is purged from play")
+        // Play a creature from the discard pile (real play path when bridged).
+        val cardId = player.discard.lastOrNull { library?.cardData(it)?.type == CardType.CREATURE }
+        if (cardId == null) {
+            game.log("${player.name} has no creature in their discard pile to play")
+            return@register
+        }
+        player.discard.remove(cardId)
+        val bridge = playBridge
+        if (bridge != null) {
+            player.hand.add(cardId)
+            bridge.playCardFromHand(game, player, cardId)
+        } else {
+            player.discard.add(cardId)
+            game.log("${player.name} plays ${cardName(cardId)} from their discard pile (approximated)")
+        }
+    }
+    register<ReturnAllArtifactsToTopOfDeck> { game, _, _, _ ->
+        game.players.forEach { p ->
+            p.artifacts.toList().forEach { artifact ->
+                leavePlay(game, artifact, LeaveDestination.TOP_OF_DECK, "${artifact.cardId} goes on top of its owner's deck")
+            }
+        }
+    }
+    register<PurgeEnemyHandCardOfHouse> { game, player, _, effect ->
+        val opponent = game.opponent(player)
+        val cardId = opponent.hand.firstOrNull { library?.cardData(it)?.house == effect.house }
+        if (cardId == null) {
+            game.log("${player.name} finds no ${effect.house.name.lowercase()} card in ${opponent.name}'s hand")
+            return@register
+        }
+        opponent.hand.remove(cardId)
+        player.purged.add(cardId)
+        game.log("${player.name} looks at ${opponent.name}'s hand and purges ${cardName(cardId)}")
+    }
 }
 
 /** The bridge for playing a card through the real play path (ActionExecutor.playCard). */
 internal interface CardPlayBridge {
     fun playCardFromHand(game: GameState, player: PlayerState, cardId: String, targetCreatureId: String? = null)
+
+    /** Real keyword-aware fight (Scout's granted fights). */
+    fun fightWith(game: GameState, player: PlayerState, attackerInstanceId: String, targetInstanceId: String): Boolean = false
 }
 
 internal fun EffectResolver.destroyArtifact(game: GameState, artifact: InPlayCard) {
@@ -351,7 +613,7 @@ internal fun EffectResolver.returnCreaturesOfHouseFromDiscardToHand(game: GameSt
     game.log("${player.name} chooses ${chosenHouse.name.lowercase()} and returns ${returned.size} creature(s) from discard to hand, gaining 1 chain")
 }
 
-internal fun EffectResolver.archive(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Archive) {
+internal fun EffectResolver.archive(game: GameState, sourceCard: InPlayCard, effect: Archive) {
     val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
     targets.forEach { target ->
         val owner = game.player(target.ownerIndex)
@@ -390,10 +652,6 @@ internal fun EffectResolver.archiveFromHand(game: GameState, player: PlayerState
     game.log("${player.name} archives ${archived.size} card(s) from hand: $names")
 }
 
-/**
- * Archives creature cards from hand (Zyzzix the Many). Returns whether any
- * creature was archived, so follow-up effects can be gated on it.
- */
 internal fun EffectResolver.archiveCreatureFromHand(game: GameState, player: PlayerState, amount: Int): Boolean {
     val creaturesInHand = player.hand.filter { library?.cardData(it)?.type == CardType.CREATURE }.toMutableList()
     if (creaturesInHand.isEmpty()) {
@@ -412,7 +670,7 @@ internal fun EffectResolver.archiveCreatureFromHand(game: GameState, player: Pla
     return true
 }
 
-internal fun EffectResolver.purge(game: GameState, sourcePlayer: PlayerState, sourceCard: InPlayCard, effect: Purge) {
+internal fun EffectResolver.purge(game: GameState, sourceCard: InPlayCard, effect: Purge) {
     val targets = targetChooser.chooseCreature(game, effect.target, sourceCard)
     targets.forEach { target ->
         val owner = game.player(target.ownerIndex)
@@ -457,10 +715,8 @@ internal fun shuffleHandAndDiscardIntoDeck(game: GameState, player: PlayerState)
     game.log("${player.name} shuffles hand and discard into deck")
 }
 
-/** Shuffles chosen friendly/enemy creatures into their owners' decks (Lost in the Woods). */
 internal fun EffectResolver.shuffleCreaturesIntoDeck(
     game: GameState,
-    player: PlayerState,
     sourceCard: InPlayCard,
     effect: ShuffleCreaturesIntoDeck
 ) {
@@ -473,7 +729,6 @@ internal fun EffectResolver.shuffleCreaturesIntoDeck(
     }
 }
 
-/** Moves the resolving card from play to the top of its owner's deck (Dextre). */
 internal fun EffectResolver.putSelfOnTopOfDeck(game: GameState, sourceCard: InPlayCard) {
     val owner = game.player(sourceCard.ownerIndex)
     leavePlay(game, sourceCard, LeaveDestination.TOP_OF_DECK, "${sourceCard.cardId} is put on top of ${owner.name}'s deck")
@@ -508,7 +763,7 @@ internal fun swapDeckAndDiscard(game: GameState, player: PlayerState) {
 }
 
 /** Where a card that leaves play through an effect ends up. */
-internal enum class LeaveDestination { DISCARD, SHUFFLE_INTO_DECK, TOP_OF_DECK, HAND }
+internal enum class LeaveDestination { DISCARD, SHUFFLE_INTO_DECK, TOP_OF_DECK, HAND, ARCHIVES, PURGED }
 
 /**
  * Shared "creature leaves play" removal for effect-driven removals (sacrifice,
@@ -522,7 +777,14 @@ internal fun EffectResolver.leavePlay(game: GameState, card: InPlayCard, destina
     val removed = controller.creatures.remove(card) || controller.artifacts.remove(card)
     if (!removed) return
     // Upgrades fall off to their owner's discard (mirrors the destroy path).
-    card.upgrades.forEach { upgrade -> game.player(upgrade.ownerIndex).discard.add(upgrade.cardId) }
+    card.upgrades.forEach { upgrade ->
+        game.player(upgrade.ownerIndex).discard.add(upgrade.cardId)
+        if (library != null) {
+            val upgradeEvent = CardLeftPlay(upgrade.instanceId, upgrade.cardId, upgrade.ownerIndex, upgrade.controllerIndex)
+            EventBus.deliver(library, game, game.player(upgrade.controllerIndex), upgrade, upgradeEvent)
+            EventBus.emit(library, game, upgradeEvent)
+        }
+    }
     card.upgrades.clear()
     val owner = game.player(card.ownerIndex)
     when (destination) {
@@ -537,6 +799,18 @@ internal fun EffectResolver.leavePlay(game: GameState, card: InPlayCard, destina
         }
         LeaveDestination.HAND -> {
             owner.hand.add(card.cardId)
+            game.log(logLine)
+        }
+        LeaveDestination.ARCHIVES -> {
+            // Card-id archives are only read (never extracted) by the current engine;
+            // Mass Abduction's "leaves the archives -> owner's hand" rule is handled
+            // in the abduct handler's tracking and applies whenever an extraction
+            // path is added.
+            owner.archives.add(card.cardId)
+            game.log(logLine)
+        }
+        LeaveDestination.PURGED -> {
+            owner.purged.add(card.cardId)
             game.log(logLine)
         }
         LeaveDestination.DISCARD -> {
@@ -566,13 +840,11 @@ internal fun EffectResolver.leavePlay(game: GameState, card: InPlayCard, destina
 }
 
 internal fun EffectResolver.purgeReplacementActive(game: GameState): Boolean {
-    if (library == null) return false
-    return game.players.any { p ->
+    return library != null && game.players.any { p ->
         p.cardsInPlay().any { library.scriptFor(it.cardId).purgesDestroyedCreatures() }
     }
 }
 
-/** Removes a creature from play and puts it in its owner's discard (sacrifice). */
 internal fun EffectResolver.sacrificeCreature(game: GameState, card: InPlayCard) {
     leavePlay(game, card, LeaveDestination.DISCARD, "${card.cardId} is sacrificed")
 }

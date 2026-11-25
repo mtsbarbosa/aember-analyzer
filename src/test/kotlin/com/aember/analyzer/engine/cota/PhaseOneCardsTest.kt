@@ -271,7 +271,8 @@ class PhaseOneCardsTest {
         executor.execute(game, UseCreatureAction(smilingRuth.instanceId, ReapUse))
 
         assertThat(game.activePlayer().creatures.any { it.instanceId == "enemy-flank-1" }).isTrue()
-        assertThat(game.temporaryControllers).containsKey("enemy-flank-1")
+        // keyteki: a lasting effect, not an end-of-turn rental.
+        assertThat(game.temporaryControllers).doesNotContainKey("enemy-flank-1")
     }
 
     @Test

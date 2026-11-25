@@ -9,6 +9,9 @@ object SelfHasMoreAmber : Condition
 object OpponentHasFewerCreatures : Condition
 object SelfHasFewerCreatures : Condition
 object SelfHasMoreCreatures : Condition
+
+/** The opponent controls more creatures than the resolving player (Numquid the Fair). */
+object OpponentHasMoreCreatures : Condition
 object TargetIsDamaged : Condition
 object Always : Condition
 

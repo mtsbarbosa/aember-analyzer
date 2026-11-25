@@ -45,6 +45,25 @@ class Phase3BatchDTest {
     }
 
     @Test
+    fun `Gorm of Omm prefers an enemy artifact over its controller's own`() {
+        val scenario = scenario {
+            player1 {
+                house(House.SANCTUM)
+                artifact("gorm-of-omm")
+                artifact("wild-wormhole")
+            }
+            player2 {
+                artifact("wild-wormhole")
+            }
+        }
+        scenario.run {
+            useAbility("gorm-of-omm", "Omni")
+            assertThat(p2.artifacts).isEmpty()
+            assertThat(p1.artifacts.map { it.cardId }).containsExactly("wild-wormhole")
+        }
+    }
+
+    @Test
     fun `Deep Probe discards enemy creatures of the most common house in their hand`() {
         val scenario = scenario {
             player1 {

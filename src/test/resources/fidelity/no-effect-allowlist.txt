@@ -2,59 +2,5 @@
 # currently inert (registered with NoEffect / no effects). Implementing a card means
 # deleting its line; new inert cards must be added here deliberately.
 # Source of the original 81: structural check over the production library (2026-11-23).
-armageddon-cloak
-autocannon
-barehanded
-bigtwig
-bilgum-avalanche
-blypyp
-brothers-in-battle
-collar-of-subordination
-deipno-spymaster
-dimension-door
-evasion-sigil
-follow-the-leader
-gabos-longarms
-harland-mindlock
-hayyel-the-merchant
-help-from-future-self
-horseman-of-pestilence
-horseman-of-war
-hunting-witch
-imperial-traitor
-incubation-chamber
-jehu-the-bureaucrat
-mantle-of-the-zealot
-mass-abduction
-mimicry
-numquid-the-fair
-overlord-greking
-phoenix-heart
-pingle-who-annoys
-poltergeist
-psychic-bug
-replicator
-restringuntus
-ritual-of-the-hunt
-rock-hurling-giant
-rocket-boots
-rogue-ogre
-sanctum-guardian
-scout
-shaffles
-sneklifter
-stealer-of-souls
-teliga
-the-howling-pit
-transposition-sandals
 # Found by the recursive inert check (batch (d) review): cards whose only content is an
 # Action/Omni ability with a NoEffect payload — all deferred to the next batch.
-sacrificial-altar
-mobius-scroll
-pocket-universe
-sniffer
-swap-widget
-safe-place
-the-sting
-bear-flute
-world-tree

@@ -105,6 +105,77 @@ internal fun EffectResolver.registerControlEffects() {
         game.opponent(player).nextForgeGivesAmberTo = player.index
         game.log("${player.name} claims ${game.opponent(player).name}'s remaining amber if they forge a key next turn")
     }
+    register<NextCreatureOfHouseEntersReady> { _, player, _, effect ->
+        player.nextCreatureOfHouseEntersReady = effect.house
+    }
+    register<AllCreaturesMayFightThisTurn> { _, player, _, _ ->
+        player.allMayFightThisTurn = true
+    }
+    register<ChosenHouseMayFightThisTurn> { game, player, _, effect ->
+        // Greedy house: the one with the most friendly creatures.
+        val chosen = effect.house ?: player.creatures.groupingBy { it.house }
+            .eachCount().maxByOrNull { it.value }?.key
+        if (chosen != null) {
+            player.mayFightHouseThisTurn = chosen
+            game.log("Friendly $chosen creatures may fight for the remainder of the turn")
+        }
+    }
+    register<AllCreaturesFightOnlyThisTurn> { _, player, _, _ ->
+        player.allCreaturesFightOnlyThisTurn = true
+    }
+    register<AllowUseFriendlyCreaturesThisTurn> { game, player, sourceCard, effect ->
+        val chosen = player.creatures.filter { it.instanceId != sourceCard.instanceId }
+            .sortedByDescending { it.power }.take(effect.count)
+        chosen.forEach { player.mayUseCardIdsThisTurn.add(it.instanceId) }
+        if (chosen.isNotEmpty()) {
+            game.log("${player.name} may use ${chosen.joinToString(", ") { it.cardId }} for the remainder of the turn")
+        }
+    }
+    register<RevealOpponentHand> { game, player, _, _ ->
+        val opponent = game.opponent(player)
+        game.log("${player.name} looks at ${opponent.name}'s hand: ${opponent.hand.joinToString(", ") { cardName(it) }}")
+    }
+    register<TriggerOtherCreatureReap> { game, player, sourceCard, _ ->
+        val others = game.players.flatMap { it.creatures }.filter { it.instanceId != sourceCard.instanceId }
+        // Greedy: strongest other creature (usually the biggest reap benefit).
+        val target = others.maxByOrNull { it.power } ?: run {
+            game.log("${sourceCard.cardId} has no other creature to trigger")
+            return@register
+        }
+        val script = library?.scriptFor(target.cardId) ?: return@register
+        game.log("${sourceCard.cardId} triggers ${target.cardId}'s reap effect as if ${player.name} controlled it")
+        script.onReap(game, player, target)
+        val event = com.aember.analyzer.domain.engine.events.CreatureReaped(target.controllerIndex, target.instanceId, target.cardId)
+        EventBus.deliver(library, game, player, sourceCard, event)
+    }
+    register<ClaimDestroyedFightTarget> { game, player, sourceCard, effect ->
+        val event = game.currentEvent
+        if (event !is com.aember.analyzer.domain.engine.events.FightResolved) return@register
+        // The source may be the attacker (claims the defender) or the defender (claims the attacker).
+        val sourceAttacked = event.attackerInstanceId == sourceCard.instanceId
+        val victimDestroyed = if (sourceAttacked) event.defenderDestroyed else event.attackerDestroyed
+        if (!victimDestroyed) return@register
+        val victimId = if (sourceAttacked) event.defenderInstanceId else event.attackerInstanceId
+        // The destroyed creature is still on the board at FightResolved time
+        // (moribund); take it directly instead of waiting for the state check.
+        val destroyed = findCreatureInPlay(game, victimId) ?: return@register
+        val controller = game.player(destroyed.controllerIndex)
+        controller.creatures.remove(destroyed)
+        destroyed.upgrades.forEach { upgrade -> game.player(upgrade.ownerIndex).discard.add(upgrade.cardId) }
+        destroyed.upgrades.clear()
+        if (effect.gainAmber > 0) {
+            game.player(destroyed.ownerIndex).purged.add(destroyed.cardId)
+            gainAmber(game, player, effect.gainAmber)
+            game.log("${destroyed.cardId} is purged and ${player.name} gains ${effect.gainAmber} amber")
+        } else {
+            // Permanent control (until it leaves play); not registered in temporaryControllers.
+            destroyed.controllerIndex = player.index
+            destroyed.damage = 0
+            destroyed.exhausted = true
+            player.creatures.add(destroyed)
+            game.log("${player.name} puts ${destroyed.cardId} into play under their control")
+        }
+    }
 }
 
 internal fun EffectResolver.forgeKey(game: GameState, player: PlayerState, effect: ForgeKey) {
@@ -155,10 +226,10 @@ internal fun takeControlOfEnemyFlankCreature(game: GameState, sourcePlayer: Play
     val flanks = listOfNotNull(opponent.creatures.firstOrNull(), opponent.creatures.lastOrNull()).distinctBy { it.instanceId }
     val target = flanks.maxByOrNull { it.power } ?: return
     opponent.creatures.remove(target)
-    game.temporaryControllers[target.instanceId] = opponent.index
+    // keyteki: a lasting effect, not 'until end of turn' - the creature stays under our control.
     target.controllerIndex = sourcePlayer.index
     sourcePlayer.creatures.add(target)
-    game.log("${sourcePlayer.name} takes control of ${target.cardId} with Smiling Ruth until end of turn")
+    game.log("${sourcePlayer.name} takes control of ${target.cardId} with Smiling Ruth")
 }
 
 internal fun EffectResolver.playTopCardOfHouse(game: GameState, player: PlayerState, house: House) {

@@ -6,6 +6,7 @@ import com.aember.analyzer.domain.engine.model.InPlayCard
 import com.aember.analyzer.domain.engine.model.PlayerState
 import com.aember.analyzer.domain.engine.model.hasKeyword
 
+
 /**
  * Collects and evaluates the persistent static effects of every card in play.
  *
@@ -50,6 +51,11 @@ object EffectRegistry {
         var power = target.basePower
         var armor = target.baseArmor
         val keywords = target.baseKeywords.toMutableMap()
+        // Turn-scoped keyword grants/removals (Scout's skirmish, Sniffer's elusive loss).
+        target.grantedKeywordsThisTurn.forEach { (kw, amount) ->
+            keywords[kw] = maxOf(keywords[kw] ?: 0, amount)
+        }
+        target.removedKeywordsThisTurn.forEach { kw -> keywords.remove(kw) }
         projected.forEach { (source, effect) ->
             if (effect.scope == null) return@forEach
             if (!matchesTarget(game, source, effect.scope!!, target)) return@forEach
@@ -83,10 +89,39 @@ object EffectRegistry {
     }
 
     /** True when `owner` (the prospective victim) has a no-steal restriction in play. */
-    fun cannotBeStolenFrom(library: CardLibrary, game: GameState, owner: PlayerState): Boolean {
+    fun cannotBeStolenFrom(library: CardLibrary, owner: PlayerState): Boolean {
         val cards = owner.cardsInPlay() + owner.creatures.flatMap { it.upgrades }
         return cards.any { library.scriptFor(it.cardId).useRestrictions().contains(UseRestriction.NoSteal) }
     }
+
+    fun skipsForgeStep(library: CardLibrary, game: GameState, player: PlayerState): Boolean =
+        sources(game).any { source ->
+            source.controllerIndex == player.index &&
+                library.scriptFor(source.cardId).staticBehaviors().contains(SkipOwnForgeStep)
+        }
+
+    /** The player that receives the opponent's forge amber (The Sting), or null. */
+    fun forgeAmberRedirectTarget(library: CardLibrary, game: GameState, forgingPlayer: PlayerState): PlayerState? =
+        sources(game).firstOrNull { source ->
+            source.controllerIndex != forgingPlayer.index &&
+                library.scriptFor(source.cardId).staticBehaviors().contains(RedirectOpponentForgeAmber)
+        }?.let { game.player(it.controllerIndex) }
+
+    /**
+     * Amber on `player`'s own cards spendable when forging keys (Pocket Universe,
+     * Safe Place), paired with the card holding it.
+     */
+    fun keyForgeAmberOnCards(library: CardLibrary, game: GameState, player: PlayerState): List<Pair<InPlayCard, Int>> =
+        sources(game).filter { source ->
+            source.controllerIndex == player.index && source.capturedAmber > 0 &&
+                library.scriptFor(source.cardId).staticBehaviors().contains(SpendCapturedAmberOnKeys)
+        }.map { it to it.capturedAmber }
+
+    /** Houses the opponent bans for `player`'s house choice (Restringuntus). */
+    fun bannedHouseChoices(library: CardLibrary, game: GameState, player: PlayerState): Set<com.aember.analyzer.domain.model.House> =
+        sources(game).filter { it.controllerIndex != player.index }
+            .mapNotNull { library.scriptFor(it.cardId).bansHouseChoice(it) }
+            .toSet()
 
     /**
      * Sum of active key-cost modifiers for `payer` (the player trying to forge).

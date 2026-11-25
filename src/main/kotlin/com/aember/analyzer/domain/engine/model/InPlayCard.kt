@@ -28,12 +28,15 @@ data class InPlayCard(
     var enrage: Boolean = false,
     var elusiveUsed: Boolean = false,
     var attackedThisTurn: Boolean = false,
-    /** Cannot be dealt damage for the remainder of the turn (Protectrix, Shield of Justice). */
     var immuneToDamageThisTurn: Boolean = false,
-    /** Armor removed until end of turn (Red Hot Armor); subtracted when damage is applied. */
     var armorStrippedThisTurn: Int = 0,
     /** Cards placed facedown beneath this card (Masterplan). */
     val beneathCardIds: MutableList<String> = mutableListOf(),
+    val grantedKeywordsThisTurn: MutableMap<String, Int> = mutableMapOf(),
+    val removedKeywordsThisTurn: MutableSet<String> = mutableSetOf(),
+    var usedThisTurn: Int = 0,
+    /** House stored on the card at play/ability time (Restringuntus). */
+    var chosenHouse: House? = null,
     var keywords: Map<String, Int> = emptyMap(),
     var traits: List<String> = emptyList(),
     var upgrades: MutableList<InPlayCard> = mutableListOf(),

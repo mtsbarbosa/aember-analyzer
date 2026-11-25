@@ -33,7 +33,8 @@ class ActionGenerator(
                 restriction is UseRestriction.ForcedHouse && source.controllerIndex == player.index
             }
             .map { (_, restriction) -> (restriction as UseRestriction.ForcedHouse).house }
-        val available = player.deck.houses.distinct().filter { it != player.deniedHouseNextTurn }
+        val banned = EffectRegistry.bannedHouseChoices(library, game, player)
+        val available = player.deck.houses.distinct().filter { it != player.deniedHouseNextTurn && it !in banned }
         // A forced house only applies when it is actually choosable; otherwise the
         // restriction is ignored so the turn can never be left without a legal choice
         // (e.g. Pitlord controlled by a player without Dis, or Dis denied this turn).
@@ -117,17 +118,29 @@ class ActionGenerator(
             }
         }
 
-        // Use creatures
-        player.creatures.filter { !it.exhausted || it.stun }.forEach { creature ->
-            val script = library.scriptFor(creature.cardId)
-            val usableAsActiveHouse = script.selfRestrictions().any { it is SelfRestriction.UsableAsActiveHouse }
-            val mayUseAllowance = creature.house == player.mayUseHouseThisTurn || creature.instanceId in player.mayUseCardIdsThisTurn
-            if ((isHouseMatch(creature.house, activeHouse) || usableAsActiveHouse || mayUseAllowance) &&
-                canUseCardName(player, creature.cardId)
-            ) {
-                actions.addAll(generateCreatureUses(game, creature, script))
+        // Use creatures. Fight allowances (Follow the Leader, Brothers in Battle,
+        // Horseman of War) only waive the house requirement: the creature must still be ready.
+        val fightOnlyAll = player.allCreaturesFightOnlyThisTurn
+        val mayFightHouse = player.mayFightHouseThisTurn
+        player.creatures.filter { !it.exhausted || it.stun }
+            .forEach { creature ->
+                val script = library.scriptFor(creature.cardId)
+                val usableAsActiveHouse = script.selfRestrictions().any { it is SelfRestriction.UsableAsActiveHouse } ||
+                    creature.upgrades.any { upgrade ->
+                        library.scriptFor(upgrade.cardId).selfRestrictions().any { it is SelfRestriction.UsableAsActiveHouse }
+                    }
+                val mayUseAllowance = creature.house == player.mayUseHouseThisTurn || creature.instanceId in player.mayUseCardIdsThisTurn
+                val fightAllowance = player.allMayFightThisTurn || creature.house == mayFightHouse || fightOnlyAll
+                val houseOk = isHouseMatch(creature.house, activeHouse) || usableAsActiveHouse || mayUseAllowance || fightAllowance
+                if (houseOk && canUseCardName(player, creature.cardId)) {
+                    if (fightOnlyAll) {
+                        // Horseman of War: usable but only to fight.
+                        actions.addAll(generateCreatureUses(game, creature, script, fightOnly = true))
+                    } else {
+                        actions.addAll(generateCreatureUses(game, creature, script))
+                    }
+                }
             }
-        }
         if (player.cannotFightNextTurn) {
             actions.removeAll { it is UseCreatureAction && it.useType is FightUse }
         }
@@ -214,7 +227,8 @@ class ActionGenerator(
     private fun generateCreatureUses(
         game: GameState,
         creature: InPlayCard,
-        script: com.aember.analyzer.domain.engine.CardScript
+        script: com.aember.analyzer.domain.engine.CardScript,
+        fightOnly: Boolean = false
     ): List<Action> {
         val actions = mutableListOf<Action>()
         if (creature.stun) {
@@ -222,27 +236,31 @@ class ActionGenerator(
             return actions
         }
         val cannotReap = script.selfRestrictions().any { it is SelfRestriction.CannotReap }
-        if (!cannotReap) {
+        if (!cannotReap && !fightOnly) {
             actions.add(UseCreatureAction(creature.instanceId, ReapUse))
         }
         val opponentCreatures = game.opponent().creatures
+        val onlyStunnedTargets = script.selfRestrictions().any { it is SelfRestriction.OnlyFightStunned }
         if (opponentCreatures.isNotEmpty()) {
             val tauntCreatures = opponentCreatures.filter { it.hasKeyword(Keyword.TAUNT) }
             val ignoresTaunt = script.ignoresTauntAndElusiveWhenAttacking()
-            val legalTargets = if (tauntCreatures.isNotEmpty() && !creature.hasKeyword(Keyword.TAUNT) && !ignoresTaunt) {
-                tauntCreatures
-            } else {
-                opponentCreatures
-            }
+            val stunnedFilter: (InPlayCard) -> Boolean =
+                if (onlyStunnedTargets) { target -> target.stun } else { _ -> true }
+            val legalTargets = when {
+                tauntCreatures.isNotEmpty() && !creature.hasKeyword(Keyword.TAUNT) && !ignoresTaunt -> tauntCreatures
+                else -> opponentCreatures
+            }.filter(stunnedFilter)
             legalTargets.forEach { target ->
                 actions.add(UseCreatureAction(creature.instanceId, FightUse(target.instanceId)))
             }
         }
-        library.scriptFor(creature.cardId).actionAbilities()
-            .filter { it != "Omni" }
-            .forEach { ability ->
-                actions.add(UseCreatureAction(creature.instanceId, ActionAbilityUse(ability)))
-            }
+        if (!fightOnly) {
+            library.scriptFor(creature.cardId).actionAbilities()
+                .filter { it != "Omni" }
+                .forEach { ability ->
+                    actions.add(UseCreatureAction(creature.instanceId, ActionAbilityUse(ability)))
+                }
+        }
         return actions
     }
 
