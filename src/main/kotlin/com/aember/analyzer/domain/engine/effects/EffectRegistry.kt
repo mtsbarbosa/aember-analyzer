@@ -31,9 +31,9 @@ object EffectRegistry {
     fun recalculate(library: CardLibrary, game: GameState) {
         val projected = sources(game)
             .flatMap { source -> library.scriptFor(source.cardId).staticEffects().map { source to it } }
-            .filter { (source, effect) -> effect.requireFlank == false || isFlank(game, source) }
+            .filter { (source, effect) -> !effect.requireFlank || isFlank(game, source) }
 
-        game.players.forEach { it.amberCannotBeStolen = cannotBeStolenFrom(library, game, it) }
+        game.players.forEach { it.amberCannotBeStolen = cannotBeStolenFrom(library, it) }
         game.players.forEach { player ->
             player.creatures.forEach { creature ->
                 applyTo(library, game, projected, creature)
